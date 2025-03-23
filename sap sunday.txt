@@ -11,6 +11,91 @@ const Trn_309_Movement = () => {
 
 export default Trn_309_Movement;
 
+
+******
+
+// import React from "react";
+
+// const Trn_309_Movement = () => {
+//   return (
+//     <div>
+//       <h1 style={{ textAlign: "center", marginTop: "180px" }}>Trn_309_Movement</h1>
+//     </div>
+//   );
+// };
+
+// export default Trn_309_Movement;
+
+import React from "react";
+import { Container, Typography, TextField, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+
+const data = [
+  { trn309Id: 1001, plantId: 500, fromMatId: "MAT001", toMatId: "MAT002", active: true },
+  { trn309Id: 1002, plantId: 501, fromMatId: "MAT003", toMatId: "MAT004", active: false },
+];
+
+const Trn_309_Movement = () => {
+  return (
+    <Container>
+      <Typography variant="h5" gutterBottom style={{ marginTop: "25px" }}>
+        TRN 309 Movement
+      </Typography>
+      <TextField
+        variant="outlined"
+        placeholder="Type here..."
+        size="small"
+        style={{ marginRight: "10px", width: "300px" }}
+      />
+      <Button variant="contained" startIcon={<SearchIcon />}>
+        Search
+      </Button>
+
+      <TableContainer component={Paper} style={{ marginTop: "20px" }}>
+        <Table>
+          <TableHead>
+            <TableRow style={{ backgroundColor: "#1976d2" }}>
+              <TableCell style={{ color: "white" }}>TRN 309 ID</TableCell>
+              <TableCell style={{ color: "white" }}>Plant ID</TableCell>
+              <TableCell style={{ color: "white" }}>From Mat ID</TableCell>
+              <TableCell style={{ color: "white" }}>To Mat ID</TableCell>
+              <TableCell style={{ color: "white" }}>Active</TableCell>
+              <TableCell style={{ color: "white" }}>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {data.map((row, index) => (
+              <TableRow key={index}>
+                <TableCell>{row.trn309Id}</TableCell>
+                <TableCell>{row.plantId}</TableCell>
+                <TableCell>{row.fromMatId}</TableCell>
+                <TableCell>{row.toMatId}</TableCell>
+                <TableCell>{row.active ? "Yes" : "No"}</TableCell>
+                <TableCell>
+                  <IconButton color="primary">
+                    <VisibilityIcon />
+                  </IconButton>
+                  <IconButton color="success">
+                    <CloudUploadIcon />
+                  </IconButton>
+                  <IconButton color="secondary">
+                    <FileDownloadIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Container>
+  );
+};
+
+export default Trn_309_Movement;
+
 --transactiob router
 
 /* eslint-disable react/jsx-pascal-case */
