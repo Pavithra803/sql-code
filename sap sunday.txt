@@ -1,0 +1,419 @@
+----trn 309 movt
+import React from "react";
+
+const Trn_309_Movement = () => {
+  return (
+    <div>
+      <h1 style={{ textAlign: "center", marginTop: "180px" }}>Trn_309_Movement</h1>
+    </div>
+  );
+};
+
+export default Trn_309_Movement;
+
+--transactiob router
+
+/* eslint-disable react/jsx-pascal-case */
+import React from 'react';
+import Trn_309_Movement from './Trn_309_Movement';
+
+const TransactionRouter = {
+  Path: 'Transactions',
+  Children: [
+    { path: 'Trn_309_Movement', elemenSt: <Trn_309_Movement /> },
+  ],
+};
+
+export default TransactionsRouter;
+
+
+--app.js
+
+
+/* eslint-disable react/jsx-pascal-case */
+
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+import Material from "./Masters/Material";
+import Company from "./Masters/company";
+import Plant from "./Masters/Plant";
+import StorageLocation from "./Masters/StorageLocation";
+import CostCenter from "./Masters/CostCenter";
+import UserDetails from "./Masters/Users_details";
+import MVT_LIST_ITEM from "./Masters/MVT_LIST_ITEM";
+import Department from "./Masters/Department";
+import Vendor from "./Masters/Vendor";
+import Customer from "./Masters/Customer";
+import Movement_Type from "./Masters/Movement_Type";
+import Main from "./main"
+import Phy from "./Dashboard/phy"
+import Login from "./components/pages/login";
+import DashBoard from "./components/pages/dash";
+import Report1 from "./Report/Report 1";
+import Report2 from "./Report/Report 2";
+import Emergency from "./Dashboard/Emergency";
+import Rs from "./Dashboard/Rs";
+import RGP from "./Dashboard/RGP";
+import Stock from "./Dashboard/stock201";
+import Partno from "./Dashboard/Partno";
+import ScrapDisposal from "./Dashboard/scrap disposal";
+import Manual from "./Dashboard/Manual";
+import Production from "./Dashboard/Production";
+import Scrap from "./Dashboard/scrap551";
+import SubContracting from "./Dashboard/SubContracting";
+import Inward from "./Dashboard/Inward";
+import Location from "./Dashboard/Location";
+import Trn_309_Movement from "./Transactions/Trn_309_Movement";
+
+
+const App = () => {
+  return (
+    <Router>
+      
+            <Routes>
+            <Route path="/" element={<Login/>}/> 
+              <Route path="/home" element={<Main/>}>
+                
+                <Route path="company" element={<Company />} />
+                <Route path="plant" element={<Plant />} />
+                <Route path="material" element={<Material />} />
+                <Route path="storagelocation" element={<StorageLocation />} />
+                <Route path="costcenter" element={<CostCenter />} />
+                <Route path="user_details" element={<UserDetails />} />
+                <Route path="MVT_LIST_ITEM" element={<MVT_LIST_ITEM/>}/>
+                <Route path="Home" element={<DashBoard/>} /> 
+                <Route path="dashboard" element={<DashBoard/>}/>
+                <Route path="Department" element={<Department/>}/>
+                <Route path="Vendor" element={<Vendor/>}/>
+                <Route path="Customer" element={<Customer/>}/>
+                <Route path="Movement_Type" element={<Movement_Type/>}/>
+                <Route path="Report1" element={<Report1/>}/>
+                <Route path="Report2" element={<Report2/>}/>
+               <Route path= 'phy' element={<Phy/>}/>
+               <Route path= 'Emergency' element={<Emergency/>}/>
+               <Route path= 'Rs' element={<Rs/>}/>
+               <Route path= 'RGP' element={<RGP/>}/>
+               <Route path='Stock' element={<Stock/>}/>
+               <Route path='Partno' element={<Partno/>}/>
+               <Route path="scrap Disposal" element={<ScrapDisposal/>}/>
+               <Route path="manual" element={<Manual/>}/>
+               <Route path="Production" element={<Production/>}/>
+               <Route path="scrap551" element={<Scrap/>}/>
+               <Route path="Material" element={<Material/>}/>
+               <Route path="SubContracting" element={<SubContracting/>}/>
+               <Route path="Inward" element={<Inward/>}/>
+               <Route path="Location" element={<Location/>}/>
+               <Route path="Trn_309_Movement" element={<Trn_309_Movement />} />
+
+              </Route>
+            </Routes>
+    </Router>
+  );
+};
+
+export default App;
+
+/* React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+import Material from "./Masters/Material";
+import Company from "./Masters/Company";
+import Plant from "./Masters/Plant";
+import StorageLocation from "./Masters/StorageLocation";
+import CostCenter from "./Masters/CostCenter";
+import UserDetails from "./Masters/Users_details";
+import MVT_LIST_ITEM from "./Masters/MVT_LIST_ITEM";
+import Department from "./Masters/Department";
+import Vendor from "./Masters/Vendor";
+import Customer from "./Masters/Customer";
+import Movement_Type from "./Masters/Movement_Type";
+import Main from "./main";
+import Phy from "./Dashboard/Phy";
+import Login from "./components/pages/Login";
+import DashBoard from "./components/pages/Dash";
+import Report1 from "./Report/Report1"; // Removed space
+import Report2 from "./Report/Report2"; // Removed space
+import Emergency from "./Dashboard/Emergency";
+import Rs from "./Dashboard/Rs";
+import RGP from "./Dashboard/RGP";
+import Stock from "./Dashboard/Stock201";
+import Partno from "./Dashboard/Partno";
+import ScrapDisposal from "./Dashboard/ScrapDisposal"; // Fixed space issue
+import Manual from "./Dashboard/Manual";
+import Production from "./Dashboard/Production";
+import Scrap from "./Dashboard/Scrap551";
+import SubContracting from "./Dashboard/SubContracting";
+import Inward from "./Dashboard/Inward";
+import Location from "./Dashboard/Location";
+
+
+const App = () => {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/home" element={<Main />}>
+          <Route path="company" element={<Company />} />
+          <Route path="plant" element={<Plant />} />
+          <Route path="material" element={<Material />} />
+          <Route path="storagelocation" element={<StorageLocation />} />
+          <Route path="costcenter" element={<CostCenter />} />
+          <Route path="user_details" element={<UserDetails />} />
+          <Route path="MVT_LIST_ITEM" element={<MVT_LIST_ITEM />} />
+          <Route path="dashboard" element={<DashBoard />} />
+          <Route path="Department" element={<Department />} />
+          <Route path="Vendor" element={<Vendor />} />
+          <Route path="Customer" element={<Customer />} />
+          <Route path="Movement_Type" element={<Movement_Type />} />
+          <Route path="Report1" element={<Report1 />} />
+          <Route path="Report2" element={<Report2 />} />
+          <Route path="phy" element={<Phy />} />
+          <Route path="Emergency" element={<Emergency />} />
+          <Route path="Rs" element={<Rs />} />
+          <Route path="RGP" element={<RGP />} />
+          <Route path="Stock" element={<Stock />} />
+          <Route path="Partno" element={<Partno />} />
+          <Route path="scrap-disposal" element={<ScrapDisposal />} />
+          <Route path="manual" element={<Manual />} />
+          <Route path="Production" element={<Production />} />
+          <Route path="scrap551" element={<Scrap />} />
+          <Route path="SubContracting" element={<SubContracting />} />
+          <Route path="Inward" element={<Inward />} />
+          <Route path="Location" element={<Location />} />
+          </Route>
+        </Routes>
+    </Router>
+  );
+};
+
+export default App;*/
+
+
+----sidebar
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import MenuIcon from "@mui/icons-material/Menu";
+import ArrowRightIcon from "@mui/icons-material/ArrowRight";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import { PiNuclearPlantFill } from "react-icons/pi";
+import { MdDashboard } from "react-icons/md";
+import ReportIcon from "@mui/icons-material/Report";
+import BusinessIcon from "@mui/icons-material/Business";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+
+
+const Sidebar = ({ setSidebarOpen }) => {
+  const [open, setOpen] = useState(false);
+  const [Masters, setMasterOpen] = useState(false);
+  const [Transaction, setTransactionOpen] = useState(false);
+  const [Dashboard, setDashboardOpen] = useState(false);
+  const [Report, setReportOpen] = useState(false);
+  const [isMovementOpen, setMovementOpen] = useState(false);
+
+  useEffect(() => {
+    setSidebarOpen(open);
+  }, [open, setSidebarOpen]);
+
+  const toggleSidebar = () => {
+    setOpen(!open);
+    if (open) closeAllDropdowns();
+  };
+
+  const toggleMasters = () => {
+    setMasterOpen(!Masters);
+    setTransactionOpen(false);
+    setDashboardOpen(false);
+    setReportOpen(false);
+    setMovementOpen(false);
+  };
+
+  const toggleTransaction = () => {
+    setTransactionOpen(!Transaction);
+    setMasterOpen(false);
+    setDashboardOpen(false);
+    setReportOpen(false);
+    setMovementOpen(false);
+  };
+
+  const toggleReport = () => {
+    setReportOpen(!Report);
+    setMasterOpen(false);
+    setDashboardOpen(false);
+    setTransactionOpen(false);
+    setMovementOpen(false);
+  };
+
+  const toggleDashboard = () => {
+    setDashboardOpen(!Dashboard);
+    setMasterOpen(false);
+    setTransactionOpen(false);
+    setReportOpen(false);
+    setMovementOpen(false);
+  };
+
+  const toggleMovement = () => {
+    setMovementOpen(!isMovementOpen);
+    setMasterOpen(false);
+    setTransactionOpen(false);
+    setDashboardOpen(false);
+    setReportOpen(false);
+  };
+
+  const closeAllDropdowns = () => {
+    setMasterOpen(false);
+    setTransactionOpen(false);
+    setDashboardOpen(false);
+    setReportOpen(false);
+    setMovementOpen(false);
+  };
+
+  return (
+    <div
+      style={{
+        width: open ? "250px" : "60px",
+        backgroundColor: "#595959",
+        transition: "width 0.3s ease",
+        height: "100vh",
+        position: "fixed",
+        top: "60px",
+        left: 0,
+        overflow: "hidden",
+        paddingTop: "10px",
+      }}
+    >
+      {/* Sidebar Header */}
+      <div
+        style={{
+          padding: "10px",
+          display: "flex",
+          justifyContent: open ? "space-between" : "center",
+          alignItems: "center",
+          cursor: "pointer",
+        }}
+      >
+        {open && <h3 style={{ margin: 0, color: "white" }}>HOME</h3>}
+        <button
+          onClick={toggleSidebar}
+          style={{
+            border: "none",
+            cursor: "pointer",
+            fontSize: "20px",
+            color: "white",
+            background: "transparent",
+          }}
+        >
+          <MenuIcon />
+        </button>
+      </div>
+
+      {/* Sidebar Menu Items */}
+      <div style={{ padding: "10px" }}>
+        <SidebarSection
+          open={open}
+          isOpen={Dashboard}
+          toggleSection={toggleDashboard}
+          icon={<MdDashboard />}
+          label="Dashboard"
+          links={[{ name: "Dashboard", path: "/home/dashboard" }]}
+        />
+        
+        <SidebarSection
+          open={open}
+          isOpen={Masters}
+          toggleSection={toggleMasters}
+          icon={<PiNuclearPlantFill />}
+          label="Masters"
+          links={[
+            { name: "Company", path: "/home/company", icon: <BusinessIcon style={{ marginRight: "8px" }} /> },
+            { name: "Plant", path: "/home/Plant" },
+            { name: "Department", path: "/home/Department" },
+            { name: "Login User", path: "/home/User_details" },
+            { name: "Material", path: "/home/Material" },
+            { name: "Vendor", path: "/home/Vendor" },
+            { name: "Customer", path: "/home/Customer" },
+            { name: "Storage Location", path: "/home/StorageLocation" },
+            { name: "Movement Type", path: "/home/Movement_Type" },
+            { name: "MVT List Item", path: "/home/MVT_LIST_ITEM" },
+            { name: "Cost Center", path: "/home/CostCenter" },
+          ]}
+        />
+
+        <SidebarSection
+          open={open}
+          isOpen={Report}
+          toggleSection={toggleReport}
+          icon={<ReportIcon />}
+          label="Report"
+          links={[
+            { name: "Report 1", path: "/home/Report1", icon: <ReportIcon style={{ marginRight: "8px", color: "#ffcc00" }} /> },
+            { name: "Report 2", path: "/home/Report2", icon: <ReportIcon style={{ marginRight: "8px", color: "#ffcc00" }} /> },
+          ]}
+        />
+
+        {/* Added Trn_309_Movement Section */}
+        <SidebarSection
+          open={open}
+          isOpen={isMovementOpen}
+          toggleSection={toggleMovement}
+          icon={<LocalShippingIcon/>}
+          label="Movement 309"
+          links={[{ name: "Trn_309_Movement", path: "/home/Trn_309_Movement" }]}
+        />
+      </div>
+    </div>
+  );   
+};
+
+
+const SidebarSection = ({ open, isOpen, toggleSection, icon, label, links }) => (
+  <div style={{ marginBottom: "10px" }}>
+    <button
+      onClick={toggleSection}
+      style={{
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        width: "100%",
+        textAlign: "left",
+        padding: "5px",
+        color: "white",
+        display: "flex",
+        alignItems: "center",
+        fontWeight: "bold",
+        fontSize: "18px",
+        justifyContent: "space-between",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        {icon}
+        {open && label}
+      </div>
+      {open && (isOpen ? <ArrowDropDownIcon /> : <ArrowRightIcon />)}
+    </button>
+    {open && isOpen && (
+      <div style={{ paddingLeft: "20px" }}>
+        {links.map((link, index) => (
+          <Link
+            key={index}
+            to={link.path}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              textDecoration: "none",
+              padding: "5px",
+              fontSize: "15px",
+              color: "white",
+              fontFamily: "Arial",
+            }}
+          >
+            {link.icon && <span style={{ marginRight: "8px" }}>{link.icon}</span>}
+            {link.name}
+          </Link>
+        ))}
+      </div>
+    )}
+  </div>
+);
+
+export default Sidebar;         
