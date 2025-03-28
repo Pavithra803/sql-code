@@ -234,7 +234,6 @@ CREATE TABLE Trn_Document (
     Modified_On DATETIME
 );
 
-
 --T 2 Trn 309 Movt
 
 CREATE TABLE Trn_309_Movement (
@@ -244,6 +243,7 @@ CREATE TABLE Trn_309_Movement (
     Movement_ID INT FOREIGN KEY REFERENCES Mst_Movement_Type(Movement_ID),
     
     From_Mat_ID INT FOREIGN KEY REFERENCES Mst_Material(Material_ID),
+    From_Description NVARCHAR(255),  -- Added From_Description
     From_Qty INT,
     From_SLoc_ID INT FOREIGN KEY REFERENCES Mst_Storage_Location(SLoc_ID),
     From_Valuation_Type NVARCHAR(50),
@@ -251,6 +251,7 @@ CREATE TABLE Trn_309_Movement (
     From_Rate_Per_Unit DECIMAL(6,2),
     
     To_Mat_ID INT FOREIGN KEY REFERENCES Mst_Material(Material_ID),
+    To_Description NVARCHAR(255),  -- Added To_Description
     To_Qty INT,
     To_SLoc_ID INT FOREIGN KEY REFERENCES Mst_Storage_Location(SLoc_ID),
     To_Valuation_Type NVARCHAR(50),
@@ -265,6 +266,7 @@ CREATE TABLE Trn_309_Movement (
     Modified_By INT,
     Modified_On DATETIME
 );
+
 
 
 --T 3 Trn 202 movt
@@ -425,8 +427,8 @@ VALUES
 --T T 2
 
 INSERT INTO Trn_309_Movement 
-(Doc_ID, Plant_ID, Movement_ID, From_Mat_ID, From_Qty, From_SLoc_ID, From_Valuation_Type, From_Batch, From_Rate_Per_Unit, To_Mat_ID, To_Qty, 
-To_SLoc_ID, To_Valuation_Type, To_Batch, To_Rate_Per_Unit, Remark, Approval_Status, SAP_Transaction_Status, Created_By, Created_On) 
+(Doc_ID, Plant_ID, Movement_ID, From_Mat_ID, From_Description, From_Qty, From_SLoc_ID, From_Valuation_Type, From_Batch, From_Rate_Per_Unit,To_Mat_ID, 
+To_Description, To_Qty, To_SLoc_ID, To_Valuation_Type, To_Batch, To_Rate_Per_Unit, Remark, Approval_Status, SAP_Transaction_Status,Created_By, Created_On) 
 VALUES
 (),(),();
 
