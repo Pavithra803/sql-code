@@ -4,6 +4,8 @@ CREATE DATABASE SAP_APPROVAL;
 
 USE SAP_APPROVAL;
 
+-- Masters Table 
+
 --T 1 Mst Com
 CREATE TABLE Mst_Company (
     Com_ID INT IDENTITY(1,1) PRIMARY KEY,
@@ -204,6 +206,8 @@ CREATE TABLE Mst_Customer (
     Modified_By INT,
     Modified_On DATETIME
 );
+
+-- Transaction Table 
 
 --T 1 Trn  Doc
 
