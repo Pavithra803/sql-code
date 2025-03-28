@@ -45,8 +45,18 @@ CREATE TABLE Mst_Department (
     Modified_On DATETIME
 );
 
+--T 4 Mst Material Type 
 
---T 4 Mst Material
+CREATE TABLE Mst_Material_Type (
+    Mat_ID INT IDENTITY(1,1) PRIMARY KEY,  
+    Mat_Type NVARCHAR(50), 
+    Active_Status BIT ,  
+    Created_By INT,  
+    Created_On DATETIME ,  
+    Modified_By INT ,  
+    Modified_On DATETIME  
+);
+--T 5 Mst Material
 
 CREATE TABLE Mst_Material (
     Material_ID INT IDENTITY(1,1) PRIMARY KEY,
@@ -62,17 +72,9 @@ CREATE TABLE Mst_Material (
     Modified_On DATETIME
 );
 
---T 5 Mst Material Type 
 
-CREATE TABLE Mst_Material_Type (
-    MatType_ID INT IDENTITY(1,1) PRIMARY KEY,  
-    Material_Type NVARCHAR(50), 
-    Active_Status BIT ,  
-    Created_By INT,  
-    Created_On DATETIME ,  
-    Modified_By INT ,  
-    Modified_On DATETIME  
-);
+
+
 --T 6 Mst Storage  Location
 
 CREATE TABLE Mst_Storage_Location (
@@ -353,13 +355,13 @@ VALUES
 (),(),();
 
 --T M 4
+INSERT INTO Mst_Material_Type (Mat_Type, Active_Status, Created_By, Created_On) 
+VALUES (),();
+
+--T M 5
 INSERT INTO Mst_Material (Plant_ID, Material_Code, Description, Material_Type, Rate, Active_Status, Created_By, Created_On)
 VALUES 
 (),();
-
---T M 5
-INSERT INTO Mst_Material_Type (Mat_Type, Active_Status, Created_By, Created_On) 
-VALUES (),();
 
 --T M 6
 
