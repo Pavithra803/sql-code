@@ -1,8 +1,4 @@
-
-
-
-
-
+--02/04/25 insert the values 
 -- Mst Com T1
 INSERT INTO Mst_Company (Com_code, Com_Name, Active_Status, Created_By, Created_On)
 VALUES 
@@ -284,3 +280,35 @@ VALUES
 'test', 'Pending', 'Success', 1, GETDATE());
 
 SELECT * FROM Trn_309_Movement
+
+--03/04/25create thr store procedure
+
+select * from Trn_309_Movement
+
+CREATE PROCEDURE GetTrn_309_Movement
+AS
+BEGIN
+    
+    SET NOCOUNT ON;
+
+    SELECT 
+        Plant_ID AS Plant,
+        From_Mat_ID AS From_Material,
+        From_Qty AS From_Qty,
+        From_SLoc_ID AS From_Storage,
+        From_Valuation_Type AS From_Valuation_Type,
+        From_Batch AS From_Batch,
+        From_Rate_Per_Unit AS From_Rate_Perunit,
+        To_Mat_ID AS To_Material,
+        To_SLoc_ID AS To_Storage,
+        To_Valuation_Type AS To_Valuation_Type,
+        To_Batch AS To_Batch,
+        To_Rate_Per_Unit AS To_Rate_Perunit,
+        Remark AS Remarks
+    FROM 
+        Trn_309_Movement;
+END;
+--excute
+EXEC GetTrn_309_Movement;
+
+
