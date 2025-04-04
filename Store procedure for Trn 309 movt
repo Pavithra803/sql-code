@@ -1,6 +1,6 @@
 Store procedure for Trn 309 movt
 
-CREATE PROCEDURE GetTrn309MovementDetails
+CREATE PROCEDURE GetTrn309_Movement_Details
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -28,4 +28,4 @@ BEGIN
     INNER JOIN Mst_Storage_Location S2 ON T.To_SLoc_ID = S2.SLoc_ID;
 END;
 
-EXEC GetTrn309Movements;
+EXEC GetTrn_309_Movements;
