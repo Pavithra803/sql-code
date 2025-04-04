@@ -1,0 +1,30 @@
+Store procedure for Trn 309 movt
+
+CREATE PROCEDURE GetTrn309Movements
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        T.Plant_ID,
+        T.From_Mat_ID,
+        T.From_Qty,
+        T.From_SLoc_ID,
+        T.From_Valuation_Type,
+        T.From_Batch,
+        T.From_Rate_Per_Unit,
+        T.To_Mat_ID,
+        T.To_SLoc_ID,
+        T.To_Valuation_Type,
+        T.To_Batch,
+        T.To_Rate_Per_Unit,
+        T.Remark
+    FROM Trn_309_Movement T
+    INNER JOIN Mst_Material M_From ON T.From_Mat_ID = M_From.Material_ID
+    INNER JOIN Mst_Material M_To ON T.To_Mat_ID = M_To.Material_ID
+    INNER JOIN Mst_Storage_Location SL_From ON T.From_SLoc_ID = SL_From.SLoc_ID
+    INNER JOIN Mst_Storage_Location SL_To ON T.To_SLoc_ID = SL_To.SLoc_ID;
+END;
+
+
+EXEC GetTrn309Movements;
