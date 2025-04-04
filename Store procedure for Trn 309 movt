@@ -1,6 +1,6 @@
 Store procedure for Trn 309 movt
 
-CREATE PROCEDURE GetTrn309Movements
+CREATE PROCEDURE GetTrn309MovementDetails
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -18,13 +18,14 @@ BEGIN
         T.To_Valuation_Type,
         T.To_Batch,
         T.To_Rate_Per_Unit,
+        (T.To_Rate_Per_Unit - T.From_Rate_Per_Unit) AS Net_Difference_Price,
+        T.Approval_Status,
         T.Remark
     FROM Trn_309_Movement T
-    INNER JOIN Mst_Material M_From ON T.From_Mat_ID = M_From.Material_ID
-    INNER JOIN Mst_Material M_To ON T.To_Mat_ID = M_To.Material_ID
-    INNER JOIN Mst_Storage_Location SL_From ON T.From_SLoc_ID = SL_From.SLoc_ID
-    INNER JOIN Mst_Storage_Location SL_To ON T.To_SLoc_ID = SL_To.SLoc_ID;
+    INNER JOIN Mst_Material M ON T.From_Mat_ID = M.Material_ID
+    INNER JOIN Mst_Storage_Location S ON T.From_SLoc_ID = S.SLoc_ID
+    INNER JOIN Mst_Material M2 ON T.To_Mat_ID = M2.Material_ID
+    INNER JOIN Mst_Storage_Location S2 ON T.To_SLoc_ID = S2.SLoc_ID;
 END;
-
 
 EXEC GetTrn309Movements;
