@@ -1,0 +1,71 @@
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import './Modal.css'; // Create this for basic styling
+
+const MovementTable = () => {
+  const [movements, setMovements] = useState([]);
+  const [selected, setSelected] = useState(null);
+
+  // Fetch all data on load
+  useEffect(() => {
+    axios.get('http://localhost:3001/api/movements') // Your backend URL
+      .then(res => setMovements(res.data))
+      .catch(err => console.error(err));
+  }, []);
+
+  // Fetch single record for modal view
+  const handleView = (id) => {
+    axios.get(`http://localhost:3001/api/movements/${id}`)
+      .then(res => setSelected(res.data))
+      .catch(err => console.error(err));
+  };
+
+  return (
+    <div>
+      <h2>309 Movement Transactions</h2>
+      <table border="1" cellPadding="10">
+        <thead>
+          <tr>
+            <th>From Mat Code</th>
+            <th>To Mat Code</th>
+            <th>Qty</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {movements.map(m => (
+            <tr key={m.id}>
+              <td>{m.fromMatCode}</td>
+              <td>{m.toMatCode}</td>
+              <td>{m.fromQty}</td>
+              <td>{m.approvalStatus}</td>
+              <td>
+                <button onClick={() => handleView(m.id)}>View</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Modal */}
+      {selected && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>309 Movement Record</h3>
+            <p><strong>From Mat Code:</strong> {selected.fromMatCode}</p>
+            <p><strong>To Mat Code:</strong> {selected.toMatCode}</p>
+            <p><strong>From Qty:</strong> {selected.fromQty}</p>
+            <p><strong>To Qty:</strong> {selected.toQty}</p>
+            <p><strong>From SLoc ID:</strong> {selected.fromSlocID}</p>
+            <p><strong>To SLoc ID:</strong> {selected.toSlocID}</p>
+            <p><strong>Approval Status:</strong> {selected.approvalStatus}</p>
+            <button onClick={() => setSelected(null)}>Close</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MovementTable;
