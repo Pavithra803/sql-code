@@ -1,0 +1,91 @@
+upload template (insert)
+
+-- Create the table
+CREATE TABLE #transation (
+    Plant_Code VARCHAR(100) NOT NULL,
+    From_Material_Code VARCHAR(100) NOT NULL,
+    From_Qty VARCHAR(100) NOT NULL,
+    From_Storage_Code VARCHAR(100) NOT NULL,
+    From_Valuvation_Type VARCHAR(100) NOT NULL,
+    From_Batch VARCHAR(100) NOT NULL,
+    From_Rate_Per_Unit VARCHAR(100) NOT NULL,
+    To_Material_Code VARCHAR(100) NOT NULL,
+    To_Qty VARCHAR(100) NOT NULL,
+    To_Storage_Code VARCHAR(100) NOT NULL,
+    To_Valuvation_Type VARCHAR(100) NOT NULL,
+    To_Batch VARCHAR(100) NOT NULL,
+    To_Rate_Per_Unit VARCHAR(100) NOT NULL,
+    Remarks VARCHAR(100) NOT NULL
+);
+
+-- Insert data into the table
+INSERT INTO #transation (
+    Plant_Code,
+    From_Material_Code,
+    From_Qty,
+    From_Storage_Code,
+    From_Valuvation_Type,
+    From_Batch,
+    From_Rate_Per_Unit,
+    To_Material_Code,
+    To_Qty,
+    To_Storage_Code,
+    To_Valuvation_Type,
+    To_Batch,
+    To_Rate_Per_Unit,
+    Remarks
+)
+VALUES
+    ('1200', 'MAT001', 'SUBCONTRACT', '50', '1000', '1', '160', 'MAT004', 'SUBCONTRACT', '100', '1000', '4', '160', 'test'),
+    ('1300', 'MAT002', 'DOMESTIC', '40', '1200', '2', '140', 'MAT005', 'DOMESTIC', '80', '1200', '5', '140', 'test'),
+    ('1150', 'MAT003', 'INHOUSE', '60', '1300', '3', '150', 'MAT006', 'INHOUSE', '120', '1300', '6', '150', 'test');
+
+
+
+	  SELECT t.*,
+
+   case when t.Plant_Code in (select Plant_Code from Mst_Plant where Active_Status= 1 ) then 'Valid'else  'Invalid' End as 'Plant_val',                          
+   case when t.From_Material_Code in (select Material_Code from Mst_Material where Active_Status = 1 ) then 'Valid'else  'Invalid' End as 'From_Mat',                    
+   case when t.To_Material_Code in (select Material_Code from Mst_Material where Active_Status = 1 ) then 'Valid' else 'Invalid' End as 'To_Mat'                 
+  
+  INTO #t1                            
+  FROM #transation AS t; 
+
+
+        -- Create another temporary table to map the relevant data                          
+  SELECT 
+  p.Plant_ID,
+  m1.Material_ID AS From_Material,
+  t.From_Qty,
+  t.From_Storage_Code,
+  t.From_Valuvation_Type,
+  t.From_Batch,
+  t.From_Rate_Per_Unit,
+  m2.Material_ID AS To_Material,
+  t.To_Qty,
+  t.To_Storage_Code,
+  t.To_Valuvation_Type,
+  t.To_Batch,
+  t.To_Rate_Per_Unit,
+  t.Remarks,
+  t.Plant_Code As Plant_val,
+  t.From_Material_Code As From_Mat,
+  t.To_Material_Code As T0_Mat
+  
+  INTO #t2                            
+  FROM  
+
+     #t1 AS t                            
+  INNER JOIN                     
+   Mst_Plant AS p ON p.Plant_Code = t.Plant_Code                    
+  INNER JOIN                    
+   Mst_Material AS m1 ON m1.Material_Code = t.From_Material_Code                    
+  INNER JOIN                    
+   Mst_Material AS m2 ON m2.Material_Code = t.To_Material_Code                    
+  WHERE                       
+   t.Plant_val = 'Valid'                     
+   and t.From_Mat = 'Valid'                    
+   and t.To_Mat = 'Valid';
+
+   WITH CTE
+
