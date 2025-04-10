@@ -1,0 +1,747 @@
+--select * from Trn_309_Movement
+
+/*CREATE PROCEDURE GetTrn_309_Movement
+AS
+BEGIN
+    
+    SET NOCOUNT ON;
+
+    SELECT 
+        Plant_ID AS Plant,
+        From_Mat_ID AS From_Material,
+        From_Qty AS From_Qty,
+        From_SLoc_ID AS From_Storage,
+        From_Valuation_Type AS From_Valuation_Type,
+        From_Batch AS From_Batch,
+        From_Rate_Per_Unit AS From_Rate_Perunit,
+        To_Mat_ID AS To_Material,
+        To_SLoc_ID AS To_Storage,
+        To_Valuation_Type AS To_Valuation_Type,
+        To_Batch AS To_Batch,
+        To_Rate_Per_Unit AS To_Rate_Perunit,
+        Remark AS Remarks
+    FROM 
+        Trn_309_Movement;
+END;
+
+EXEC GetTrn_309_Movement;  
+
+--DROP  PROCEDURE  Trn_309_Movement;
+----------------------------------------------------------------------------
+CREATE PROCEDURE GetTrn_309_Movement
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        t1.Plant_ID AS Plant,
+        t1.From_Mat_ID AS From_Material,
+        t1.From_Qty AS From_Qty,
+        t1.From_SLoc_ID AS From_Storage,
+        t1.From_Valuation_Type AS From_Valuation_Type,
+        t1.From_Batch AS From_Batch,
+        t1.From_Rate_Per_Unit AS From_Rate_Perunit,
+        t1.To_Mat_ID AS To_Material,
+        t1.To_SLoc_ID AS To_Storage,
+        t1.To_Valuation_Type AS To_Valuation_Type,
+        t1.To_Batch AS To_Batch,
+        t1.To_Rate_Per_Unit AS To_Rate_Perunit,
+        t1.Remark AS Remarks
+
+    FROM 
+        Trn_309_Movement t1
+
+    INNER JOIN 
+        Plants p ON t1.Plant_ID = p.Plant_ID  
+    INNER JOIN 
+        Materials m1 ON t1.From_Mat_ID = m1.Material_ID
+    INNER JOIN 
+        Materials m2 ON t1.To_Mat_ID = m2.Material_ID  
+    INNER JOIN 
+        StorageLocations sl1 ON t1.From_SLoc_ID = sl1.SLoc_ID  
+    INNER JOIN 
+        StorageLocations sl2 ON t1.To_SLoc_ID = sl2.SLoc_ID  
+    
+
+    WHERE 
+        t1.From_Qty > 100 
+        AND p.Plant_ID = 1  
+END;
+*/
+
+--------------------------------------04/04/25
+--DROP  PROCEDURE  GetTrn_309_Movement;
+--DROP TABLE Trn_309_Movement;
+--DROP  PROCEDURE GetTrn309Movement
+--------------------------------------------------  Tested-------------------------------------------
+
+--T 2 Trn 309 Movt
+
+CREATE TABLE Trn_309_Movement (
+    Trn_309_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Doc_ID INT FOREIGN KEY REFERENCES Trn_Document(Doc_ID),
+    Plant_ID INT FOREIGN KEY REFERENCES Mst_Plant(Plant_ID),
+    Movement_ID INT FOREIGN KEY REFERENCES Mst_Movement_Type(Movement_ID),
+    
+    From_Mat_ID INT FOREIGN KEY REFERENCES Mst_Material(Material_ID),
+    From_Description NVARCHAR(255),  -- Added From_Description
+    From_Qty INT,
+    From_SLoc_ID INT FOREIGN KEY REFERENCES Mst_Storage_Location(SLoc_ID),
+    From_Valuation_Type NVARCHAR(50),
+    From_Batch NVARCHAR(50),
+    From_Rate_Per_Unit DECIMAL(6,2),
+    
+    To_Mat_ID INT FOREIGN KEY REFERENCES Mst_Material(Material_ID),
+    To_Description NVARCHAR(255),  -- Added To_Description
+    To_Qty INT,
+    To_SLoc_ID INT FOREIGN KEY REFERENCES Mst_Storage_Location(SLoc_ID),
+    To_Valuation_Type NVARCHAR(50),
+    To_Batch NVARCHAR(50),
+    To_Rate_Per_Unit DECIMAL(6,2),
+    
+    Remark NVARCHAR(255),
+    Approval_Status NVARCHAR(50),
+    SAP_Transaction_Status NVARCHAR(50),
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+INSERT INTO Trn_309_Movement 
+(Doc_ID, Plant_ID, Movement_ID, From_Mat_ID, From_Qty, From_SLoc_ID, From_Valuation_Type, From_Batch, From_Rate_Per_Unit,
+To_Mat_ID, To_Qty, To_SLoc_ID, To_Valuation_Type, To_Batch, To_Rate_Per_Unit,
+Remark, Approval_Status, SAP_Transaction_Status, Created_By, Created_On) 
+VALUES
+    (2, 1, 4, 1,  50, 1, 'SUBCONTRACT', '2', 100.00,
+	2, 100, 1, 'SUBCONTRACT', NULL, 120.00, 
+	'test', 'Pending', 'In Progress', 1, GETDATE()),
+
+    (3, 2, 4, 2,  50, 2, 'DOMESTIC', NULL, 100.00,
+	 3, 100, 2, 'DOMESTIC', NULL, 120.00, 
+	'test', 'Pending', 'In Progress', 1, GETDATE()),
+
+    (4, 3, 4,  3, 50, 3, 'INHOUSE', NULL, 100.00,
+	 4, 100, 3, 'INHOUSE', NULL, 120.00, 
+	'test', 'Pending', 'In Progress', 1, GETDATE()
+);
+
+
+select * from Trn_309_Movement
+
+CREATE PROCEDURE GetTrn_309_Movement
+
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+	    T . Trn_309_ID,
+        P.Plant_Code,  -- Show Plant_Code instead of Plant_ID
+        
+        -- From side details
+        M.Material_Code AS From_Material_Code,
+        T.From_Qty,
+        S.Storage_Code AS From_SLoc_Code,
+        T.From_Valuation_Type,
+        T.From_Batch,
+        T.From_Rate_Per_Unit,
+        
+        -- To side details
+        M2.Material_Code AS To_Material_Code,
+        T.To_Qty,
+        S2.Storage_Code AS To_SLoc_Code,
+        T.To_Valuation_Type,
+        T.To_Batch,
+        T.To_Rate_Per_Unit,
+        
+        -- Calculated Net Difference Price
+        (T.To_Rate_Per_Unit - T.From_Rate_Per_Unit) AS Net_Difference_Price,
+        
+        -- Statuses and remarks
+        T.Approval_Status,
+        T.Remark,
+         
+	   T.Created_On As Date  -- Add this if you have a column named 'Movement_Date' or similar
+    FROM Trn_309_Movement T
+    -- Joining with Mst_Material to get Material_Code
+    INNER JOIN Mst_Material M ON T.From_Mat_ID = M.Material_ID
+    INNER JOIN Mst_Material M2 ON T.To_Mat_ID = M2.Material_ID
+    
+    -- Joining with Mst_Storage_Location to get Storage_Code
+    INNER JOIN Mst_Storage_Location S ON T.From_SLoc_ID = S.SLoc_ID
+    INNER JOIN Mst_Storage_Location S2 ON T.To_SLoc_ID = S2.SLoc_ID
+    
+    -- Joining with Mst_Plant to get Plant_Code
+    INNER JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID;
+END;
+
+select * from Trn_309_Movement
+
+EXEC GetTrn_309_Movement;
+
+-- add values into the trn 309 movt  
+
+INSERT INTO Trn_309_Movement 
+(Doc_ID, Plant_ID, Movement_ID, From_Mat_ID, From_Qty, From_SLoc_ID, From_Valuation_Type, From_Batch, From_Rate_Per_Unit,
+To_Mat_ID, To_Qty, To_SLoc_ID, To_Valuation_Type, To_Batch, To_Rate_Per_Unit,
+Remark, Approval_Status, SAP_Transaction_Status, Created_By, Created_On) 
+VALUES
+    (5, 1, 4, 1,  50, 1, 'SUBCONTRACT', 'A', 100.00,
+    2, 100, 1, 'SUBCONTRACT', 3, 120.00, 
+    'test', 'Pending', 'In Progress', 1, GETDATE()),
+
+    (4, 2, 4, 2,  50, 2, 'DOMESTIC', 'B', 110.00,
+    3, 150, 2, 'DOMESTIC', 4 , 125.00, 
+    'test', 'Pending', 'In Progress', 1, GETDATE()),
+
+    (3, 3, 4,  3, 60, 3, 'INHOUSE', 'C', 115.00,
+    4, 200, 3, 'INHOUSE', '5', 130.00, 
+    'test', 'Pending', 'In Progress', 1, GETDATE()),
+
+    (2, 4, 4,  4, 70, 4, 'SUBCONTRACT', 'D', 120.00,
+    5, 250, 4, 'SUBCONTRACT', '6', 135.00, 
+    'test', 'Pending', 'In Progress', 1, GETDATE()),
+
+    (6, 5, 4,  5, 80, 5, 'DOMESTIC', 'E', 125.00,
+    8, 300, 5, 'DOMESTIC', 1, 140.00, 
+    'test', 'Pending', 'In Progress', 1, GETDATE());
+
+
+----------------------------------------------
+--DROP  PROCEDURE GetTrn_309_Movement_View
+/*
+CREATE PROCEDURE Insert_Trn_309_Movement 
+    @PlantCode INT,  
+    @Date DATETIME,  
+    @FromMatCode NVARCHAR(255),  
+    @ToMatCode NVARCHAR(255),  
+    @FromRatePerUnit DECIMAL(18, 2),  
+    @ToRatePerUnit DECIMAL(18, 2),  
+    @ApprovalStatus NVARCHAR(50)  
+AS  
+BEGIN  
+    -- Calculate the difference between FromRatePerUnit and ToRatePerUnit and insert into NetDifferentPrice column
+    DECLARE @NetDifferentPrice DECIMAL(18, 2);
+    SET @NetDifferentPrice = @ToRatePerUnit - @FromRatePerUnit;
+
+    -- Insert the provided values into Trn_309_Movement table
+    INSERT INTO Trn_309_Movement (Plant_ID, Created_On, From_Mat_ID, To_Mat_ID, Net_Different_Price, Approval_Status)  
+    VALUES (@PlantCode, @Date, @FromMatCode, @ToMatCode, @NetDifferentPrice, @ApprovalStatus);  
+END;
+*/
+CREATE PROCEDURE InsertTrn_309_Movement 
+    @PlantCode INT,  
+    @Date DATETIME,  
+    @FromMatCode NVARCHAR(255),  
+    @ToMatCode NVARCHAR(255),  
+    @FromRatePerUnit DECIMAL(18, 2),  
+    @ToRatePerUnit DECIMAL(18, 2),  
+    @ApprovalStatus NVARCHAR(50)  
+AS  
+BEGIN  
+    -- Calculate the net difference between From Rate Per Unit and To Rate Per Unit
+    DECLARE @NetDifferentPrice DECIMAL(18, 2);
+    SET @NetDifferentPrice = @ToRatePerUnit - @FromRatePerUnit;
+
+    -- Insert the provided values into Trn_309_Movement table
+    INSERT INTO Trn_309_Movement 
+    (Plant_ID, Created_On, From_Mat_ID, To_Mat_ID, From_Rate_Per_Unit, To_Rate_Per_Unit, Remark, Approval_Status)  
+    VALUES 
+    (@PlantCode, @Date, @FromMatCode, @ToMatCode, @FromRatePerUnit, @ToRatePerUnit, 
+    'Net Difference: ' + CAST(@NetDifferentPrice AS NVARCHAR(50)), @ApprovalStatus);  
+END;
+
+
+EXEC InsertTrn_309_Movement 
+    @PlantCode = 1200, 
+    @Date = '2025-04-04',
+    @FromMatCode = 'MAT003', 
+    @ToMatCode = 'MAT005',
+    @FromRatePerUnit = 100.00,   
+    @ToRatePerUnit = 120.00,
+    @ApprovalStatus = 'Pending';
+
+--/.............................7/4. View row........................./
+CREATE PROCEDURE GetTrn_309_Movement_View
+    @Trn_309_ID INT  -- Adding an input parameter to fetch data for a specific Trn_309_ID (optional)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        -- Plant details: Show Plant_Code instead of Plant_ID
+        P.Plant_Code AS Plant_Code,  -- Plant Code from Mst_Plant
+        
+        -- Creation date field comes right after Plant Code (as per request)
+        T.Created_On AS Date,  -- Showing Created_On as Date
+        
+        -- From side details
+        M.Material_Code AS From_Mat_Code,
+        T.From_Description AS From_Description,
+        T.From_Qty AS From_Qty,
+        S.Storage_Code AS From_SLoc_Code,  -- From Storage Location Code
+        T.From_Rate_Per_Unit AS From_Price,
+        T.From_Valuation_Type AS From_Valuation_Type,
+        T.From_Batch AS From_Batch,
+        
+        -- To side details
+        M2.Material_Code AS To_Mat_Code,
+        T.To_Description AS To_Description,
+        T.To_Qty AS To_Qty,
+        S2.Storage_Code AS To_SLoc_Code,
+        T.To_Rate_Per_Unit AS To_Price,
+        T.To_Valuation_Type AS To_Valuation_Type,
+        T.To_Batch AS To_Batch,
+        
+        -- Calculated Net Difference Price
+        (T.To_Rate_Per_Unit - T.From_Rate_Per_Unit) AS Net_Difference_Price,
+        
+        -- Statuses and remarks
+        T.Approval_Status AS Approval_Status,
+        T.Remark AS Remark
+        
+    FROM Trn_309_Movement T
+    -- Joining with Mst_Material to get Material_Code for From_Mat_ID and To_Mat_ID
+    INNER JOIN Mst_Material M ON T.From_Mat_ID = M.Material_ID
+    INNER JOIN Mst_Material M2 ON T.To_Mat_ID = M2.Material_ID
+    
+    -- Joining with Mst_Storage_Location to get Storage_Code for From and To locations
+    INNER JOIN Mst_Storage_Location S ON T.From_SLoc_ID = S.SLoc_ID  -- From side Storage Location
+    INNER JOIN Mst_Storage_Location S2 ON T.To_SLoc_ID = S2.SLoc_ID  -- To side Storage Location
+    
+    -- Joining with Mst_Plant to get Plant_Code
+    INNER JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID
+    
+    -- Filter by Trn_309_ID if provided
+    WHERE (@Trn_309_ID IS NULL OR T.Trn_309_ID = @Trn_309_ID);
+END;
+
+-- show value    GetTrn_309_Movement_View
+
+
+
+CREATE PROCEDURE GetTrn_309_Movement_View
+    @Trn_309_ID INT  -- Adding an input parameter to fetch data for a specific Trn_309_ID (optional)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        -- Trn_309_ID to show the transaction ID
+        T.Trn_309_ID AS Trn_309_ID,  -- Including Trn_309_ID in the result set
+        
+        -- Plant details: Show Plant_Code instead of Plant_ID
+        P.Plant_Code AS Plant_Code,  -- Plant Code from Mst_Plant
+        
+        -- Creation date field comes right after Plant Code (as per request)
+        T.Created_On AS Date,  -- Showing Created_On as Date
+        
+        -- From side details
+        M.Material_Code AS From_Mat_Code,
+        T.From_Description AS From_Description,
+        T.From_Qty AS From_Qty,
+        S.Storage_Code AS From_SLoc_Code,  -- From Storage Location Code
+        T.From_Rate_Per_Unit AS From_Price,
+        T.From_Valuation_Type AS From_Valuation_Type,
+        T.From_Batch AS From_Batch,
+        
+        -- To side details
+        M2.Material_Code AS To_Mat_Code,
+        T.To_Description AS To_Description,
+        T.To_Qty AS To_Qty,
+        S2.Storage_Code AS To_SLoc_Code,
+        T.To_Rate_Per_Unit AS To_Price,
+        T.To_Valuation_Type AS To_Valuation_Type,
+        T.To_Batch AS To_Batch,
+        
+        -- Calculated Net Difference Price
+        (T.To_Rate_Per_Unit - T.From_Rate_Per_Unit) AS Net_Difference_Price,
+        
+        -- Statuses and remarks
+        T.Approval_Status AS Approval_Status,
+        T.Remark AS Remark
+        
+    FROM Trn_309_Movement T
+    -- Joining with Mst_Material to get Material_Code for From_Mat_ID and To_Mat_ID
+    INNER JOIN Mst_Material M ON T.From_Mat_ID = M.Material_ID
+    INNER JOIN Mst_Material M2 ON T.To_Mat_ID = M2.Material_ID
+    
+    -- Joining with Mst_Storage_Location to get Storage_Code for From and To locations
+    INNER JOIN Mst_Storage_Location S ON T.From_SLoc_ID = S.SLoc_ID  -- From side Storage Location
+    INNER JOIN Mst_Storage_Location S2 ON T.To_SLoc_ID = S2.SLoc_ID  -- To side Storage Location
+    
+    -- Joining with Mst_Plant to get Plant_Code
+    INNER JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID
+    
+    -- Filter by Trn_309_ID if provided
+    WHERE (@Trn_309_ID IS NULL OR T.Trn_309_ID = @Trn_309_ID);
+END;
+
+
+--EXEC GetTrn_309_Movement_View @Trn_309_ID = NULL;--- Tested--------
+
+--EXEC GetTrn_309_Movement_View @Trn_309_ID = 2;
+--EXEC GetTrn_309_Movement_View @Trn_309_ID = 1;
+
+---2
+/*
+CREATE PROCEDURE GetTrn_309_Movement_View
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Select a single row of data based on the provided Trn_309_ID
+    SELECT 
+        -- Plant details: Show Plant_Code instead of Plant_ID
+        P.Plant_Code AS Plant_Code,  -- Plant Code from Mst_Plant
+        
+        -- Creation date field comes right after Plant Code (as per request)
+        T.Created_On AS Date,  -- Showing Created_On as Date
+        
+        -- From side details
+        M.Material_Code AS From_Mat_Code,
+        T.From_Description AS From_Description,
+        T.From_Qty AS From_Qty,
+        S.Storage_Code AS From_SLoc_Code,  -- From Storage Location Code
+        T.From_Rate_Per_Unit AS From_Price,
+        T.From_Valuation_Type AS From_Valuation_Type,
+        T.From_Batch AS From_Batch,
+        
+        -- To side details
+        M2.Material_Code AS To_Mat_Code,
+        T.To_Description AS To_Description,
+        T.To_Qty AS To_Qty,
+        S2.Storage_Code AS To_SLoc_Code,
+        T.To_Rate_Per_Unit AS To_Price,
+        T.To_Valuation_Type AS To_Valuation_Type,
+        T.To_Batch AS To_Batch,
+        
+        -- Calculated Net Difference Price
+        (T.To_Rate_Per_Unit - T.From_Rate_Per_Unit) AS Net_Difference_Price,
+        
+        -- Statuses and remarks
+        T.Approval_Status AS Approval_Status,
+        T.Remark AS Remark
+        
+    FROM Trn_309_Movement T
+    -- Joining with Mst_Material to get Material_Code for From_Mat_ID and To_Mat_ID
+    INNER JOIN Mst_Material M ON T.From_Mat_ID = M.Material_ID
+    INNER JOIN Mst_Material M2 ON T.To_Mat_ID = M2.Material_ID
+    
+    -- Joining with Mst_Storage_Location to get Storage_Code for From and To locations
+    INNER JOIN Mst_Storage_Location S ON T.From_SLoc_ID = S.SLoc_ID  -- From side Storage Location
+    INNER JOIN Mst_Storage_Location S2 ON T.To_SLoc_ID = S2.SLoc_ID  -- To side Storage Location
+    
+    -- Joining with Mst_Plant to get Plant_Code
+    INNER JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID;
+    
+END;
+
+EXEC GetTrn_309_Movement_View;*/
+--------------------08/04.-------------------------------------
+
+TRUNCATE TABLE Trn_309_Movement;
+
+-- Inserting values 1 to 10 for the Trn_309_Movement 
+
+INSERT INTO Trn_309_Movement 
+(Doc_ID, Plant_ID, Movement_ID, From_Mat_ID, From_Description, From_Qty, From_SLoc_ID, From_Valuation_Type, From_Batch, From_Rate_Per_Unit,
+To_Mat_ID, To_Description, To_Qty, To_SLoc_ID, To_Valuation_Type, To_Batch, To_Rate_Per_Unit,
+Remark, Approval_Status, SAP_Transaction_Status, Created_By, Created_On) 
+VALUES
+    (6, 1, 4, '1', 'Material 1', 100, 1, 'SUBCONTRACT', 'BATCH001', 100.00, 
+    '3', 'Material 3', 100, 5, 'SUBCONTRACT', 'BATCH002', 120.00, 
+    'Movement 1', 'Pending', 'Success', 1, GETDATE()),
+
+    (2, 1, 4, '2', 'Material 2', 150, 2, 'DOMESTIC', 'BATCH002', 110.00, 
+    '4', 'Material 4', 150, 4, 'DOMESTIC', 'BATCH003', 130.00,
+    'Movement 2', 'Open', 'Success', 1, GETDATE()),
+
+    (3, 1, 4, '3', 'Material 3', 200, 3, 'INHOUSE', 'BATCH003', 120.00, 
+    '5', 'Material 5', 200, 3, 'INHOUSE', 'BATCH004', 140.00,
+    'Movement 3', 'Approved', 'Success', 1, GETDATE()),
+
+    (4, 2, 4, '4', 'Material 4', 100, 4, 'SUBCONTRACT', 'BATCH004', 125.00, 
+    '1', 'Material 1', 100, 2, 'SUBCONTRACT', 'BATCH005', 150.00, 
+    'Movement 4', 'Pending', 'Success', 1, GETDATE()),
+
+    (5, 2, 4, '5', 'Material 5', 250, 5, 'DOMESTIC', 'BATCH005', 130.00,
+    '2', 'Material 2', 250, 1, 'DOMESTIC', 'BATCH006', 160.00, 
+    'Movement 5', 'Close', 'Success', 1, GETDATE()),
+
+    (6, 3, 4, '1', 'Material 1', 300, 1, 'INHOUSE', 'BATCH006', 135.00,
+    '3', 'Material 3', 300, 1, 'INHOUSE', 'BATCH007', 170.00, 
+    'Movement 6', 'Open', 'Success', 1, GETDATE()),
+
+    (2, 3, 4, '2', 'Material 2', 350, 2, 'SUBCONTRACT', 'BATCH007', 140.00, 
+    '4', 'Material 4', 350, 2, 'SUBCONTRACT', 'BATCH008', 180.00,
+    'Movement 7', 'Pending', 'Success', 1, GETDATE()),
+
+    (4, 4, 4, '3', 'Material 3', 400, 3, 'DOMESTIC', 'BATCH008', 145.00, 
+    '5', 'Material 5', 400, 3, 'DOMESTIC', 'BATCH009', 190.00, 
+    'Movement 8', 'Pending', 'Approved', 1, GETDATE()),
+
+    (5, 4, 4, '4', 'Material 4', 450, 4, 'INHOUSE', 'BATCH009', 150.00,
+    '1', 'Material 1', 450, 4, 'INHOUSE', 'BATCH010', 200.00,
+    'Movement 9', 'Pending', 'Success', 1, GETDATE()),
+
+    (3, 5, 4, '5', 'Material 5', 500, 5, 'SUBCONTRACT', 'BATCH010', 155.00, 
+    '2', 'Material 2', 500, 5, 'SUBCONTRACT', 'BATCH011', 210.00, 
+    'Movement 10', 'Close', 'Success', 1, GETDATE());
+
+
+	
+SELECT * FROM Trn_309_Movement;
+
+--SELECT * FROM dbo.Mst_Material
+--WHERE Material_ID IN ('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11');
+
+
+CREATE PROCEDURE GetTrn_309_Movement
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        T.Trn_309_ID,
+        P.Plant_Code,  -- Show Plant_Code instead of Plant_ID
+        
+        -- From side details
+        M.Material_Code AS From_Material_Code,
+        M.Description AS From_Description,  
+        T.From_Qty,
+        S.Storage_Code AS From_SLoc_Code,  
+        T.From_Valuation_Type,
+        T.From_Batch,
+        T.From_Rate_Per_Unit,
+        
+        -- To side details
+        M2.Material_Code AS To_Material_Code,
+        M2.Description AS To_Description, 
+        T.To_Qty,
+        S2.Storage_Code AS To_SLoc_Code,  
+        T.To_Valuation_Type,
+        T.To_Batch,
+        T.To_Rate_Per_Unit,
+        
+        -- Calculated Net Difference Price
+        (T.To_Rate_Per_Unit - T.From_Rate_Per_Unit) AS Net_Difference_Price,
+        
+        -- Statuses and remarks
+        T.Approval_Status,
+        T.Remark,
+         
+        T.Created_On AS Date  -- Add this if you have a column named 'Movement_Date' or similar
+    FROM Trn_309_Movement T
+    -- Joining with Mst_Material to get Material_Code and Description
+    INNER JOIN Mst_Material M ON T.From_Mat_ID = M.Material_ID
+    INNER JOIN Mst_Material M2 ON T.To_Mat_ID = M2.Material_ID
+    
+    -- Joining with Mst_Storage_Location to get Storage_Code
+    INNER JOIN Mst_Storage_Location S ON T.From_SLoc_ID = S.SLoc_ID
+    INNER JOIN Mst_Storage_Location S2 ON T.To_SLoc_ID = S2.SLoc_ID
+    
+    -- Joining with Mst_Plant to get Plant_Code
+    INNER JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID;
+END;
+
+/*-- Execute procedure
+EXEC GetTrn_309_Movement;
+
+select * from Trn_309_Movement
+
+EXEC GetTrn_309_Movement;
+
+DROP  PROCEDURE  GetTrn_309_Movement;
+*/
+DROP  PROCEDURE  InsertTrn309Movt
+ 
+-- Insert procedure , add btn .new row 
+
+
+CREATE PROCEDURE InsertTrn309Movt
+    @PlantCode NVARCHAR(50),
+    @FromMaterialCode NVARCHAR(50),
+    @FromQty INT,
+    @FromSLocID INT,
+    @FromValuationType NVARCHAR(50),
+    @FromBatch NVARCHAR(50),
+    @FromRatePerUnit DECIMAL(6, 2),
+    @ToMaterialCode NVARCHAR(50),
+    @ToQty INT,
+    @ToSLocID INT,
+    @ToValuationType NVARCHAR(50),
+    @ToBatch NVARCHAR(50),
+    @ToRatePerUnit DECIMAL(6, 2),
+    @Remark NVARCHAR(255),
+    @CreatedBy INT
+AS
+BEGIN
+    -- Declare variables to hold the corresponding IDs for Plant and Materials
+    DECLARE @PlantID INT;
+    DECLARE @FromMatID INT;
+    DECLARE @ToMatID INT;
+
+    -- Get the Plant_ID based on the Plant_Code
+    SELECT @PlantID = Plant_ID
+    FROM Mst_Plant
+    WHERE Plant_Code = @PlantCode;
+
+    -- Get the From_Material_ID based on the From_Material_Code
+    SELECT @FromMatID = Material_ID
+    FROM Mst_Material
+    WHERE Material_Code = @FromMaterialCode;
+
+    -- Get the To_Material_ID based on the To_Material_Code
+    SELECT @ToMatID = Material_ID
+    FROM Mst_Material
+    WHERE Material_Code = @ToMaterialCode;
+
+
+    -- Insert the record into the Trn_309_Movement table
+    INSERT INTO Trn_309_Movement 
+    (Plant_ID, From_Mat_ID, From_Qty, 
+    From_SLoc_ID, From_Valuation_Type, From_Batch, From_Rate_Per_Unit,
+    To_Mat_ID, To_Qty, To_SLoc_ID, To_Valuation_Type, 
+    To_Batch, To_Rate_Per_Unit, Remark,
+    Created_By, Created_On)
+    VALUES
+    (@PlantID, @FromMatID, @FromQty, 
+    @FromSLocID, @FromValuationType, @FromBatch, @FromRatePerUnit,
+    @ToMatID, @ToQty, @ToSLocID, @ToValuationType, 
+    @ToBatch, @ToRatePerUnit, @Remark, @CreatedBy, GETDATE());  
+
+    -- Return a message indicating success
+    SELECT 'Record successfully added' AS Message;
+    
+    -- To see the inserted data with codes instead of IDs, you can return the relevant values:
+    SELECT 
+        P.Plant_Code, -- Plant Code
+        M.Material_Code AS From_Material_Code, -- From Material Code
+        M.Description AS From_Material_Description,  
+        T.From_Qty, 
+        S.Storage_Code AS From_SLoc_Code, -- From Storage Location Code
+        T.From_Valuation_Type, 
+        T.From_Batch,
+        T.From_Rate_Per_Unit, 
+        
+        M2.Material_Code AS To_Material_Code, -- To Material Code
+        M2.Description AS To_Material_Description, 
+        T.To_Qty, 
+        S2.Storage_Code AS To_SLoc_Code, -- To Storage Location Code
+        T.To_Valuation_Type, 
+        T.To_Batch,
+        T.To_Rate_Per_Unit, 
+        
+        -- Calculated Net Difference Price
+        (T.To_Rate_Per_Unit - T.From_Rate_Per_Unit) AS Net_Difference_Price,
+        
+        -- Statuses and remarks
+        T.Approval_Status,
+        T.Remark,
+        T.Created_On AS Date 
+    FROM Trn_309_Movement T
+    INNER JOIN Mst_Material M ON T.From_Mat_ID = M.Material_ID
+    INNER JOIN Mst_Material M2 ON T.To_Mat_ID = M2.Material_ID
+    INNER JOIN Mst_Storage_Location S ON T.From_SLoc_ID = S.SLoc_ID
+    INNER JOIN Mst_Storage_Location S2 ON T.To_SLoc_ID = S2.SLoc_ID
+    INNER JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID
+    WHERE T.Created_By = @CreatedBy 
+    ORDER BY T.Created_On DESC; 
+END;
+
+
+EXEC InsertTrn309Movt
+    @PlantCode = '1200',
+    @FromMaterialCode = 'MAT002',
+    @FromQty = 100,
+    @FromSLocID = 1,
+    @FromValuationType = 'Standard',
+    @FromBatch = 'Batch001',
+    @FromRatePerUnit = 10.50,
+    @ToMaterialCode = 'MAT004',
+    @ToQty = 50,
+    @ToSLocID = 2,
+    @ToValuationType = 'MovingAvg',
+    @ToBatch = 'Batch004',
+    @ToRatePerUnit = 11.75,
+    @Remark = 'Transfer for Production',
+    @CreatedBy = 1;
+
+--------------------09/04------------------------------------
+
+
+----file upload PROCEDURE ---
+
+CREATE PROCEDURE [dbo].[Trn309Movt]      
+@Created_By VARCHAR(20)
+                 
+AS                     
+ BEGIN          
+  
+   BEGIN  
+   -- Create a temporary table to hold the data from #UserData       
+  SELECT t.*,
+
+   case when t.Plant_Code in (select Plant_Code from Mst_Plant where Status= 1 ) then 'Valid'else  'Invalid' End as 'Plant_Code',                          
+   case when t.From_Material_Code in (select From_SLoc_Code from Mst_Material where Status = 1 ) then 'Valid'else  'Invalid' End as 'From_Material_Code',                    
+   case when t.To_Material_Code in (select To_SLoc_Code from Mst_Material where Status = 1 ) then 'Valid' else 'Invalid' End as 'To_Material_Code'                 
+  
+  INTO #t1                            
+  FROM transation AS t; 
+        													 
+      -- Create another temporary table to map the relevant data                          
+  SELECT 
+  t.Plant_Code
+  t.From_Material_Code
+  t.From_Qty
+  t.From_Storage_Code
+  t.From_Valuvation_Type
+  t.From_Batch
+  t.From_Batch
+  t.From_Rate_Per_Unit
+  t.To_Material_Code
+  t.To_Qty
+  t.To_Storage_Code
+  t.To_Valuvation_Type
+  t.To_Batch
+  t.To_Rate_Per_Unit
+  t.Remarks
+  
+  INTO #t2                            
+  FROM  
+
+     #t1 AS t                            
+  INNER JOIN                     
+   Mst_Plant AS p ON p.Mst_Plant = t.Plant_Code                    
+  INNER JOIN                    
+   Mst_Material AS m1 ON m1.Mst_Material = t.From_Material_Code                    
+  INNER JOIN                    
+   Mst_Material AS m2 ON m2.Mst_Material = t.To_Material_Code                    
+  WHERE   
+
+   WHERE                     
+   t.Plant_Code = 'Valid'                     
+   and t.From_Material_Code = 'Valid'                    
+   and t.To_Material_Code = 'Valid';
+
+
+
+SELECT * FROM Mst_Company;
+SELECT * FROM Mst_Plant;
+SELECT * FROM Mst_Department;
+SELECT * FROM Mst_Material;
+SELECT * FROM Mst_Storage_Location;
+SELECT * FROM Mst_Cost_Center;
+SELECT * FROM Mst_Role;
+SELECT * FROM Mst_Login_User;
+SELECT * FROM Mst_Movement_Type;
+SELECT * FROM Mst_Movement_List_Item;
+SELECT * FROM Mst_Vendor;
+SELECT * FROM Mst_Customer;
+
+SELECT * FROM Trn_Document;
+SELECT * FROM Trn_202_Movement;
+SELECT * FROM Trn_309_Movement;
+SELECT * FROM Trn_Appl_History;
