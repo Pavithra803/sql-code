@@ -1,4 +1,10 @@
 
+
+
+ALTER PROCEDURE [dbo].[UploadTrn309Movt]
+@Created_By INT
+AS	BEGIN
+
 CREATE TABLE #transation (
   Plant_Code VARCHAR(100) NOT NULL,
   From_Material_Code VARCHAR(100) NOT NULL,
@@ -17,21 +23,41 @@ CREATE TABLE #transation (
 );
 
 
+-- Create temporary table
+CREATE TABLE #transation (
+    Plant_Code VARCHAR(100) NOT NULL,
+    From_Material_Code VARCHAR(100) NOT NULL,
+    From_Qty VARCHAR(100) NOT NULL,
+    From_Storage_Code VARCHAR(100) NOT NULL,
+    From_Valuation_Type VARCHAR(100) NOT NULL,
+    From_Batch VARCHAR(100) NOT NULL,
+    From_Rate_Per_Unit VARCHAR(100) NOT NULL,
+    To_Material_Code VARCHAR(100) NOT NULL,
+    To_Qty VARCHAR(100) NOT NULL,
+    To_Storage_Code VARCHAR(100) NOT NULL,
+    To_Valuation_Type VARCHAR(100) NOT NULL,
+    To_Batch VARCHAR(100) NOT NULL,
+    To_Rate_Per_Unit VARCHAR(100) NOT NULL,
+    Remark VARCHAR(100) NOT NULL
+);
 
-
+-- Insert sample data
 INSERT INTO #transation (
-  Plant_Code, From_Material_Code, From_Qty, From_Storage_Code, From_Valuation_Type,
-  From_Batch, From_Rate_Per_Unit, To_Material_Code, To_Qty, To_Storage_Code,
-  To_Valuation_Type, To_Batch, To_Rate_Per_Unit, Remark
+    Plant_Code, From_Material_Code, From_Qty, From_Storage_Code, From_Valuation_Type,
+    From_Batch, From_Rate_Per_Unit, To_Material_Code, To_Qty, To_Storage_Code,
+    To_Valuation_Type, To_Batch, To_Rate_Per_Unit, Remark
 )
 VALUES
-('1250', 'MAT005', 'SUBCONTRACT', '10', '1000', '1', '40', 'MAT001', 'INHOUSE', '50', '1200', '1', '40', 'Test'),
-('1150', 'MAT002', 'INHOUSE', '20', '1200', '2', '30', 'MAT002', 'SUBCONTRACT', '40', '1300', '2', '30', 'Test'),
-('1300', 'MAT001', 'DOMESTIC', '30', '1300', '3', '20', 'MAT003', 'DOMESTIC', '30', '1150', '3', '20', 'Test'),
-('1200', 'MAT003', 'SUBCONTRACT', '40', '1150', '4', '10', 'MAT004', 'SUBCONTRACT', '20', '1250', '4', '10', 'Test'),
-('1250', 'MAT004', 'INHOUSE', '50', '1250', '5', '10', 'MAT005', 'INHOUSE', '10', '1000', '5', '10', 'Test');
-
-
+(
+    '1000', 'MAT001', '20', '1200', 'INHOUSE',
+    'FB1', '200', 'MAT002', '50', '1150',
+    'SUBCONTRACT', 'TB1', '200', 'Test'
+),
+(
+    '1210', 'MAT003', '30', '1300', 'DOMESTIC',
+    'FB2', '300', 'MAT004', '40', '1250',
+    'SUBCONTRACT', 'TB2', '300', 'Test'
+);
 
 
 SELECT t.*,
@@ -62,7 +88,7 @@ SELECT
   t.To_Batch,
   t.To_Rate_Per_Unit,
   t.Remark
---INTO #t2
+INTO #t2
 FROM #t1 AS t
 INNER JOIN Mst_Plant AS p ON p.Plant_Code = t.Plant_Code
 INNER JOIN Mst_Material AS m1 ON m1.Material_Code = t.From_Material_Code
@@ -109,7 +135,7 @@ UPDATE Trn_309_Movement SET
     To_Rate_Per_Unit = source.To_Rate_Per_Unit,
     Remark = source.Remark,
     Modified_On = GETDATE(),
-    Modified_By = @Created_By
+    Modified_By = 1
 FROM Trn_309_Movement AS target
 JOIN CTE_Existing AS source
     ON source.From_Material_Code = target.From_Mat_ID
@@ -154,6 +180,7 @@ INSERT INTO Trn_309_Movement (
     Remark,
     Created_By,
     Created_On
+
 )
 SELECT 
     source.Plant_ID,
@@ -170,7 +197,7 @@ SELECT
     source.To_Batch,
     source.To_Rate_Per_Unit,
     source.Remark,
-    @Created_By,
+    1,
     GETDATE()
 FROM CTE_NEW AS source
 WHERE NOT EXISTS (
@@ -179,7 +206,7 @@ WHERE NOT EXISTS (
     WHERE t.From_Mat_ID= source.From_Material_Code
     AND t.To_Mat_ID = source.To_Material_Code
 	AND t.To_SLoc_ID = source.To_Storage_Code
-	AND t.From_Mat_ID = source.From_Storage_Code
+	AND t.From_SLoc_ID = source.From_Storage_Code
     AND t.Plant_ID = source.Plant_ID
 );
 
@@ -200,3 +227,4 @@ WHERE t.Plant_val = 'Invalid'
 	OR t.From_SLoc = 'InValid'
    OR t.To_SLoc = 'InValid';
 
+   ---select * from Trn_309_Movement
