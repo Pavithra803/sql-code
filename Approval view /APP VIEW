@@ -1,0 +1,283 @@
+import React, { useState, useEffect } from "react";
+import {
+  DataGrid,
+  GridToolbarContainer,
+  GridToolbarColumnsButton,
+  GridToolbarFilterButton,
+  GridToolbarExport,
+} from "@mui/x-data-grid";
+import {
+  Box,
+  Button,
+  IconButton,
+  Modal,
+  TextField,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from "@mui/material";
+
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import SearchIcon from "@mui/icons-material/Search";
+
+import { getdetails } from "../controller/transactionapiservice";
+
+const Approval = () => {
+  const [rows, setRows] = useState([]);
+  const [expandedDocIds, setExpandedDocIds] = useState({});
+  const [searchText, setSearchText] = useState("");
+  const [openViewModal, setOpenViewModal] = useState(false);
+  const [selectedGroupRows, setSelectedGroupRows] = useState([]);
+
+  // Group by Doc_ID
+  const groupByDocId = (data) => {
+    const grouped = {};
+    data.forEach((item) => {
+      if (!grouped[item.Doc_ID]) {
+        grouped[item.Doc_ID] = [];
+      }
+      grouped[item.Doc_ID].push(item);
+    });
+
+    return Object.entries(grouped).map(([docId, items]) => ({
+      id: docId,
+      Doc_ID: docId,
+      Plant_Code: items[0].Plant_Code,
+      Date: items[0].Date,
+      Approval_Status: items[0].Approval_Status,
+      User_Name: items[0].User_Name,
+      From_Valuation_Type: items[0].From_Valuation_Type,
+      children: items,
+    }));
+  };
+
+  const getData = async () => {
+    try {
+      const response = await getdetails();
+      const groupedRows = groupByDocId(response);
+      setRows(groupedRows);
+    } catch (error) {
+      console.error(error);
+      setRows([]);
+    }
+  };
+
+  useEffect(() => {
+    getData();
+  }, []);
+
+  const toggleExpand = (docId) => {
+    setExpandedDocIds((prev) => ({
+      ...prev,
+      [docId]: !prev[docId],
+    }));
+  };
+
+  const handleOpenViewModal = (item) => {
+    setSelectedGroupRows(item.children || []);
+    setOpenViewModal(true);
+  };
+
+  const columns = [
+    {
+      field: "expand",
+      headerName: "",
+      flex: 0.5,
+      sortable: false,
+      renderCell: (params) => (
+        <IconButton onClick={() => toggleExpand(params.row.Doc_ID)}>
+          {expandedDocIds[params.row.Doc_ID] ? "−" : "+"}
+        </IconButton>
+      ),
+    },
+    { field: "Plant_Code", headerName: "Plant Code", flex: 1 },
+    { field: "Doc_ID", headerName: "Doc ID", flex: 1 },
+    { field: "Date", headerName: "Date", flex: 1 },
+    { field: "From_Valuation_Type", headerName: "Valuation Type", flex: 1 },
+    { field: "User_Name", headerName: "Request By", flex: 1 },
+    { field: "Approval_Status", headerName: "Status", flex: 1 },
+    {
+      field: "view",
+      headerName: "View",
+      flex: 0.7,
+      sortable: false,
+      renderCell: (params) => (
+        <IconButton onClick={() => handleOpenViewModal(params.row)}>
+          <VisibilityIcon fontSize="small" color="primary" />
+        </IconButton>
+      ),
+    },
+  ];
+
+  const CustomToolbar = () => (
+    <GridToolbarContainer>
+      <GridToolbarColumnsButton />
+      <GridToolbarFilterButton />
+      <GridToolbarExport />
+    </GridToolbarContainer>
+  );
+
+  return (
+    <Box sx={{ p: 4, backgroundColor: "#f5f5f5" }}>
+      <Typography
+        variant="h4"
+        sx={{
+          color: "#2e59d9",
+          textDecoration: "underline",
+          textDecorationColor: "limegreen",
+          mb: 3,
+        }}
+      >
+        309 Approval
+      </Typography>
+
+      {/* Search */}
+      <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+        <TextField
+          size="small"
+          placeholder="Type here..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          sx={{ width: 300 }}
+        />
+        <Button variant="outlined">
+          <SearchIcon sx={{ mr: 1 }} />
+          Search
+        </Button>
+      </Box>
+
+      {/* Main Table */}
+      <Box sx={{ height: 500, backgroundColor: "#fff", borderRadius: 2, boxShadow: 2 }}>
+        <DataGrid
+          rows={rows}
+          columns={columns}
+          pageSize={5}
+          getRowId={(row) => row.Doc_ID}
+          slots={{ toolbar: CustomToolbar }}
+          disableSelectionOnClick
+          sx={{
+            "& .MuiDataGrid-columnHeader": {
+              backgroundColor: "#2e59d9",
+              color: "white",
+            },
+          }}
+        />
+      </Box>
+
+      {/* Expand Below Grid */}
+      {rows.map(
+        (row) =>
+          expandedDocIds[row.Doc_ID] && (
+            <Box
+              key={row.Doc_ID}
+              sx={{ mt: 3, p: 2, backgroundColor: "#fff", borderRadius: 2, boxShadow: 1 }}
+            >
+              <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: "bold" }}>
+                Details for Doc ID: {row.Doc_ID}
+              </Typography>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>From Material</TableCell>
+                      <TableCell>To Material</TableCell>
+                      <TableCell>From Qty</TableCell>
+                      <TableCell>To Qty</TableCell>
+                      <TableCell>From SLoc</TableCell>
+                      <TableCell>To SLoc</TableCell>
+                      <TableCell>Net Diff Price</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {row.children.map((item, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>{item.From_Material_Code}</TableCell>
+                        <TableCell>{item.To_Material_Code}</TableCell>
+                        <TableCell>{item.From_Qty}</TableCell>
+                        <TableCell>{item.To_Qty}</TableCell>
+                        <TableCell>{item.From_SLoc_Code}</TableCell>
+                        <TableCell>{item.To_SLoc_Code}</TableCell>
+                        <TableCell>{item.Net_Difference_Price}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+          )
+      )}
+
+      {/* View Modal */}
+      <Modal open={openViewModal} onClose={() => setOpenViewModal(false)}>
+        <Box
+          sx={{
+            width: "80%",
+            maxHeight: "80vh",
+            overflowY: "auto",
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 4,
+            mx: "auto",
+            mt: "5%",
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 2, color: "blue", fontWeight: "bold" }}>
+            View Grouped Records
+          </Typography>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Plant Code</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>From Material</TableCell>
+                <TableCell>To Material</TableCell>
+                <TableCell>Qty</TableCell>
+                <TableCell>Valuation</TableCell>
+                <TableCell>Net Diff Price</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {selectedGroupRows.map((row, idx) => (
+                <TableRow key={idx}>
+                  <TableCell>{row.Plant_Code}</TableCell>
+                  <TableCell>{row.Date}</TableCell>
+                  <TableCell>{row.From_Material_Code}</TableCell>
+                  <TableCell>{row.To_Material_Code}</TableCell>
+                  <TableCell>{row.From_Qty}</TableCell>
+                  <TableCell>{row.From_Valuation_Type}</TableCell>
+                  <TableCell>{row.Net_Difference_Price}</TableCell>
+                </TableRow>
+              ))}
+              <TableRow sx={{ backgroundColor: "#f9f9f9" }}>
+                <TableCell colSpan={6} sx={{ textAlign: "right", fontWeight: "bold" }}>
+                  Total
+                </TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>
+                  {selectedGroupRows.reduce(
+                    (sum, r) => sum + parseFloat(r.Net_Difference_Price || 0),
+                    0
+                  ).toFixed(2)}
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+          <Button
+            onClick={() => setOpenViewModal(false)}
+            variant="contained"
+            color="error"
+            sx={{ mt: 3 }}
+          >
+            Close
+          </Button>
+        </Box>
+      </Modal>
+    </Box>
+  );
+};
+
+export default Approval;
