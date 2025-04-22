@@ -1,0 +1,23 @@
+Approval.get('/get_details', async (req, res) => {
+  try {
+    const docId = req.query.Doc_ID; // or use req.body.Doc_ID for POST
+
+    const pool = await db.poolPromise;
+
+    if (!pool || !pool.request) {
+      console.error('Database pool not initialized or request method is not available.');
+      return res.status(500).json({ success: false, message: 'Internal Server Error: Pool not initialized' });
+    }
+
+    const result = await pool
+      .request()
+      .input('Doc_ID', sql.Int, docId) // Pass the Doc_ID as input
+      .query(`EXEC ApprovalView @Doc_ID = @Doc_ID`);
+
+    console.log('Query Result:', result.recordset);
+    res.json(result.recordset);
+  } catch (error) {
+    console.error('Error fetching details:', error.message, error.stack);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+});
