@@ -1,0 +1,24 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[ApprovalView]    Script Date: 23-04-2025 15:46:35 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[ApprovalView]
+    @Doc_ID INT = NULL   -- Default value
+AS
+BEGIN
+    -- Select the documents
+    SELECT 
+        p.Plant_Code,
+        d.Doc_ID, 
+        CAST(d.Created_On AS DATE) AS Created_On,  -- Cast Created_On to DATE
+        mt.Movement_Name AS Movement_Type,         -- Alias Movement_Name to Movement_Type
+        u.user_name
+    FROM Trn_Document AS d
+    LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
+    LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
+    LEFT JOIN mst_user AS u ON u.user_id = d.Created_By
+    WHERE (@Doc_ID IS NULL OR d.Doc_ID = @Doc_ID);  -- This will return all rows if @Doc_ID is NULL, or a specific row if @Doc_ID is provided
+END;
