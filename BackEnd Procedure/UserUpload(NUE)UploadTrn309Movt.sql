@@ -3,7 +3,7 @@
 
 USE [Sap_Approval]
 GO
-/****** Object:  StoredProcedure [dbo].[UploadTrn309Movt]    Script Date: 23-04-2025 08:16:55 ******/
+/****** Object:  StoredProcedure [dbo].[UploadTrn309Movt]    Script Date: 23-04-2025 11:34:21 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -13,6 +13,24 @@ ALTER PROCEDURE [dbo].[UploadTrn309Movt]
 @Created_By INT
 AS
 BEGIN
+
+DECLARE @Docid INT;
+
+
+
+SELECT @Docid = ISNULL(MAX(Doc_ID), 0) + 1 FROM Trn_309_Movement;
+
+PRINT @Docid;
+
+
+--SELECT @Docid = MAX(Doc_ID) FROM Trn_309_Movement;
+
+--PRINT @Docid;
+
+
+--SELECT @Docid = ISNULL(MAX(Doc_ID), 0)
+--FROM Trn_309_Movement;
+--PRINT @Docid;
 
     -- Step 1: Validate Input Data
     SELECT t.*,
@@ -134,7 +152,9 @@ BEGIN
         SELECT * FROM #t2
     )
     INSERT INTO Trn_309_Movement (
+	    Doc_ID,
         Plant_ID,
+		Movement_ID,
         From_Mat_ID,
         From_Qty,
         From_SLoc_ID,
@@ -152,7 +172,9 @@ BEGIN
         Created_On
     )
     SELECT 
+	    @Docid,
         Plant_ID,
+		4,
         From_Material_Code,
         From_Qty,
         From_Storage_Code,
@@ -218,6 +240,8 @@ BEGIN
 
    DROP TABLE IF EXISTS #t2,#t1,#transation,#new,#dup;
 END;
+
+
 
 
 
