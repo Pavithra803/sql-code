@@ -62,9 +62,8 @@ INSERT INTO Mst_Material_Type (Mat_Type, Active_Status, Created_By, Created_On)
 VALUES 
 	('ROH', 1, 1, GETDATE()),
 	('HALB', 1, 1, GETDATE()),
-	('FERT', 1, 1, GETDATE()),
-	('ROH', 1, 1, GETDATE()),
-	('HALB', 1, 1, GETDATE()
+	('FERT', 1, 1, GETDATE())
+	
 );
 
 SELECT * FROM Mst_Material_Type
@@ -120,17 +119,17 @@ VALUES
 SELECT * FROM Mst_Role;
 
 --T M 9
-INSERT INTO Mst_Login_User (Plant_ID, Employee_ID, User_Name, Dept_ID, User_Email, Role_ID, User_Level, Active_Status, Created_By, Created_On)
+INSERT INTO Mst_User (Plant_ID, Employee_ID, User_Name, Dept_ID, User_Email, Role_ID, User_Level,Password, Active_Status, Created_By, Created_On)
 VALUES
 
-    (1, '2001', 'User 2001', 1, 'user2001@example.com', 1, 1, 1, 1, GETDATE()),
-    (2, '2002', 'User 2002', 2, 'user2002@example.com', 1, 1, 1, 1, GETDATE()),
-    (3, '2003', 'User 2003', 3, 'user2003@example.com', 2, 1, 1, 1, GETDATE()),
-    (4, '2004', 'User 2004', 4, 'user2004@example.com', 2, 1, 1, 1, GETDATE()),
-    (5, '2005', 'User 2005', 5, 'user2005@example.com', 2, 1, 1, 1, GETDATE()
+    (1, '2001', 'User 2001', 1, 'user2001@example.com', 1, 1,'123', 1, 1, GETDATE()),
+    (2, '2002', 'User 2002', 2, 'user2002@example.com', 1, 1,'123',  1, 1, GETDATE()),
+    (3, '2003', 'User 2003', 3, 'user2003@example.com', 2, 1, '123', 1, 1, GETDATE()),
+    (4, '2004', 'User 2004', 4, 'user2004@example.com', 2, 1, '123', 1, 1, GETDATE()),
+    (5, '2005', 'User 2005', 5, 'user2005@example.com', 2, 1,'123',  1, 1, GETDATE()
 );
 
-SELECT * FROM Mst_Login_User;
+SELECT * FROM Mst_User;
 
 --T M 10
 
@@ -219,11 +218,11 @@ SELECT * FROM Mst_Customer
 INSERT INTO Trn_Document (Plant_ID, Movement_ID, Movement_Name, Status, Created_By, Created_On)
 VALUES 
 
-    (1, 1, 'Stock Transfer', 'Active', 1, GETDATE()),
-    (2, 2, 'Material Issue', 'Active', 1, GETDATE()),
-    (3, 3, 'Goods Receipt', 'Inactive', 2, GETDATE()),
-    (4, 4, 'Return to Vendor', 'Active', 3, GETDATE()),
-    (5, 5, 'Inventory Adjustment', 'Inactive', 2, GETDATE()
+    (1, 1, 'Movement type 551', 'Active', 1, GETDATE()),
+    (2, 2, 'Movement type 201', 'Active', 1, GETDATE()),
+    (3, 3, 'Movement type 202', 'Active', 2, GETDATE()),
+    (4, 4, 'Movement type 309', 'Active', 3, GETDATE()),
+    (5, 5, 'Movement type 311', 'Active', 2, GETDATE()
 );
 
 SELECT * FROM Trn_Document
