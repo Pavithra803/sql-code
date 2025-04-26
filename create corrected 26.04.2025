@@ -1,6 +1,6 @@
 USE [Sap_Approval]
 GO
-/****** Object:  StoredProcedure [dbo].[ApprovalView]    Script Date: 4/26/2025 2:33:50 PM ******/
+/****** Object:  StoredProcedure [dbo].[ApprovalView]    Script Date: 4/26/2025 4:51:52 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -13,18 +13,17 @@ BEGIN
     SELECT 
         p.Plant_Code,
         d.Doc_ID, 
-        CAST(d.Created_On AS DATE) AS Created_On,  -- Cast Created_On to DATE
+        FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date,   -- Cast Created_On to DATE
         mt.Movement_Name AS Movement_Type,         -- Alias Movement_Name to Movement_Type
-        u.user_name
+        u.user_name As Request_By
     FROM Trn_Document AS d
     LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
     LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
     LEFT JOIN mst_user AS u ON u.user_id = d.Created_By
     WHERE (@Doc_ID IS NULL OR d.Doc_ID = @Doc_ID);  -- This will return all rows if @Doc_ID is NULL, or a specific row if @Doc_ID is provided
 END;
-
 ------------------------------------------------------------------------
-USE [Sap_Approval]
+//////USE [Sap_Approval]
 GO
 /****** Object:  StoredProcedure [dbo].[ApprovalViewButton]    Script Date: 4/26/2025 2:34:15 PM ******/
 SET ANSI_NULLS ON
@@ -434,8 +433,52 @@ BEGIN
     DROP TABLE IF EXISTS #t2, #t1, #transation, #new, #dup;
 END;
 
+---------------------------------------------------
 
+USE [Sap_Approval]
+GO
 
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[ApprovalViewButton]
+    @Doc_ID INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @Doc_ID IS NULL
+    BEGIN
+        -- Set to the latest or first available Doc_ID if not supplied
+        SELECT TOP 1 @Doc_ID = Doc_ID FROM Trn_309_Movement ORDER BY Created_On ASC;
+    END
+
+    SELECT 
+        t.Plant_ID,
+        p.Plant_Code,
+        t.Doc_ID,
+        FORMAT(t.Created_On, 'dd-MM-yyyy') AS Date,
+        fm.Material_Code AS From_Material,
+        tm.Material_Code AS To_Material,
+        t.From_Qty AS Qty,
+        t.Movement_ID AS Movement_Type,
+        u.Employee_ID AS Request_By,
+        t.Created_By,
+        CAST((t.To_Rate_Per_Unit - t.From_Rate_Per_Unit) AS DECIMAL(10,2)) AS Net_Difference
+    FROM 
+        Trn_309_Movement AS t
+        INNER JOIN Mst_Plant AS p ON t.Plant_ID = p.Plant_ID
+        LEFT JOIN Mst_Material AS fm ON t.From_Mat_ID = fm.Material_ID  -- From material
+        LEFT JOIN Mst_Material AS tm ON t.To_Mat_ID = tm.Material_ID    -- To material
+        LEFT JOIN Mst_Movement_Type AS mt ON t.Movement_ID = mt.Movement_ID
+        LEFT JOIN Mst_User AS u ON t.Created_By = u.Employee_ID
+    WHERE
+        t.Doc_ID = @Doc_ID;
+END;
+
+-------------------------
 
         
                 
