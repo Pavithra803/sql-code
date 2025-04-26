@@ -1,0 +1,449 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[ApprovalView]    Script Date: 4/26/2025 2:33:50 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[ApprovalView]
+    @Doc_ID INT = NULL   -- Default value
+AS
+BEGIN
+    -- Select the documents
+    SELECT 
+        p.Plant_Code,
+        d.Doc_ID, 
+        CAST(d.Created_On AS DATE) AS Created_On,  -- Cast Created_On to DATE
+        mt.Movement_Name AS Movement_Type,         -- Alias Movement_Name to Movement_Type
+        u.user_name
+    FROM Trn_Document AS d
+    LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
+    LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
+    LEFT JOIN mst_user AS u ON u.user_id = d.Created_By
+    WHERE (@Doc_ID IS NULL OR d.Doc_ID = @Doc_ID);  -- This will return all rows if @Doc_ID is NULL, or a specific row if @Doc_ID is provided
+END;
+
+------------------------------------------------------------------------
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[ApprovalViewButton]    Script Date: 4/26/2025 2:34:15 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[ApprovalViewButton]
+    @Doc_ID INT = NULL   -- Default value
+AS
+BEGIN
+    IF @Doc_ID IS NULL
+    BEGIN
+        -- Set to the latest or first available Doc_ID if not supplied
+        SELECT TOP 1 @Doc_ID = Doc_ID FROM Trn_309_Movement ORDER BY Created_On ASC;
+    END
+
+    SELECT 
+	
+        t.Plant_ID,
+		p.Plant_Code,
+        t.Doc_ID,
+        FORMAT(t.Created_On, 'dd-MM-yyyy') AS Date,
+        t.From_Mat_ID,
+        t.To_Mat_ID,
+        t.From_Qty AS Qty,
+        t.Movement_ID AS Movement_Type,
+		 u.Employee_ID AS Request_By,
+        t.Created_By,
+        CAST((t.To_Rate_Per_Unit - t.From_Rate_Per_Unit) AS DECIMAL(10,2)) AS Net_Difference
+    FROM 
+        Trn_309_Movement AS t
+        INNER JOIN Mst_Plant AS p ON t.Plant_ID = p.Plant_ID
+        LEFT JOIN Mst_Movement_Type AS mt ON t.Movement_ID = mt.Movement_ID
+        LEFT JOIN Mst_User AS u ON t.Created_By = u.Employee_ID
+    WHERE
+        t.Doc_ID = @Doc_ID;
+END;
+-----------------------------------------------------------------
+
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[GetExistingTrn309Movt]    Script Date: 4/26/2025 2:36:15 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[GetExistingTrn309Movt]
+    @FromDate DATETIME,
+    @ToDate DATETIME
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        T.Trn_309_ID,
+        P.Plant_Code,
+        T.Doc_ID,
+		
+        -- Date formatting
+        CONVERT(VARCHAR(10), T.Created_On, 103) AS Date,
+
+        -- From side details
+        M.Material_Code AS From_Material_Code,
+        M.Description AS From_Description,
+        T.From_Qty,
+        S.Storage_Code AS From_SLoc_Code,
+        T.From_Valuation_Type,
+        T.From_Rate_Per_Unit,
+
+        -- To side details
+        M2.Material_Code AS To_Material_Code,
+        M2.Description AS To_Description,
+        T.To_Qty,
+        S2.Storage_Code AS To_SLoc_Code,
+        T.To_Valuation_Type,
+        T.To_Rate_Per_Unit,
+
+        -- Calculated Net Difference Price
+        (T.To_Rate_Per_Unit - T.From_Rate_Per_Unit) AS Net_Difference_Price,
+
+        -- Status and remarks
+        T.Approval_Status,
+        T.Remark,
+
+		U.User_Name AS Created_By -- (user id comes to name)
+
+    FROM Trn_309_Movement T
+    INNER JOIN Mst_Material M ON T.From_Mat_ID = M.Material_ID
+    INNER JOIN Mst_Material M2 ON T.To_Mat_ID = M2.Material_ID
+    INNER JOIN Mst_Storage_Location S ON T.From_SLoc_ID = S.SLoc_ID
+    INNER JOIN Mst_Storage_Location S2 ON T.To_SLoc_ID = S2.SLoc_ID
+    INNER JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID
+	 LEFT JOIN Mst_Login_User U ON T.Created_By = U.Employee_ID -- No CAST needed
+
+    WHERE 
+        CAST(T.Created_On AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
+    ORDER BY T.Created_On DESC;
+END;
+----------------------------------------------------------
+
+
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[GetTrn_309_Movement]    Script Date: 4/26/2025 2:37:41 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[GetTrn_309_Movement]
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        T.Trn_309_ID,
+        P.Plant_Code, 
+		T.Doc_ID,
+        
+        -- From side details
+        M.Material_Code AS From_Material_Code,
+        M.Description AS From_Description,  
+        T.From_Qty,
+        S.Storage_Code AS From_SLoc_Code,  
+        T.From_Valuation_Type,
+        T.From_Batch,
+        T.From_Rate_Per_Unit,
+        
+        -- To side details
+        M2.Material_Code AS To_Material_Code,
+        M2.Description AS To_Description, 
+        T.To_Qty,
+        S2.Storage_Code AS To_SLoc_Code,  
+        T.To_Valuation_Type,
+        T.To_Batch,
+        T.To_Rate_Per_Unit,
+        
+        -- Calculated Net Difference Price
+        (T.To_Rate_Per_Unit - T.From_Rate_Per_Unit) AS Net_Difference_Price,
+        
+        -- Statuses and remarks
+        T.Approval_Status,
+        T.Remark,
+         
+        T.Created_On AS Date  -- Add this if you have a column named 'Movement_Date' or similar
+    FROM Trn_309_Movement T
+    -- Joining with Mst_Material to get Material_Code and Description
+    INNER JOIN Mst_Material M ON T.From_Mat_ID = M.Material_ID
+    INNER JOIN Mst_Material M2 ON T.To_Mat_ID = M2.Material_ID
+    
+    -- Joining with Mst_Storage_Location to get Storage_Code
+    INNER JOIN Mst_Storage_Location S ON T.From_SLoc_ID = S.SLoc_ID
+    INNER JOIN Mst_Storage_Location S2 ON T.To_SLoc_ID = S2.SLoc_ID
+    
+    -- Joining with Mst_Plant to get Plant_Code
+    INNER JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID;
+END;
+----------------------------------------------------------------------------
+
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[UploadTrn309Movt]    Script Date: 4/26/2025 2:38:16 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+ALTER PROCEDURE [dbo].[UploadTrn309Movt]
+    @Created_By INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Docid INT;
+
+    -- Step 1: Insert into Trn_Document
+    INSERT INTO Trn_Document (
+        Plant_ID,
+        Movement_ID,
+        Movement_Name,
+        Status,
+        Created_By,
+        Created_On
+    )
+    VALUES (
+        (SELECT Plant_ID FROM Mst_Plant WHERE Plant_Code = '1250'),
+        4,
+        'Movement type 309',
+        'Active',
+        @Created_By,
+        GETDATE()
+    );
+
+    -- Step 2: Get the generated Doc_ID
+    SET @Docid = SCOPE_IDENTITY();
+    PRINT @Docid;
+
+    -- Step 3: Validate Input Data
+    SELECT t.*,
+        CASE WHEN t.Plant_Code IN (SELECT Plant_Code FROM Mst_Plant WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS Plant_val,
+        CASE WHEN t.From_Material_Code IN (SELECT Material_Code FROM Mst_Material WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS From_Mat,
+        CASE WHEN t.To_Material_Code IN (SELECT Material_Code FROM Mst_Material WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS To_Mat,
+        CASE WHEN t.From_Storage_Code IN (SELECT Storage_Code FROM Mst_Storage_Location WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS From_SLoc,
+        CASE WHEN t.To_Storage_Code IN (SELECT Storage_Code FROM Mst_Storage_Location WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS To_SLoc
+    INTO #t1
+    FROM #transation AS t;
+
+    -- Step 4: Map Valid Data to IDs with Descriptions
+    SELECT 
+        p.Plant_ID,
+        m1.Material_ID AS From_Material_Code,
+        m1.Description AS From_Description,
+        t.From_Qty,
+        s1.SLoc_ID AS From_Storage_Code,
+        t.From_Valuation_Type,
+        t.From_Batch,
+        CAST(t.From_Rate_Per_Unit AS DECIMAL(18,2)) AS From_Rate_Per_Unit,
+        m2.Material_ID AS To_Material_Code,
+        m2.Description AS To_Description,
+        t.To_Qty,
+        s2.SLoc_ID AS To_Storage_Code,
+        t.To_Valuation_Type,
+        t.To_Batch,
+        CAST(t.To_Rate_Per_Unit AS DECIMAL(18,2)) AS To_Rate_Per_Unit,
+        (CAST(t.To_Rate_Per_Unit AS DECIMAL(10,2)) - CAST(t.From_Rate_Per_Unit AS DECIMAL(10,2))) AS Net_Difference_Price,
+        t.Remark
+    INTO #t2
+    FROM #t1 AS t
+    INNER JOIN Mst_Plant AS p ON p.Plant_Code = t.Plant_Code
+    INNER JOIN Mst_Material AS m1 ON m1.Material_Code = t.From_Material_Code
+    INNER JOIN Mst_Material AS m2 ON m2.Material_Code = t.To_Material_Code
+    INNER JOIN Mst_Storage_Location AS s1 ON s1.Storage_Code = t.From_Storage_Code
+    INNER JOIN Mst_Storage_Location AS s2 ON s2.Storage_Code = t.To_Storage_Code
+    WHERE t.Plant_val = 'Valid'
+        AND t.From_Mat = 'Valid'
+        AND t.To_Mat = 'Valid'
+        AND t.From_SLoc = 'Valid'
+        AND t.To_SLoc = 'Valid';
+
+    -- Step 5: Identify Duplicates
+    SELECT  
+        p.Plant_Code,
+        m1.Material_Code AS From_Material_Code,
+        m1.Description AS From_Description,
+        t2.From_Qty,
+        s1.Storage_Code AS From_Storage_Code,
+        t2.From_Valuation_Type,
+        t2.From_Batch,
+        t2.From_Rate_Per_Unit,
+        m2.Material_Code AS To_Material_Code,
+        m2.Description AS To_Description,
+        t2.To_Qty,
+        s2.Storage_Code AS To_Storage_Code,
+        t2.To_Valuation_Type,
+        t2.To_Batch,
+        t2.To_Rate_Per_Unit,
+        t2.Remark,
+        'Duplicates_Records' AS Status
+    INTO #dup
+    FROM #t2 t2
+    INNER JOIN Mst_Plant p ON t2.Plant_ID = p.Plant_ID
+    INNER JOIN Mst_Material m1 ON m1.Material_ID = t2.From_Material_Code
+    INNER JOIN Mst_Material m2 ON m2.Material_ID = t2.To_Material_Code
+    INNER JOIN Mst_Storage_Location s1 ON s1.SLoc_ID = t2.From_Storage_Code
+    INNER JOIN Mst_Storage_Location s2 ON s2.SLoc_ID = t2.To_Storage_Code
+    WHERE EXISTS (
+        SELECT 1 
+        FROM Trn_309_Movement m
+        WHERE m.Plant_ID = t2.Plant_ID
+            AND m.From_Mat_ID = t2.From_Material_Code
+            AND m.From_Qty = t2.From_Qty
+            AND CAST(m.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+    );
+
+    -- Step 6: Identify New Records (only Plant_Code 1250)
+    SELECT  
+        p.Plant_Code,
+        m1.Material_Code AS From_Material_Code,
+        m1.Description AS From_Description,
+        t2.From_Qty,
+        s1.Storage_Code AS From_Storage_Code,
+        t2.From_Valuation_Type,
+        t2.From_Batch,
+        t2.From_Rate_Per_Unit,
+        m2.Material_Code AS To_Material_Code,
+        m2.Description AS To_Description,
+        t2.To_Qty,
+        s2.Storage_Code AS To_Storage_Code,
+        t2.To_Valuation_Type,
+        t2.To_Batch,
+        t2.To_Rate_Per_Unit,
+        t2.Remark,
+        'New_Records' AS Status
+    INTO #new
+    FROM #t2 t2
+    INNER JOIN Mst_Plant p ON t2.Plant_ID = p.Plant_ID
+    INNER JOIN Mst_Material m1 ON m1.Material_ID = t2.From_Material_Code
+    INNER JOIN Mst_Material m2 ON m2.Material_ID = t2.To_Material_Code
+    INNER JOIN Mst_Storage_Location s1 ON s1.SLoc_ID = t2.From_Storage_Code
+    INNER JOIN Mst_Storage_Location s2 ON s2.SLoc_ID = t2.To_Storage_Code
+    WHERE NOT EXISTS (
+        SELECT 1 
+        FROM Trn_309_Movement m
+        WHERE m.Plant_ID = t2.Plant_ID
+            AND m.From_Mat_ID = t2.From_Material_Code
+            AND m.To_Mat_ID = t2.To_Material_Code
+            AND m.From_SLoc_ID = t2.From_Storage_Code
+            AND m.To_SLoc_ID = t2.To_Storage_Code
+            AND CAST(m.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+    )
+    AND p.Plant_Code = '1250';
+
+    -- Step 7: Insert Valid New Records
+    WITH CTE_NEW AS (
+        SELECT * FROM #t2
+        WHERE Plant_ID = (SELECT Plant_ID FROM Mst_Plant WHERE Plant_Code = '1250')
+    )
+    INSERT INTO Trn_309_Movement (
+        Doc_ID,
+        Plant_ID,
+        Movement_ID,
+        From_Mat_ID,
+        From_Qty,
+        From_SLoc_ID,
+        From_Valuation_Type,
+        From_Batch,
+        From_Rate_Per_Unit,
+        To_Mat_ID,
+        To_Qty,
+        To_SLoc_ID,
+        To_Valuation_Type,
+        To_Batch,
+        To_Rate_Per_Unit,
+        Remark,
+        Created_By,
+        Created_On
+    )
+    SELECT 
+        @Docid,
+        Plant_ID,
+        4,
+        From_Material_Code,
+        From_Qty,
+        From_Storage_Code,
+        From_Valuation_Type,
+        From_Batch,
+        From_Rate_Per_Unit,
+        To_Material_Code,
+        To_Qty,
+        To_Storage_Code,
+        To_Valuation_Type,
+        To_Batch,
+        To_Rate_Per_Unit,
+        Remark,
+        @Created_By,
+        GETDATE()
+    FROM CTE_NEW
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM Trn_309_Movement t
+        WHERE t.From_Mat_ID = CTE_NEW.From_Material_Code
+            AND t.To_Mat_ID = CTE_NEW.To_Material_Code
+            AND t.From_SLoc_ID = CTE_NEW.From_Storage_Code
+            AND t.To_SLoc_ID = CTE_NEW.To_Storage_Code
+            AND t.Plant_ID = CTE_NEW.Plant_ID
+            AND CAST(t.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+    );
+
+    -- Step 8: Output Error Records
+    SELECT  
+        t.Plant_Code,
+        t.From_Material_Code,
+        t.From_Qty,
+        t.From_Storage_Code,
+        t.From_Valuation_Type,
+        t.From_Batch,
+        t.From_Rate_Per_Unit,
+        t.To_Material_Code,
+        t.To_Qty,
+        t.To_Storage_Code,
+        t.To_Valuation_Type,
+        t.To_Batch,
+        t.To_Rate_Per_Unit,
+        t.Remark,
+        t.Plant_val,
+        t.From_Mat,
+        t.To_Mat,
+        t.From_SLoc,
+        t.To_SLoc,
+        'Error_Records' AS Status
+    FROM #t1 AS t
+    WHERE t.Plant_val = 'Invalid'
+        OR t.From_Mat = 'Invalid'
+        OR t.To_Mat = 'Invalid'
+        OR t.From_SLoc = 'Invalid'
+        OR t.To_SLoc = 'Invalid';
+
+    -- Step 9: Output New Records
+    SELECT * FROM #new;
+
+    -- Step 10: Output Duplicate Records
+    SELECT * FROM #dup;
+
+    -- Step 11: Cleanup Temporary Tables
+    DROP TABLE IF EXISTS #t2, #t1, #transation, #new, #dup;
+END;
+
+
+
+
+        
+                
+
+
+
+
+
+
+
+
