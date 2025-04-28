@@ -1,0 +1,21 @@
+CREATE TABLE Trn_201_202_Movement (
+    Trn_202_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Doc_ID INT FOREIGN KEY REFERENCES Trn_Document(Doc_ID),
+    Plant_ID INT FOREIGN KEY REFERENCES Mst_Plant(Plant_ID),
+    Material_ID INT FOREIGN KEY REFERENCES Mst_Material(Material_ID),
+    Quantity INT,
+    SLoc_ID INT FOREIGN KEY REFERENCES Mst_Storage_Location(SLoc_ID),
+    CostCenter_ID INT FOREIGN KEY REFERENCES Mst_Cost_Center(CostCenter_ID),
+    Movement_ID INT FOREIGN KEY REFERENCES Mst_Movement_Type(Movement_ID),
+    Valuation_Type NVARCHAR(50),
+    Batch NVARCHAR(50),
+    Rate_Unit DECIMAL(6,2),
+    Remark NVARCHAR(255),
+    User_ID INT FOREIGN KEY REFERENCES Mst_User(User_ID),
+    Approval_Status VARCHAR(50),
+    SAP_Transaction_Status VARCHAR(50),
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
