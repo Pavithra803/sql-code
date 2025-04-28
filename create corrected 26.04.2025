@@ -736,8 +736,33 @@ BEGIN
 END;
 
 -------------------------
+28/04
+USE [Sap_Approval]
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 
-        
+ALTER PROCEDURE [dbo].[ApprovalView]
+    @Doc_ID INT = NULL   -- Default value
+AS
+BEGIN
+    -- Select the documents
+    SELECT 
+        p.Plant_Code,
+        d.Doc_ID, 
+        FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date,   -- Format Created_On as dd-MM-yyyy
+        mt.Movement_Name AS Movement_Type,            -- Movement Type Name
+        u.User_Name AS Request_By                     -- Employee_ID mapped to User_Name
+    FROM Trn_Document AS d
+    LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
+    LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
+    LEFT JOIN mst_user AS u ON u.User_ID = d.Created_By
+    WHERE 
+        d.Movement_ID = 4  -- <<< Only Movement_ID 309
+        AND (@Doc_ID IS NULL OR d.Doc_ID = @Doc_ID);  -- Fetch all if NULL, else specific Doc_ID
+END;        
                 
 
 
