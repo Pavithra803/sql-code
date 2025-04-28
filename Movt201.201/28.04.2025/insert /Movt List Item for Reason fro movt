@@ -1,4 +1,7 @@
 
+--ALTER TABLE Mst_Movement_List_Item
+--ALTER COLUMN Movement_List_Code NVARCHAR(4);  
+
 
 INSERT INTO Mst_Movement_List_Item (Movement_ID, Movement_List_Code, Movement_List_Name, Active_Status, Created_By, Created_On)
 VALUES 
