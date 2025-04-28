@@ -1,0 +1,44 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[ApprovalViewButton]    Script Date: 28-04-2025 11:14:39 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[ApprovalViewButton]
+    @Doc_ID INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @Doc_ID IS NULL
+    BEGIN
+        -- Set to the latest or first available Doc_ID if not supplied
+        SELECT TOP 1 @Doc_ID = Doc_ID FROM Trn_309_Movement ORDER BY Created_On ASC;
+    END
+
+    SELECT 
+        t.Plant_ID,
+        p.Plant_Code,
+        t.Doc_ID,
+        FORMAT(t.Created_On, 'dd-MM-yyyy') AS Date,
+        fm.Material_Code AS From_Material,
+        tm.Material_Code AS To_Material,
+        t.From_Qty AS Qty,
+        t.Movement_ID AS Movement_Type,
+        u.Employee_ID AS Request_By,
+        t.Created_By,
+        --CAST((t.To_Rate_Per_Unit - t.From_Rate_Per_Unit) AS DECIMAL(10,2)) AS Net_Difference
+		CAST((t.From_Rate_Per_Unit - t.To_Rate_Per_Unit) * t.From_Qty AS DECIMAL(10,2)) AS Net_Difference
+
+    FROM 
+        Trn_309_Movement AS t
+        INNER JOIN Mst_Plant AS p ON t.Plant_ID = p.Plant_ID
+        LEFT JOIN Mst_Material AS fm ON t.From_Mat_ID = fm.Material_ID  -- From material
+        LEFT JOIN Mst_Material AS tm ON t.To_Mat_ID = tm.Material_ID    -- To material
+        LEFT JOIN Mst_Movement_Type AS mt ON t.Movement_ID = mt.Movement_ID
+        LEFT JOIN Mst_User AS u ON t.Created_By = u.Employee_ID
+    WHERE
+        t.Doc_ID = @Doc_ID;
+END;
