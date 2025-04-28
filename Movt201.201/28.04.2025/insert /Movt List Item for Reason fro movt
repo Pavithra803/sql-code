@@ -1,0 +1,37 @@
+
+
+INSERT INTO Mst_Movement_List_Item (Movement_ID, Movement_List_Code, Movement_List_Name, Active_Status, Created_By, Created_On)
+VALUES 
+
+    (1, '0001', 'Shrinkage', 1, 1, GETDATE()),
+    (1, '0092', 'Spoiled', 1, 1, GETDATE()),
+    (2, '0001', 'For Remelting', 1, 1, GETDATE()),
+    (2, '0002', 'Loan from Customer', 1, 1, GETDATE()),
+    (2, '0015', 'Qty to Scrap', 1, 1, GETDATE()),
+    (2, '0018', 'Service Purpose', 1, 1, GETDATE()),
+    (2, '0201', 'Vendor Issue', 1, 1, GETDATE()),
+    (2, '0202', '202 Wrong Entry', 1, 1, GETDATE()),
+    (2, '0204', 'Qty to Remelt', 1, 1, GETDATE()),
+    (3, '0001', 'For Remelting', 1, 1, GETDATE()),
+    (3, '0015', 'Qty to Scrap', 1, 1, GETDATE()),
+    (3, '0016', 'Return to Vendor', 1, 1, GETDATE()),
+    (3, '0017', 'Scrap Stock Raise', 1, 1, GETDATE()),
+    (3, '0018', 'Service Purpose', 1, 1, GETDATE()),
+    (3, '0202', '201 Wrong Entry', 1, 1, GETDATE()),
+    (3, '0203', 'NPD STOCK RAISE', 1, 1, GETDATE()),
+    (3, '0204', 'Qty to Remelt', 1, 1, GETDATE()),
+    (3, '0205', 'Dsgn,teststock rais', 1, 1, GETDATE()),
+    (3, '0206', 'Salvage frmcust ret', 1, 1, GETDATE()),
+    (3, '0207', 'Scrao frm Cust ret', 1, 1, GETDATE()),
+    (3, '0208', 'FOC to Customer', 1, 1, GETDATE()),
+    (3, '0209', 'Loan from Customer', 1, 1, GETDATE()),
+    (4, '3091', 'OE to OES', 1, 1, GETDATE()),
+    (4, '3092', 'Inwarding in Wrong Part Number', 1, 1, GETDATE()),
+    (4, '3093', 'Part Mix Up', 1, 1, GETDATE()),
+    (4, '3094', 'Non Moving Conversion', 1, 1, GETDATE()),
+    (4, '3095', 'Wrong Entry During Physical Inventory', 1, 1, GETDATE()),
+    (4, '3096', 'Proto Part to Regular Part', 1, 1, GETDATE()),
+    (4, '3097', 'Others', 1, 1, GETDATE());
+
+
+SELECT * FROM Mst_Movement_List_Item;
