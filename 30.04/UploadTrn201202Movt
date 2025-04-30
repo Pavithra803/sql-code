@@ -1,0 +1,259 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[UploadTrn201202Movt]    Script Date: 30-04-2025 11:54:17 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+ALTER PROCEDURE [dbo].[UploadTrn201202Movt]
+    @Docid INT,              
+    @Created_By INT       
+AS
+BEGIN
+   -- DECLARE @Docid INT;
+
+    -- Step 1: Insert into Trn_Document with Approval_Status set to 'Pending'
+    INSERT INTO Trn_Document (
+        Plant_ID,
+        Movement_ID,
+        Movement_Name,
+        Status,
+        Created_By,
+        Created_On,
+        Approval_Status  -- Adding Approval_Status column here
+    )
+    VALUES (
+        --(SELECT Plant_ID FROM Mst_Plant WHERE Plant_Code = '1210'),
+		1,
+        2,
+        'Movement type 201,202',
+        'Active',
+        @Created_By,
+        GETDATE(),
+        'Pending'  -- Setting the Approval_Status to 'Pending'
+    );
+
+    -- Step 2: Get the generated Doc_ID
+    SET @Docid = SCOPE_IDENTITY();
+    PRINT @Docid;
+
+-- Drop temporary tables if already exist
+--DROP TABLE IF EXISTS #trn201_202, #t1, #t2, #t3, #new, #dup;
+
+---- Step 1: Create Temp Table and Insert Sample Data
+--CREATE TABLE #trn201_202 (
+--    Doc_ID INT, Plant_Code INT, Material_Code NVARCHAR(50), Quantity INT,
+--    SLoc_Code INT, CostCenter_Code INT,Reason_For_Movt NVARCHAR(255),Movement_Code INT,
+--    Valuation_Type NVARCHAR(50), Batch NVARCHAR(50),
+--    Rate_Unit DECIMAL(6,2), Remark NVARCHAR(255), User_ID INT,
+--    Approval_Status NVARCHAR(50), SAP_Transaction_Status NVARCHAR(50),
+--    Created_By INT, Created_On DATETIME
+--);
+
+--select * from Mst_Cost_Center
+
+---- Sample Data
+--INSERT INTO #trn201_202 VALUES
+--(1,1200,  'MAT001', 100, 1200, 1001000,' 201-0001 For Remelting', 201, 'DOMESTIC', 'B1', 10.10, 'test', 1, 'Pending', 'Pending', 1, GETDATE()),
+--(2,1150,  'MAT002', 200, 1300, 1002000, ' 201-0015 Qty to Scrap',201, 'SUBCONTRACT', 'B2', 100.10, 'test', 2, 'Pending', 'Pending', 2, GETDATE()),
+--(3,1300,  'MAT003', 150, 1150, 1003000, '202-0202 201Wrong Entry',202, 'INHOUSE', 'B3', 200.10, 'test', 3, 'Pending', 'Pending', 3, GETDATE());
+
+-- Step 2: Validate Input Data + Add Material Description
+SELECT 
+    t.*,
+    m.Description AS Material_Description,
+        CASE WHEN t.Plant_Code IN (SELECT Plant_Code FROM Mst_Plant WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS Plant_val,
+        CASE WHEN t.Material_Code IN (SELECT Material_Code FROM Mst_Material WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS Material_val,
+        CASE WHEN t.SLoc_Code IN (SELECT Storage_Code FROM Mst_Storage_Location WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS SLoc_val
+
+INTO #t1
+FROM #trn201_202 t
+LEFT JOIN Mst_Material As m ON m.Material_Code = t.Material_Code;
+
+--select * from #trn201_202
+
+--select * from  #t1
+-- Step 3: Enrich Data with Master Info (This step generates #t3)
+SELECT
+
+        p.Plant_ID,
+        m.Material_ID AS Material_Code,
+        m.Description AS Material_Description,
+    t.Quantity AS Qty,
+    s.SLoc_ID AS SLoc_Code,  
+    mt.Movement_ID AS Movement_Code,
+	 ---ml.Movement_List_Code AS Reason_For_Movt ,
+    cc.CostCenter_ID AS CostCenter_Code,
+    t.Valuation_Type,
+    t.Batch,
+    --m.Material_Type,
+    t.Remark,
+    t.Rate_Unit AS Rate_Per_Unit,
+    t.Plant_val,
+    t.Material_val,
+    t.SLoc_val
+INTO #t2 
+FROM #t1 t
+ INNER JOIN Mst_Plant AS p ON p.Plant_Code = t.Plant_Code
+    INNER JOIN Mst_Material AS m ON m.Material_Code = t.Material_Code
+    INNER JOIN Mst_Storage_Location AS s ON s.Storage_Code = t.SLoc_Code
+--INNER JOIN Mst_Movement_List_Item AS ml ON ml.Movement_List_Code = t.Reason_For_Movt
+
+ INNER JOIN Mst_Movement_Type AS mt ON mt.Movement_Code = t.Movement_Code	
+ INNER JOIN Mst_Cost_Center AS cc ON cc.CostCenter_Code = t.CostCenter_Code
+
+WHERE t.Plant_val = 'Valid'
+  AND t.Material_val = 'Valid'
+  AND t.SLoc_val = 'Valid';
+
+  --select * from #t2
+
+
+-- Step 4: Duplicates
+SELECT 
+ p.Plant_Code,
+    m.Material_Code, 
+    m. Description,
+    t2.Qty,
+    s.Storage_Code,
+    mt.Movement_Code,
+    --ml.Reason_For_Movt,
+    cc.CostCenter_Code,
+    t2.Valuation_Type,
+    t2.Batch,
+    --t2.Material_Type,
+    t2.Remark,
+    t2. Rate_Per_Unit,
+    'Duplicates_Records' AS Status
+INTO #dup
+FROM #t2 t2
+INNER JOIN Mst_Plant p ON p.Plant_ID = p.Plant_Code
+INNER JOIN Mst_Material m ON m.Material_ID = m.Material_Code
+INNER JOIN Mst_Storage_Location s ON s.SLoc_ID = s.Storage_Code
+--INNER JOIN Mst_Movement_List_Item ml ON ml.Movement_List_Code = ml.Reason_For_Movt
+INNER JOIN Mst_Movement_Type AS mt ON mt.Movement_Code = t2.Movement_Code
+ --INNER JOIN Mst_Movement_Type AS mt ON mt.Movement_Code = t2.Material_Type	
+INNER JOIN Mst_Cost_Center AS cc ON cc.CostCenter_Code = cc.CostCenter_Code
+INNER JOIN Trn_Document d ON d.Doc_ID = 1 
+ 
+WHERE EXISTS (
+    SELECT 1 
+    FROM Trn_201_202_Movement m
+    WHERE m.Plant_ID = t2.Plant_ID
+      AND m.Material_ID = t2.Material_Code  
+      AND m.Quantity = t2.Qty  
+      AND m.SLoc_ID = t2.SLoc_Code
+      AND CAST(m.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+);
+
+-- Step 5: Identify New Records for Trn_201_202_Movement
+SELECT 
+    p.Plant_Code,
+    m.Material_Code, 
+    m.Description,
+    t2.Qty,
+    s.Storage_Code,
+    mt.Movement_Code,
+    cc.CostCenter_Code,
+    t2.Valuation_Type,
+    t2.Batch,
+    t2.Remark,
+    t2.Rate_Per_Unit,
+    'New_Records' AS Status
+INTO #new
+FROM #t2 t2
+INNER JOIN Mst_Plant p ON t2.Plant_ID = p.Plant_ID
+INNER JOIN Mst_Material m ON m.Material_ID = t2.Material_Code
+INNER JOIN Mst_Storage_Location s ON s.SLoc_ID = t2.SLoc_Code
+INNER JOIN Mst_Cost_Center cc ON cc.CostCenter_Code = t2.CostCenter_Code
+INNER JOIN Mst_Movement_Type mt ON mt.Movement_Code = t2.Movement_Code
+INNER JOIN Trn_Document d ON d.Doc_ID = 1 
+WHERE NOT EXISTS (
+    SELECT 1 
+    FROM Trn_201_202_Movement m
+    WHERE m.Plant_ID = t2.Plant_ID
+      AND m.Material_ID = t2.Material_Code  
+      AND m.Quantity = t2.Qty  
+      AND m.SLoc_ID = t2.SLoc_Code
+      AND CAST(m.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+);
+--AND p.Plant_Code = '1210';
+
+
+-- Step 6: Insert Valid New Records into Trn_201_202_Movement
+WITH CTE_NEW AS (
+    SELECT * FROM #t2
+)
+INSERT INTO Trn_201_202_Movement (
+    Doc_ID,
+    Plant_ID,
+    Material_ID,
+    Quantity,
+    SLoc_ID,
+    Movement_ID,
+    CostCenter_ID,
+    Valuation_Type,
+    Batch,
+    Remark,
+    Rate_Unit,
+    Created_By,
+    Created_On
+)
+SELECT 
+    1,  -- Doc_ID
+    Plant_ID,
+    Material_Code,
+    Qty,
+    SLoc_Code,
+    Movement_Code,
+    CostCenter_Code,
+    Valuation_Type,
+    Batch,
+    Remark,
+    Rate_Per_Unit, 
+    1,  -- Created_By
+    GETDATE()  -- Created_On
+FROM CTE_NEW
+WHERE NOT EXISTS (
+    SELECT 1 
+    FROM Trn_201_202_Movement m
+    WHERE m.Plant_ID = CTE_NEW.Plant_ID
+      AND m.Material_ID = CTE_NEW.Material_Code
+      AND m.Quantity = CTE_NEW.Qty
+      AND m.SLoc_ID = CTE_NEW.SLoc_Code
+      AND CAST(m.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+);
+
+-- Step 7: Error Records for Trn_201_202_Movement
+SELECT 
+    t. Plant_Code,
+    t.Material_Code,
+    t.Quantity ,
+    t.SLoc_Code,
+    NULL AS Material_Type,
+    NULL AS Reason_For_Movt,  
+    t.CostCenter_Code,
+    t.Valuation_Type,
+    t.Batch,
+    t.Remark,
+    t.Rate_Unit,  
+    'Error_Records' AS Status
+INTO #error
+FROM #t1 t
+WHERE t.Plant_val = 'Invalid' 
+   OR t.Material_val = 'Invalid' 
+   OR t.SLoc_val = 'Invalid';
+
+-- Final Output
+SELECT * FROM #new
+
+SELECT * FROM #dup
+
+SELECT * FROM #error;
+
+-- Clean Up
+DROP TABLE IF EXISTS #trn201_202, #t1, #t2, #t3, #new, #dup, #error;
+
+end;
