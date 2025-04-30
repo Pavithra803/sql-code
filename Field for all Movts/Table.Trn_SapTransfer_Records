@@ -1,0 +1,43 @@
+
+
+CREATE TABLE Trn_SapTransfer_Records (
+    Trn_Sap_ID INT IDENTITY(1,1) PRIMARY KEY,
+    
+    Doc_ID INT FOREIGN KEY REFERENCES Trn_Document(Doc_ID),
+    Movement_ID INT FOREIGN KEY REFERENCES Mst_Movement_Type(Movement_ID),
+    
+    Plant_ID INT FOREIGN KEY REFERENCES Mst_Plant(Plant_ID),
+    SLoc_ID INT FOREIGN KEY REFERENCES Mst_Storage_Location(SLoc_ID),
+    To_SLoc_ID INT FOREIGN KEY REFERENCES Mst_Storage_Location(SLoc_ID),
+    
+    Material_Type NVARCHAR(4),  -- No FK / keeping type same as in Mst_Material
+    Material_ID INT FOREIGN KEY REFERENCES Mst_Material(Material_ID),
+    To_Material_ID INT FOREIGN KEY REFERENCES Mst_Material(Material_ID),
+    
+    --Material_Description NVARCHAR(255),  -- Fetched from Mst_Material.Description
+    
+    Rate_PerPart DECIMAL(6,2),
+    To_Rate_309 DECIMAL(6,2),
+    
+    Qty INT,
+    Value DECIMAL(18,2),  -- Value = Qty * Rate
+    
+    Movt_List_ID INT FOREIGN KEY REFERENCES Mst_Movement_List_Item(Movt_List_ID),
+    
+    Remarks NVARCHAR(255),
+    
+    CostCenter_ID INT FOREIGN KEY REFERENCES Mst_Cost_Center(CostCenter_ID),
+    Valuation_Type NVARCHAR(50),
+    Batch NVARCHAR(50),
+    
+    --Prov_Qty INT,
+    --Prov_Value DECIMAL(18,2),
+    
+    Approval_Status NVARCHAR(50),
+    SAP_Process_Status NVARCHAR(50),
+    
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
