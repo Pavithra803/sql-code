@@ -134,7 +134,7 @@ CREATE TABLE Mst_Role (
     Modified_By INT,
     Modified_On DATETIME
 );*/
-CREATE TABLE Mst_Login_User (
+CREATE TABLE Mst_User (
     User_ID INT IDENTITY(1,1) PRIMARY KEY,
     Plant_ID INT FOREIGN KEY REFERENCES Mst_Plant(Plant_ID),
     Employee_ID NVARCHAR(10),
@@ -183,6 +183,7 @@ CREATE TABLE Mst_Movement_List_Item (
 
 CREATE TABLE Mst_Vendor (
     Vendor_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Plant_ID INT FOREIGN KEY REFERENCES Mst_Plant(Plant_ID),
     Vendor_Code INT,
     Vendor_Name NVARCHAR(255),
     Vendor_Address NVARCHAR(255),
@@ -332,7 +333,7 @@ SELECT * FROM Mst_Material;
 SELECT * FROM Mst_Storage_Location;
 SELECT * FROM Mst_Cost_Center;
 SELECT * FROM Mst_Role;
-SELECT * FROM Mst_Login_User;
+SELECT * FROM Mst_User;
 SELECT * FROM Mst_Movement_Type;
 SELECT * FROM Mst_Movement_List_Item;
 SELECT * FROM Mst_Vendor;
