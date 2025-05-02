@@ -1,0 +1,302 @@
+
+
+
+
+---- Create temporary table
+--CREATE TABLE #transation (
+--    Plant_Code VARCHAR(100) NOT NULL,
+--    From_Material_Code VARCHAR(100) NOT NULL,
+--    From_Qty VARCHAR(100) NOT NULL,
+--    From_Storage_Code VARCHAR(100) NOT NULL,
+--    From_Valuation_Type VARCHAR(100) NOT NULL,
+--    From_Batch VARCHAR(100) NOT NULL,
+--    From_Rate_Per_Unit VARCHAR(100) NOT NULL,
+--    To_Material_Code VARCHAR(100) NOT NULL,
+--    To_Qty VARCHAR(100) NOT NULL,
+--    To_Storage_Code VARCHAR(100) NOT NULL,
+--    To_Valuation_Type VARCHAR(100) NOT NULL,
+--    To_Batch VARCHAR(100) NOT NULL,
+--    To_Rate_Per_Unit VARCHAR(100) NOT NULL,
+--    Remark VARCHAR(100) NOT NULL
+--);
+
+---- Insert sample data
+--INSERT INTO #transation (
+--    Plant_Code, From_Material_Code, From_Qty, From_Storage_Code, From_Valuation_Type,
+--    From_Batch, From_Rate_Per_Unit, To_Material_Code, To_Qty, To_Storage_Code,
+--    To_Valuation_Type, To_Batch, To_Rate_Per_Unit, Remark
+--)
+--VALUES
+--(
+--    '1000', 'MAT001', '20', '1200', 'INHOUSE',
+--    'FB1', '200', 'MAT002', '50', '1150',
+--    'SUBCONTRACT', 'TB1', '200', 'Test'
+--),
+--(
+--    '1210', 'MAT003', '30', '1300', 'DOMESTIC',
+--    'FB2', '300', 'MAT004', '40', '1250',
+--    'SUBCONTRACT', 'TB2', '300', 'Test'
+--);
+
+
+--drop table #transation
+
+--select * from #transation
+
+
+
+
+
+    -- Step 3: Validate Input Data + Add Material Descriptions
+    SELECT 
+        t.*,
+        fm.Description AS From_Description,
+
+        CASE WHEN t.Plant_Code IN (SELECT Plant_Code FROM Mst_Plant WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS Plant_val,
+        CASE WHEN t.From_Material_Code IN (SELECT Material_Code FROM Mst_Material WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS From_Mat,
+        CASE WHEN t.To_Material_Code IN (SELECT Material_Code FROM Mst_Material WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS To_Mat,
+        CASE WHEN t.From_Storage_Code IN (SELECT Storage_Code FROM Mst_Storage_Location WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS From_SLoc,
+        CASE WHEN t.To_Storage_Code IN (SELECT Storage_Code FROM Mst_Storage_Location WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS To_SLoc
+    INTO #t1
+    FROM #transation AS t
+    LEFT JOIN Mst_Material AS fm ON fm.Material_Code = t.From_Material_Code
+    LEFT JOIN Mst_Material AS tm ON tm.Material_Code = t.To_Material_Code;
+	
+--select * from #t1
+
+--drop table #t1
+
+	  -- Step 4: Map Valid Data to IDs
+    SELECT 
+        p.Plant_ID,
+		p.Plant_Code,
+        m1.Material_ID AS From_Material_ID,
+	   m1.Material_Code AS From_Material_Code,
+        m1.Description AS From_Description,
+        t.From_Qty,
+        s1.SLoc_ID AS From_SLoc_ID,
+		s1.Storage_Code AS From_Storage_Code,
+        t.From_Valuation_Type,
+        t.From_Batch,
+        CAST(t.From_Rate_Per_Unit AS DECIMAL(18,2)) AS From_Rate_Per_Unit,
+        m2.Material_ID AS To_Material_ID,
+		m2.Material_Code AS To_Material_Code,
+        m2.Description AS To_Description,
+        t.To_Qty,
+        s2.SLoc_ID AS To_SLoc_ID,
+		s2.Storage_Code AS To_Storage_Code,
+        t.To_Valuation_Type,
+        t.To_Batch,
+        CAST(t.To_Rate_Per_Unit AS DECIMAL(18,2)) AS To_Rate_Per_Unit,
+
+        (CAST(t.From_Rate_Per_Unit AS DECIMAL(10,2)) - CAST(t.To_Rate_Per_Unit AS DECIMAL(10,2))) AS Net_Difference_Price,
+        t.Remark
+    INTO #t2
+    FROM #t1 AS t
+    INNER JOIN Mst_Plant AS p ON p.Plant_Code = t.Plant_Code
+    INNER JOIN Mst_Material AS m1 ON m1.Material_Code = t.From_Material_Code
+    INNER JOIN Mst_Material AS m2 ON m2.Material_Code = t.To_Material_Code
+    INNER JOIN Mst_Storage_Location AS s1 ON s1.Storage_Code = t.From_Storage_Code
+    INNER JOIN Mst_Storage_Location AS s2 ON s2.Storage_Code = t.To_Storage_Code
+    WHERE t.Plant_val = 'Valid'
+      AND t.From_Mat = 'Valid'
+      AND t.To_Mat = 'Valid'
+      AND t.From_SLoc = 'Valid'
+      AND t.To_SLoc = 'Valid';
+		
+--select * from #t2
+
+--drop table #t2
+
+
+    -- Step 5: Identify Duplicates
+    SELECT  
+        p.Plant_Code,
+        m1.Material_Code AS From_Material_Code,
+        m1.Description AS From_Description,
+        t2.From_Qty,
+        s1.Storage_Code AS From_Storage_Code,
+        t2.From_Valuation_Type,
+        t2.From_Batch,
+        t2.From_Rate_Per_Unit,
+        m2.Material_Code AS To_Material_Code,
+        m2.Description AS To_Description,
+        t2.To_Qty,
+        s2.Storage_Code AS To_Storage_Code,
+        t2.To_Valuation_Type,
+        t2.To_Batch,
+        t2.To_Rate_Per_Unit,
+		 d.Approval_Status, 
+        t2.Remark,
+        'Duplicates_Records' AS Status
+       
+    INTO #dup
+    FROM #t2 t2
+    INNER JOIN Mst_Plant p ON t2.Plant_ID = p.Plant_ID
+    INNER JOIN Mst_Material m1 ON m1.Material_ID = t2.From_Material_Code
+    INNER JOIN Mst_Material m2 ON m2.Material_ID = t2.To_Material_Code
+    INNER JOIN Mst_Storage_Location s1 ON s1.SLoc_ID = t2.From_Storage_Code
+    INNER JOIN Mst_Storage_Location s2 ON s2.SLoc_ID = t2.To_Storage_Code
+		INNER JOIN Trn_Document d ON d.Doc_ID = 1 -- @Docid 
+    WHERE EXISTS (
+        SELECT 1 
+        FROM Trn_SapTransfer_Records m
+        WHERE m.Plant_ID = t2.Plant_ID
+          AND m.Material_ID = t2.From_Material_Code
+          AND m.Qty = t2.From_Qty
+          AND CAST(m.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+    );
+
+	--select * from Trn_SapTransfer_Records
+
+
+	  -- Step 6: Identify New Records
+    SELECT  
+        p.Plant_Code,
+        m1.Material_Code AS From_Material_Code,
+        m1.Description AS From_Description,
+        t2.From_Qty,
+        s1.Storage_Code AS From_Storage_Code,
+        t2.From_Valuation_Type,
+        t2.From_Batch,
+        t2.From_Rate_Per_Unit,
+        m2.Material_Code AS To_Material_Code,
+        m2.Description AS To_Description,
+        t2.To_Qty,
+        s2.Storage_Code AS To_Storage_Code,
+        t2.To_Valuation_Type,
+        t2.To_Batch,
+        t2.To_Rate_Per_Unit,
+		 d.Approval_Status,  
+         t2.Remark,
+       
+        'New_Records' AS Status
+    INTO #new
+    FROM #t2 t2
+    INNER JOIN Mst_Plant p ON t2.Plant_ID = p.Plant_ID
+    INNER JOIN Mst_Material m1 ON m1.Material_ID = t2.From_Material_Code
+    INNER JOIN Mst_Material m2 ON m2.Material_ID = t2.To_Material_Code
+    INNER JOIN Mst_Storage_Location s1 ON s1.SLoc_ID = t2.From_Storage_Code
+    INNER JOIN Mst_Storage_Location s2 ON s2.SLoc_ID = t2.To_Storage_Code
+	--INNER JOIN Trn_Document d ON t.Doc_ID = d.Doc_ID -- Assuming Doc_ID is available in #t1
+	INNER JOIN Trn_Document d ON d.Doc_ID = 1       -- @Docid  -- Correct join to get Approval_Status
+    WHERE NOT EXISTS (
+        SELECT 1 
+        FROM Trn_SapTransfer_Records m
+       WHERE m.Plant_ID = t2.Plant_ID
+  AND m.Material_ID = t2.From_Material_ID         
+  AND m.To_Material_ID = t2.To_Material_ID      
+  AND m.SLoc_ID = t2.From_SLoc_ID                
+  AND m.To_SLoc_ID = t2.To_SLoc_ID               
+  AND CAST(m.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+
+    )
+    AND p.Plant_Code = '1210';
+
+
+			
+--select * from  #new
+
+--drop table  #new
+
+
+  -- Step 7: Insert Valid New Records into Trn_SapTransfer_Records
+WITH CTE_NEW AS (
+    SELECT * FROM #t2
+    WHERE Plant_ID = (SELECT Plant_ID FROM Mst_Plant WHERE Plant_Code = '1210')
+)
+INSERT INTO Trn_SapTransfer_Records (
+    Doc_ID,
+    Movement_ID,
+	Plant_ID,
+	SLoc_ID,
+	To_SLoc_ID,
+    Material_ID,
+	To_Material_ID,
+	Rate_PerPart,
+	To_Rate_309,
+    Qty,
+	Remarks,
+	Valuation_Type,
+    Batch,
+	Approval_Status,
+	SAP_Process_Status,
+    Created_By,
+    Created_On
+)
+SELECT 
+    1,                            -- Doc_ID
+    4,                            -- Movement_ID
+    5,
+    From_SLoc_ID,
+    To_SLoc_ID,
+    From_Material_ID,
+    To_Material_ID,
+    From_Rate_Per_Unit,
+    To_Rate_Per_Unit,
+    From_Qty,
+    Remark,
+    From_Valuation_Type,
+    From_Batch,
+    'Pending',                   
+    'Pending',                    
+    1,                            -- Created_By
+    GETDATE()
+FROM CTE_NEW
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM Trn_SapTransfer_Records t
+    WHERE t.Material_ID = CTE_NEW.From_Material_ID
+      AND t.To_Material_ID = CTE_NEW.To_Material_ID
+      AND t.SLoc_ID = CTE_NEW.From_SLoc_ID
+      AND t.To_SLoc_ID = CTE_NEW.To_SLoc_ID
+      AND t.Plant_ID = CTE_NEW.Plant_ID
+      AND CAST(t.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+);
+
+	--select * from Trn_SapTransfer_Records
+
+
+	
+    -- Step 8: Output Error Records
+    SELECT  
+        t.Plant_Code,
+        t.From_Material_Code,
+        t.From_Description,
+        t.From_Qty,
+        t.From_Storage_Code,
+        t.From_Valuation_Type,
+        t.From_Batch,
+        t.From_Rate_Per_Unit,
+        t.To_Material_Code,
+
+        t.To_Qty,
+        t.To_Storage_Code,
+        t.To_Valuation_Type,
+        t.To_Batch,
+        t.To_Rate_Per_Unit,
+        t.Remark,
+        t.Plant_val,
+        t.From_Mat,
+        t.To_Mat,
+        t.From_SLoc,
+        t.To_SLoc,
+        'Error_Records' AS Status
+      
+    FROM #t1 AS t
+    WHERE t.Plant_val = 'Invalid'
+       OR t.From_Mat = 'Invalid'
+       OR t.To_Mat = 'Invalid'
+       OR t.From_SLoc = 'Invalid'
+       OR t.To_SLoc = 'Invalid';
+
+    -- Step 9: Output New Records
+    SELECT * FROM #new;
+
+    -- Step 10: Output Duplicate Records
+    SELECT * FROM #dup;
+
+    -- Step 11: Cleanup Temporary Tables
+    DROP TABLE IF EXISTS #t2, #t1, #transation, #new, #dup
+
+END;
