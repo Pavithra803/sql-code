@@ -1,3 +1,10 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[GetExistingTrnSap309Movt]    Script Date: 02-05-2025 16:30:14 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 
 ALTER PROCEDURE [dbo].[GetExistingTrnSap309Movt]
     @FromDate DATETIME,
@@ -35,8 +42,8 @@ BEGIN
         T.Approval_Status,
         T.Remarks,
 
-		U.User_Name AS Created_By -- (user id comes to name)
-
+		--U.User_Name AS Created_By -- (user id comes to name)
+		T.Created_By
     FROM Trn_SapTransfer_Records T
     INNER JOIN Mst_Material M ON T.Material_ID = M.Material_ID
     INNER JOIN Mst_Material M2 ON T.To_Material_ID = M2.Material_ID
@@ -44,10 +51,9 @@ BEGIN
     INNER JOIN Mst_Storage_Location S2 ON T.To_SLoc_ID = S2.SLoc_ID
     INNER JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID
 
-	 LEFT JOIN Mst_User U ON T.Created_By = U.Employee_ID
+	 --LEFT JOIN Mst_User U ON T.Created_By = U.Employee_ID -- No CAST needed
 
     WHERE 
         CAST(T.Created_On AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
       ORDER BY T.Created_On ASC;
 END;
-
