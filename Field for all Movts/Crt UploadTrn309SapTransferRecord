@@ -1,4 +1,36 @@
 
+   --DROP TABLE IF EXISTS #t1, #t2, #new, #dup, #transation;
+/*
+CREATE TABLE #transation (
+    Plant_Code NVARCHAR(10),
+    From_Material_Code NVARCHAR(50),
+    From_Qty DECIMAL(18, 3),
+    From_Storage_Code NVARCHAR(10),
+    From_Valuation_Type NVARCHAR(50),
+    From_Batch NVARCHAR(20),
+    From_Rate_Per_Unit DECIMAL(18, 2),
+    To_Material_Code NVARCHAR(50),
+    To_Qty DECIMAL(18, 3),
+    To_Storage_Code NVARCHAR(10),
+    To_Valuation_Type NVARCHAR(50),
+    To_Batch NVARCHAR(20),
+    To_Rate_Per_Unit DECIMAL(18, 2),
+    Remark NVARCHAR(255)
+);
+
+
+INSERT INTO #transation (
+    Plant_Code, From_Material_Code, From_Qty, From_Storage_Code, From_Valuation_Type,
+    From_Batch, From_Rate_Per_Unit, To_Material_Code, To_Qty, To_Storage_Code,
+    To_Valuation_Type, To_Batch, To_Rate_Per_Unit, Remark
+)
+VALUES 
+('1210', 'MAT001', 100, '1000', 'DOMESTIC', 'BATCH01', 12.50, 'MAT002', 100, '1150', 'DOMESTIC', 'BATCH02', 12.50, 'Test'),
+('1210', 'MAT003', 200, '1300', 'SUBCONTRACT', 'BATCH03', 14.75, 'MAT004', 200, '1200', 'INHOUSE', 'SUBCONTRACT', 15.00, 'Test');
+
+*/
+
+----select * from #transation
 
 USE [Sap_Approval]
 GO
