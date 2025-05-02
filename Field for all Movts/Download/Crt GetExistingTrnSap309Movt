@@ -1,0 +1,53 @@
+
+ALTER PROCEDURE [dbo].[GetExistingTrnSap309Movt]
+    @FromDate DATETIME,
+    @ToDate DATETIME
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+           T.Trn_Sap_ID,
+        P.Plant_Code, 
+        T.Doc_ID,
+        
+        -- From side details
+        M.Material_Code AS From_Material_Code,
+        M.Description AS From_Description,  
+        T.Qty AS From_Qty,
+        S.Storage_Code AS From_SLoc_Code,  
+        T.Valuation_Type AS From_Valuation_Type,
+        T.Batch As From_Batch,
+        T.Rate_PerPart AS From_Rate_Per_Unit,
+        
+        -- To side details
+        M2.Material_Code AS To_Material_Code,
+        M2.Description AS To_Description, 
+        S2.Storage_Code AS To_SLoc_Code,  
+		T.Qty AS To_Qty,
+        T.To_Rate_309 AS  To_Rate_Per_Unit,
+		    T.Valuation_Type AS To_Valuation_Type,
+        T.Batch As To_Batch,
+        -- Calculated Net Difference Price with null-handling
+        (ISNULL(T.Rate_PerPart, 0) - ISNULL(T.To_Rate_309, 0)) AS Net_Difference_Price,
+
+        -- Statuses and remarks
+        T.Approval_Status,
+        T.Remarks,
+
+		U.User_Name AS Created_By -- (user id comes to name)
+
+    FROM Trn_SapTransfer_Records T
+    INNER JOIN Mst_Material M ON T.Material_ID = M.Material_ID
+    INNER JOIN Mst_Material M2 ON T.To_Material_ID = M2.Material_ID
+    INNER JOIN Mst_Storage_Location S ON T.SLoc_ID = S.SLoc_ID
+    INNER JOIN Mst_Storage_Location S2 ON T.To_SLoc_ID = S2.SLoc_ID
+    INNER JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID
+
+	 LEFT JOIN Mst_User U ON T.Created_By = U.Employee_ID
+
+    WHERE 
+        CAST(T.Created_On AS DATE) BETWEEN CAST(@FromDate AS DATE) AND CAST(@ToDate AS DATE)
+      ORDER BY T.Created_On ASC;
+END;
+
