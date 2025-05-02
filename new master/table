@@ -1,0 +1,71 @@
+CREATE TABLE Mst_Screen (
+    Screen_ID      INT PRIMARY KEY IDENTITY(1,1),
+    Screen_Name    VARCHAR(100) NOT NULL,
+    Screen_Code    VARCHAR(50) UNIQUE NOT NULL,
+    Screen_Type    VARCHAR(50),
+    Active_Status BIT  , 
+    Created_By     VARCHAR(50) NOT NULL,
+    Created_On     DATETIME,
+    Modified_By    VARCHAR(50),
+    Modified_On    DATETIME
+);
+
+
+INSERT INTO Mst_Screen (Screen_Name, Screen_Code, Screen_Type, Active_Status, Created_By, Created_On)
+VALUES 
+('company', 'company', 'Masters', '1', '1', GETDATE()),
+('BusinessDivision', 'BusinessDivision', 'Masters', '1', '1', GETDATE()),
+('Plant', 'Plant', 'Masters', '1', '1', GETDATE()),
+('Department', 'Department', 'Masters', '1', '1', GETDATE()),
+('UserMaster', 'UserMaster', 'Masters', '1', '1', GETDATE()),
+('Role', 'Role', 'Masters', '1', '1', GETDATE()),
+('Material', 'Material', 'Masters', '1', '1', GETDATE()),
+('Vendor', 'Vendor', 'Masters', '1', '1', GETDATE()),
+('Customer', 'Customer', 'Masters', '1', '1', GETDATE()),
+('StorageLocation', 'StorageLocation', 'Masters', '1', '1', GETDATE()),
+('Movement_Type', 'Movement_Type', 'Masters', '1', '1', GETDATE()),
+('MVT_LIST_ITEM', 'MVT_LIST_ITEM', 'Masters', '1', '1', GETDATE()),
+('CostCenter', 'CostCenter', 'Masters', '1', '1', GETDATE());
+
+
+select*from Mst_Screen
+
+select*from Mst_Access
+
+
+INSERT INTO Mst_Screen (Screen_Name, Screen_Code, Screen_Type, Active_Status, Created_By, Created_On)
+VALUES ('Approval_309', 'Approval_309', 'Approval', '1', '1', GETDATE());
+
+select*from Mst_Material
+
+update Mst_Material set Material_Code='MAT013'where Material_ID=15
+
+
+CREATE TABLE Mst_Access (
+    Access_ID INT IDENTITY(1,1) PRIMARY KEY,        -- Identity column, auto-increments starting from 1
+    Role_ID INT FOREIGN KEY REFERENCES Mst_Role(Role_ID) ,                            -- Role_ID, foreign key from Mst_Role
+    Screen_ID INT FOREIGN KEY REFERENCES Mst_Screen(Screen_ID),                          -- Screen_ID, foreign key from Mst_Screen
+    Active_Status BIT  ,                     -- Active_Status as a boolean (1 = TRUE, 0 = FALSE)
+    Created_By VARCHAR(255),                         -- Created_By, assuming it's a string (e.g., username)
+    Created_on DATETIME,   -- Timestamp when the record is created
+    Modified_By VARCHAR(255),                        -- Modified_By, assuming it's a string
+    Modified_on DATETIME ,  -- Timestamp for modifications
+
+  
+);
+
+
+
+CREATE TABLE Mst_Business_Division (
+    Business_Division_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Company_ID INT  FOREIGN KEY  REFERENCES Mst_Company(Com_ID),
+    Business_Division_Code VARCHAR(50),
+    Business_Division_Name VARCHAR(100),
+    Business_Division_Address VARCHAR(255),
+    Active_Status BIT  , 
+    Created_By     VARCHAR(50) NOT NULL,
+    Created_On     DATETIME,
+    Modified_By    VARCHAR(50),
+    Modified_On    DATETIME
+);
+select*from Mst_Business_Division
