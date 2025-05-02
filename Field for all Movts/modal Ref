@@ -1,0 +1,170 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[UploadMaterial1]    Script Date: 02-05-2025 13:06:31 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[UploadMaterial1] 
+@Created_By VARCHAR(20)  
+AS  
+BEGIN  
+    -- Step 1: Validate data from #Material and insert into temp table #t
+    SELECT   
+        m.*,  
+        CASE 
+            WHEN m.Plant_Code IN (SELECT Plant_Code FROM Mst_Plant WHERE Active_Status = 1) THEN 'Valid' 
+            ELSE 'Invalid' 
+        END AS Plant_Val,  
+        CASE 
+            WHEN m.Material_Type IN (SELECT Mat_Type FROM Mst_Material_Type WHERE Active_Status = 1) THEN 'Valid' 
+            ELSE 'Invalid' 
+        END AS Material_Val  
+    INTO #t  
+    FROM #Material m;  
+  
+    -- Step 2: Filter only valid records and map to Plant_ID, insert into #t1
+    SELECT   
+        p.Plant_ID,  
+        p.Plant_Code,
+        t.Material_Code,  
+        t.Description,  
+        t.Material_Type,  
+        t.Rate,  
+        t.Active_Status  
+    INTO #t1  
+    FROM #t t  
+    INNER JOIN Mst_Plant p ON p.Plant_Code = t.Plant_Code  
+    WHERE t.Plant_Val = 'Valid' AND t.Material_Val = 'Valid';  
+  
+    -- Step 3: Identify existing records and update
+-- Step 3: Identify existing records and update
+WITH CTE_Existing AS (     
+    SELECT  
+        source.Plant_ID,  
+        source.Material_Code,  
+        source.Material_Type,  
+        source.Description,  
+        source.Rate,  
+        source.Active_Status  
+    FROM #t1 AS source                       
+    INNER JOIN Mst_Material target 
+        ON source.Material_Code = target.Material_Code 
+        AND source.Plant_ID = target.Plant_ID
+)  
+UPDATE target
+SET  
+    Description = CASE 
+        WHEN source.Active_Status = 1 THEN source.Description 
+        ELSE target.Description  -- Don't update if Active_Status is not 1
+    END,
+    Rate = CASE 
+        WHEN source.Active_Status = 1 THEN source.Rate 
+        ELSE target.Rate  -- Don't update if Active_Status is not 1
+    END,
+    Active_Status = source.Active_Status,  -- Always update Active_Status
+    Modified_On = GETDATE(),  
+    Modified_By = @Created_By  
+FROM Mst_Material AS target  
+JOIN CTE_Existing AS source  
+    ON source.Material_Code = target.Material_Code  
+    AND source.Plant_ID = target.Plant_ID ;
+--WHERE target.Active_Status = 1;  -- Only update active rows
+ -- Only update active rows
+
+  
+    -- Step 4: Identify new records BEFORE inserting
+    WITH CTE_NEW AS (     
+        SELECT  
+            source.Plant_ID,  
+            source.Material_Code,  
+            source.Material_Type,  
+            source.Description,  
+            source.Rate,  
+            source.Active_Status  
+        FROM #t1 AS source                      
+        WHERE NOT EXISTS (  
+            SELECT 1 FROM Mst_Material m  
+            WHERE m.Material_Code = source.Material_Code  
+            AND m.Plant_ID = source.Plant_ID  
+        )  
+    )  
+    SELECT  
+        Material_Code,  
+        Plant_ID,  
+        Description,  
+        Material_Type,  
+        Active_Status,  
+        Rate  
+       
+    INTO #InsertedRecords
+    FROM CTE_NEW;
+
+    -- Insert new records
+    INSERT INTO Mst_Material (  
+        Material_Code,  
+        Plant_ID,  
+        Description,  
+        Material_Type,   
+        Active_Status,  
+        Rate  
+       
+    )  
+    SELECT  
+        Material_Code,  
+        Plant_ID,  
+        Description,  
+        Material_Type,  
+        Active_Status,  
+        Rate
+        
+    FROM #InsertedRecords;  
+  
+    -- Step 5: Return result sets
+
+    -- 1. New Records
+    SELECT  
+        ir.Plant_ID, 
+        p.Plant_Code,
+        ir.Material_Code,  
+        ir.Material_Type,  
+        ir.Description,  
+        ir.Rate,  
+        ir.Active_Status,
+        'New_Records Inserted' AS Status
+    FROM #InsertedRecords ir
+    INNER JOIN Mst_Plant p ON p.Plant_ID = ir.Plant_ID;
+
+    -- 2. Updated Record
+    SELECT  
+        t1.Plant_ID, 
+        t1.Plant_Code,
+        t1.Material_Code,  
+        t1.Material_Type,  
+        t1.Description,  
+        t1.Rate,  
+        t1.Active_Status,
+        'Updated_Records' AS Status
+    FROM #t1 t1
+    WHERE NOT EXISTS (
+        SELECT 1 FROM #InsertedRecords ir
+        WHERE ir.Material_Code = t1.Material_Code
+        AND ir.Plant_ID = t1.Plant_ID
+    );
+
+    -- 3. Error Records
+    SELECT   
+        t.Plant_Code,  
+        t.Material_Code,  
+        t.Description,  
+        t.Material_Type,  
+        t.Rate,  
+        t.Active_Status,
+        t.Plant_Val,
+        t.Material_Val
+    FROM #t t  
+    WHERE t.Plant_Val = 'Invalid' OR t.Material_Val = 'Invalid';
+
+    -- Clean up temp tables
+    DROP TABLE IF EXISTS #t, #t1, #Material, #InsertedRecords;
+END;
