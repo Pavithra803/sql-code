@@ -1,0 +1,169 @@
+
+
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[UploadTrn309SapTransferRecord]    Script Date: 02-05-2025 14:47:41 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[UploadTrn309SapTransferRecord]
+    @Created_By INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Docid INT;
+
+    -- Step 1: Insert into Trn_Document
+    INSERT INTO Trn_Document (
+        Plant_ID,
+        Movement_ID,
+        Movement_Name,
+        Status,
+        Created_By,
+        Created_On,
+        Approval_Status
+    )
+    VALUES (
+        (SELECT TOP 1 Plant_ID FROM Mst_Plant WHERE Plant_Code = '1210'),
+        4,
+        'Movement type 309',
+        'Active',
+        2,
+        GETDATE(),
+        'Pending'
+    );
+
+    SET @Docid = SCOPE_IDENTITY();
+
+
+	--drop table #t1
+
+
+    -- Step 2: Enrich and Validate Input Data
+    SELECT 
+        t.*,
+        fm.Material_ID AS From_Material_ID,
+        tm.Material_ID AS To_Material_ID,
+        p.Plant_ID,
+        s1.SLoc_ID AS From_SLoc_ID,
+        s2.SLoc_ID AS To_SLoc_ID,
+        CASE WHEN p.Plant_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS Plant_Val,
+        CASE WHEN fm.Material_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS From_Mat_Val,
+        CASE WHEN tm.Material_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS To_Mat_Val,
+        CASE WHEN s1.SLoc_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS From_SLoc_Val,
+        CASE WHEN s2.SLoc_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS To_SLoc_Val
+    INTO #t1
+    FROM #transation AS t
+    LEFT JOIN Mst_Plant p ON p.Plant_Code = t.Plant_Code
+    LEFT JOIN Mst_Material fm ON fm.Material_Code = t.From_Material_Code
+    LEFT JOIN Mst_Material tm ON tm.Material_Code = t.To_Material_Code
+    LEFT JOIN Mst_Storage_Location s1 ON s1.Storage_Code = t.From_Storage_Code
+    LEFT JOIN Mst_Storage_Location s2 ON s2.Storage_Code = t.To_Storage_Code;
+
+    -- Step 3: Filter Valid Records
+    SELECT * INTO #t2 FROM #t1
+    WHERE Plant_Val = 'Valid'
+      AND From_Mat_Val = 'Valid'
+      AND To_Mat_Val = 'Valid'
+      AND From_SLoc_Val = 'Valid'
+      AND To_SLoc_Val = 'Valid';
+
+    -- Step 4: Detect Duplicates
+    SELECT * INTO #dup
+    FROM #t2 t
+    WHERE EXISTS (
+        SELECT 1 FROM Trn_SapTransfer_Records r
+        WHERE r.Plant_ID = t.Plant_ID
+          AND r.Material_ID = t.From_Material_ID
+          AND r.To_Material_ID = t.To_Material_ID
+          AND r.SLoc_ID = t.From_SLoc_ID
+          AND r.To_SLoc_ID = t.To_SLoc_ID
+          AND CAST(r.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+    );
+
+
+   
+    -- Step 5: New Records (not in Trn_SapTransfer_Records)
+    
+	   WITH CTE_NEW AS (
+    SELECT * 
+    FROM #t2 AS source
+    WHERE NOT EXISTS (
+        SELECT 1 
+        FROM Trn_SapTransfer_Records r
+        WHERE r.Plant_ID = source.Plant_ID
+          AND r.Material_ID = source.From_Material_ID
+          AND r.To_Material_ID = source.To_Material_ID
+          AND r.SLoc_ID = source.From_SLoc_ID
+          AND r.To_SLoc_ID = source.To_SLoc_ID
+          AND CAST(r.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+    )
+)
+SELECT * INTO #InsertedRecords
+FROM CTE_NEW;
+
+-- Step 6: Insert Valid New Records
+INSERT INTO Trn_SapTransfer_Records (
+    Doc_ID,
+    Movement_ID,
+    Plant_ID,
+    Material_ID,
+    Qty,
+    SLoc_ID,
+    Valuation_Type,
+    Batch,
+    Rate_PerPart,
+    To_Material_ID,
+    To_SLoc_ID,
+    To_Rate_309,
+    Remarks,
+    Created_By,
+    Created_On
+)
+SELECT 
+     @Docid,
+    4,         -- Movement ID
+    Plant_ID,
+    From_Material_ID,
+    From_Qty,
+    From_SLoc_ID,
+    From_Valuation_Type,
+    From_Batch,
+    CAST(From_Rate_Per_Unit AS DECIMAL(6,2)),
+    To_Material_ID,
+    To_SLoc_ID,
+    CAST(To_Rate_Per_Unit AS DECIMAL(6,2)),
+    Remark,
+   @Created_By,
+    GETDATE()
+FROM #InsertedRecords;
+
+
+
+    -- Step 7: Output Errors
+    SELECT 
+        *, 'Error_Records' AS Status
+    FROM #t1
+    WHERE Plant_Val = 'Invalid'
+       OR From_Mat_Val = 'Invalid'
+       OR To_Mat_Val = 'Invalid'
+       OR From_SLoc_Val = 'Invalid'
+       OR To_SLoc_Val = 'Invalid';
+
+    -- Step 8: Output New Records
+    SELECT *, 'New_Records' AS Status FROM #InsertedRecords;
+
+    -- Step 9: Output Duplicate Records
+    SELECT *, 'Duplicate_Records' AS Status FROM #dup;
+
+    -- Step 10: Cleanup
+    DROP TABLE IF EXISTS #t1, #t2, #new, #dup, #transation;
+END
+
+
+--select * from Trn_SapTransfer_Records
+
+
