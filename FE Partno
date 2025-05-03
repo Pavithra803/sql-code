@@ -1,3 +1,104 @@
+
+         {/* Modal Component */}
+         <Modal open={openViewModal} onClose={handleCloseViewModal}>
+        <Box
+          sx={{
+            width: 600,  // Reduced width
+            height: 350, // Reduced height
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 2,         // Reduced padding
+            margin: "auto",
+            marginTop: "10%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          {/* Modal Header */}
+          <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+            <h3 style={{
+              textAlign: "center", color: "blue", textDecoration: "underline",
+              textDecorationColor: "limegreen", textDecorationThickness: "3px",
+              fontSize: "20px", fontWeight: "bold", margin: 0, padding: 0, width: "100%"
+            }}>
+              309 Movement Record
+            </h3>
+            <button
+              onClick={handleCloseViewModal}
+              style={{
+                backgroundColor: "#FF3333", color: "white",
+                border: "none", fontSize: "18px", cursor: "pointer", width: "30px", height: "30px", borderRadius: "5px",
+              }}
+            >
+              &times;
+            </button>
+          </Box>
+
+          {/* Plant and Document Info Section */}
+          <Box sx={{ width: "100%", marginTop: "10px", marginBottom: "5px", display: 'flex', justifyContent: 'space-between' }}>
+            <div>
+              <strong>Plant Code:</strong> {PlantCode}
+            </div>
+            <div>
+              <strong>Document:</strong> {Document}
+            </div>
+          </Box>
+
+          {/* Content Table */}
+          <Box sx={{ width: "100%", marginTop: "10px" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px", border: "1px solid black" }}>
+              <thead>
+                <tr>
+                  {/* Table Header with Blue Background */}
+                  <th style={{
+                    textAlign: "left", padding: "5px", backgroundColor: "blue", color: "white", borderBottom: "1px solid gray", borderLeft: "1px solid black", borderRight: "1px solid black"
+                  }}>Content</th>
+                  <th style={{
+                    textAlign: "left", padding: "5px", backgroundColor: "blue", color: "white", borderBottom: "1px solid gray", borderLeft: "1px solid black", borderRight: "1px solid black"
+                  }}>From</th>
+                  <th style={{
+                    textAlign: "left", padding: "5px", backgroundColor: "blue", color: "white", borderBottom: "1px solid gray", borderLeft: "1px solid black", borderRight: "1px solid black"
+                  }}>To</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[ 
+                  ["Mat Code", FromMatCode, ToMatCode],
+                  ["Description", FromDescription, ToDescription],
+                  ["Qty", FromQty, ToQty],
+                  ["SLoc ID", FromSLocID, ToSLocID],
+                  ["Price", FromPrice, ToPrice],
+                  ["Valuation Type", FromValuationType, ToValuationType],
+                  ["Batch", FromBatch, ToBatch],
+                ].map(([label, fromValue, toValue], index) => (
+                  <tr key={label}>
+                    <td style={{ padding: "5px", borderBottom: "1px solid gray", borderLeft: "1px solid black", borderRight: "1px solid black" }}>{label}</td>
+                    <td style={{ padding: "5px", borderBottom: "1px solid gray", borderLeft: "1px solid black", borderRight: "1px solid black" }}>{fromValue || " "}</td>
+                    <td style={{ padding: "5px", borderBottom: "1px solid gray", borderLeft: "1px solid black", borderRight: "1px solid black" }}>{toValue || " "}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Box>
+
+          {/* Net Different Price and Approval Status Section */}
+          <Box sx={{ width: "100%", marginTop: "10px", display: 'flex', justifyContent: 'space-between' }}>
+            <div>
+              <strong>Net Different Price:</strong> {NetDifferentPrice}
+            </div>
+            <div>
+              <strong>Approval Status:</strong> {ApprovalStatus}
+            </div>
+          </Box>
+        </Box>
+      </Modal>
+
+
+
+----------------view-----xxxxx----------
+
 import React, { useState, useEffect } from "react";
 import {
   TextField,
