@@ -1,0 +1,242 @@
+
+
+CREATE DATABASE SAP_APPROVAL;
+
+
+USE SAP_APPROVAL;
+
+-- Masters Table 
+
+--T 1 Mst Com
+CREATE TABLE Mst_Company (
+    Com_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Com_code INT,
+    Com_Name NVARCHAR(255),
+    Active_Status BIT,
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+  
+
+--T 2 Mst Plant
+
+CREATE TABLE Mst_Plant (
+    Plant_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Com_ID INT ,
+    Plant_Code INT, 
+    Plant_Name NVARCHAR(255),
+    Short_Name NVARCHAR(50),
+    Active_Status BIT,
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+--T 3 Mst Dept
+
+CREATE TABLE Mst_Department (
+    Dept_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Dept_Code NVARCHAR(50),
+    Dept_Name NVARCHAR(255),
+    Active_Status BIT,
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+--T 4 Mst Material Type 
+
+CREATE TABLE Mst_Material_Type (
+    Mat_ID INT IDENTITY(1,1) PRIMARY KEY,  
+    Mat_Type NVARCHAR(50), 
+    Active_Status BIT ,  
+    Created_By INT,  
+    Created_On DATETIME ,  
+    Modified_By INT ,  
+    Modified_On DATETIME  
+);
+--T 5 Mst Material
+
+CREATE TABLE Mst_Material (
+    Material_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Plant_ID INT ,
+    Material_Code NVARCHAR(50),
+    Description NVARCHAR(255),
+    Material_Type NVARCHAR(4),
+    Rate DECIMAL(6,2), 
+    Active_Status BIT,
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+
+
+
+--T 6 Mst Storage  Location
+
+CREATE TABLE Mst_Storage_Location (
+    SLoc_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Plant_ID INT ,
+    Storage_Code INT,  
+    SLoc_Name NVARCHAR(50),
+    Active_Status BIT,
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+--T 7 Mst Cost Center
+
+CREATE TABLE Mst_Cost_Center (
+    CostCenter_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Plant_ID INT ,
+    CostCenter_Code INT,
+    CostCenter_Name NVARCHAR(50),
+    Active_Status BIT,
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+--T 8 Mst Role
+
+CREATE TABLE Mst_Role (
+    Role_ID INT IDENTITY(1,1) PRIMARY KEY,   
+    Role_Name NVARCHAR(255),       
+    Active_Status BIT ,    
+    Created_By INT,                         
+    Created_On DATETIME ,
+    Modified_By INT,                         
+    Modified_On DATETIME 
+);
+
+--T 9 Mst User
+
+
+CREATE TABLE Mst_User (
+    User_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Plant_ID INT,
+    Employee_ID NVARCHAR(10),
+    User_Name NVARCHAR(255),
+    Dept_ID INT ,
+    User_Email NVARCHAR(255),
+    Role_ID INT ,
+    User_Level INT,
+	Password NVARCHAR(255),
+    Active_Status BIT,
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+
+--T 10 Mst Movement type
+
+CREATE TABLE Mst_Movement_Type (
+    Movement_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Movement_Code INT,
+    Movement_Name NVARCHAR(255),
+    Active_Status BIT,
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+
+--T 11 Mst Movt List Item
+
+CREATE TABLE Mst_Movement_List_Item (
+    Movt_List_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Movement_ID INT ,
+    Movement_List_Code INT,
+    Movement_List_Name NVARCHAR(250),
+    Active_Status BIT,
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+--T 12 Mst Vendor
+
+CREATE TABLE Mst_Vendor (
+    Vendor_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Plant_ID INT,
+    Vendor_Code INT,
+    Vendor_Name NVARCHAR(255),
+    Vendor_Address NVARCHAR(255),
+    Active_Status BIT,
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+--T 13 Mst Customer
+
+CREATE TABLE Mst_Customer (
+    Customer_ID INT IDENTITY(1,1) PRIMARY KEY,
+	Plant_ID INT,
+    Customer_Code INT,
+    Customer_Name NVARCHAR(255),
+    Customer_Address NVARCHAR(255),
+    Active_Status BIT,
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+--T 14
+
+CREATE TABLE Mst_Business_Division (
+    Business_Division_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Company_ID INT  ,
+    Business_Division_Code VARCHAR(50),
+    Business_Division_Name VARCHAR(100),
+    Business_Division_Address VARCHAR(255),
+    Active_Status BIT  , 
+    Created_By     VARCHAR(50) ,
+    Created_On     DATETIME,
+    Modified_By    VARCHAR(50),
+    Modified_On    DATETIME
+);
+
+--T 15 
+
+CREATE TABLE Mst_Access (
+    Access_ID INT IDENTITY(1,1) PRIMARY KEY,        
+    Role_ID INT  ,                          
+    Screen_ID INT ,                        
+    Active_Status BIT  ,                    
+    Created_By VARCHAR(255),                         
+    Created_on DATETIME,   
+    Modified_By VARCHAR(255),                       
+    Modified_on DATETIME , 
+  
+);
+
+--T 16 
+CREATE TABLE Mst_Screen (
+    Screen_ID      INT PRIMARY KEY IDENTITY(1,1),
+    Screen_Name    VARCHAR(100) NOT NULL,
+    Screen_Code    VARCHAR(50) UNIQUE NOT NULL,
+    Screen_Type    VARCHAR(50),
+    Active_Status BIT  , 
+    Created_By     VARCHAR(50) NOT NULL,
+    Created_On     DATETIME,
+    Modified_By    VARCHAR(50),
+    Modified_On    DATETIME
+);
+
+
