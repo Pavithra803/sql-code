@@ -30,3 +30,7 @@ DROP COLUMN Plant_Description;
 -- Drop a column from Mst_Department
 ALTER TABLE Mst_Department
 DROP COLUMN Dept_Head;
+-------------------------------------------------------
+
+
+EXEC sp_rename 'Trn_Approvall_History', 'Trn_Approval_History';
