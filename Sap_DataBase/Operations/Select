@@ -1,0 +1,37 @@
+SELECT * FROM Mst_Company;
+
+SELECT * FROM Mst_Plant;
+
+SELECT * FROM Mst_Department;
+
+SELECT * FROM Mst_Material_Type;
+
+SELECT * FROM Mst_Material;
+
+SELECT * FROM Mst_Storage_Location;
+
+SELECT * FROM Mst_Cost_Center;
+
+SELECT * FROM Mst_Role;
+
+SELECT * FROM Mst_User;
+
+SELECT * FROM Mst_Movement_Type;
+
+SELECT * FROM Mst_Movement_List_Item;
+
+SELECT * FROM Mst_Vendor;
+
+SELECT * FROM Mst_Customer;
+
+SELECT * FROM Mst_Business_Division;
+
+SELECT * FROM Mst_Access;
+
+SELECT * FROM Mst_Screen;
+
+SELECT * FROM Trn_Document;
+
+SELECT * FROM Trn_SapTransfer_Records;
+
+SELECT * FROM Trn_Approvall_History;
