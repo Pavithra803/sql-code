@@ -1,0 +1,90 @@
+
+
+-- Transaction Table 
+
+
+----T 2 Trn 309 Movt
+
+--CREATE TABLE Trn_309_Movement (
+--    Trn_309_ID INT IDENTITY(1,1) PRIMARY KEY,
+--    Doc_ID INT FOREIGN KEY REFERENCES Trn_Document(Doc_ID),
+--    Plant_ID INT FOREIGN KEY REFERENCES Mst_Plant(Plant_ID),
+--    Movement_ID INT FOREIGN KEY REFERENCES Mst_Movement_Type(Movement_ID),
+    
+--    From_Mat_ID INT FOREIGN KEY REFERENCES Mst_Material(Material_ID),
+--    From_Description NVARCHAR(255),  -- Added From_Description
+--    From_Qty INT,
+--    From_SLoc_ID INT FOREIGN KEY REFERENCES Mst_Storage_Location(SLoc_ID),
+--    From_Valuation_Type NVARCHAR(50),
+--    From_Batch NVARCHAR(50),
+--    From_Rate_Per_Unit DECIMAL(6,2),
+    
+--    To_Mat_ID INT FOREIGN KEY REFERENCES Mst_Material(Material_ID),
+--    To_Description NVARCHAR(255),  -- Added To_Description
+--    To_Qty INT,
+--    To_SLoc_ID INT FOREIGN KEY REFERENCES Mst_Storage_Location(SLoc_ID),
+--    To_Valuation_Type NVARCHAR(50),
+--    To_Batch NVARCHAR(50),
+--    To_Rate_Per_Unit DECIMAL(6,2),
+    
+--    Remark NVARCHAR(255),
+--    Approval_Status NVARCHAR(50),
+--    SAP_Transaction_Status NVARCHAR(50),
+--    Created_By INT,
+--    Created_On DATETIME,
+--    Modified_By INT,
+--    Modified_On DATETIME
+--);
+
+
+
+----T 3 Trn 202 movt
+
+--CREATE TABLE Trn_202_Movement (
+--    Trn_202_ID INT IDENTITY(1,1) PRIMARY KEY,
+--    Doc_ID INT FOREIGN KEY REFERENCES Trn_Document(Doc_ID),
+--    Plant_ID INT FOREIGN KEY REFERENCES Mst_Plant(Plant_ID),
+--    Material_ID INT FOREIGN KEY REFERENCES Mst_Material(Material_ID),
+--    Quantity INT,
+--    SLoc_ID INT FOREIGN KEY REFERENCES Mst_Storage_Location(SLoc_ID),
+--    CostCenter_ID INT FOREIGN KEY REFERENCES Mst_Cost_Center(CostCenter_ID),
+--    Movement_ID INT FOREIGN KEY REFERENCES Mst_Movement_Type(Movement_ID),
+--    Valuation_Type NVARCHAR(50),
+--    Batch NVARCHAR(50),
+--    Rate_Unit DECIMAL(6,2),
+--    Remark NVARCHAR(255),
+--    User_ID INT FOREIGN KEY REFERENCES Mst_Login_User(User_ID),
+--    Approval_Status VARCHAR(50),
+--    SAP_Transaction_Status VARCHAR(50),
+--    Created_By INT,
+--    Created_On DATETIME,
+--    Modified_By INT,
+--    Modified_On DATETIME
+--);
+
+
+
+INSERT INTO Trn_309_Movement 
+(Doc_ID, Plant_ID, Movement_ID, From_Mat_ID, From_Qty, From_SLoc_ID, From_Valuation_Type, From_Batch, From_Rate_Per_Unit,
+To_Mat_ID, To_Qty, To_SLoc_ID, To_Valuation_Type, To_Batch, To_Rate_Per_Unit,
+Remark, Approval_Status, SAP_Transaction_Status, Created_By, Created_On) 
+VALUES
+(1, 1200, 309, 'MAT001', 50, 1000, 'SUBCONTRACT', '2', 100.00,
+'MAT003', 50, 1000, 'SUBCONTRACT', '2', 120.00, 
+'test', 'Pending', 'Success', 1, GETDATE()),
+
+(2, 1300, 309, 'MAT002', 50, 1200, 'DOMESTIC', '2', 100.00,
+'MAT004', 50, 1200, 'DOMESTIC', '2', 120.00,
+'test', 'Pending', 'Success', 1, GETDATE()),
+
+(3, 1150, 309, 'MAT003', 50, 1300, 'INHOUSE', '2', 100.00, 
+'MAT005', 50, 1300, 'INHOUSE', '2', 120.00,
+'test', 'Pending', 'Success', 1, GETDATE());
+
+SELECT * FROM Trn_309_Movement
+
+
+*/
+
+
+
