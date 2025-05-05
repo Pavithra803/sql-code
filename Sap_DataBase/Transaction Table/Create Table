@@ -12,6 +12,9 @@ CREATE TABLE Trn_Document (
     Modified_On DATETIME
 );
 
+ALTER TABLE Trn_Document
+ADD Approval_Status NVARCHAR(255);
+
 
 --2 Trn 
 
