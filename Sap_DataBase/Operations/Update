@@ -1,0 +1,155 @@
+-- Update Mst_Company
+UPDATE Mst_Company
+SET Com_Name = 'New Company Name',
+    Active_Status = 1,
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE Com_ID = 1;
+
+-- Update Mst_Plant
+UPDATE Mst_Plant
+SET Plant_Name = 'New Plant Name',
+    Active_Status = 1,
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE Plant_ID = 1;
+
+-- Update Mst_Department
+UPDATE Mst_Department
+SET Dept_Name = 'New Department Name',
+    Active_Status = 1,
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE Dept_ID = 1;
+
+-- Update Mst_Material_Type
+UPDATE Mst_Material_Type
+SET Mat_Type = 'New Material Type',
+    Active_Status = 1,
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE Mat_ID = 1;
+
+-- Update Mst_Material
+UPDATE Mst_Material
+SET Description = 'New Material Description',
+    Rate = 100.00,
+    Active_Status = 1,
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE Material_ID = 1;
+
+-- Update Mst_Storage_Location
+UPDATE Mst_Storage_Location
+SET SLoc_Name = 'New Storage Location',
+    Active_Status = 1,
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE SLoc_ID = 1;
+
+-- Update Mst_Cost_Center
+UPDATE Mst_Cost_Center
+SET CostCenter_Name = 'New Cost Center Name',
+    Active_Status = 1,
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE CostCenter_ID = 1;
+
+-- Update Mst_Role
+UPDATE Mst_Role
+SET Role_Name = 'New Role Name',
+    Active_Status = 1,
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE Role_ID = 1;
+
+-- Update Mst_User
+UPDATE Mst_User
+SET User_Name = 'New User Name',
+    User_Email = 'newuser@example.com',
+    Active_Status = 1,
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE User_ID = 1;
+
+-- Update Mst_Movement_Type
+UPDATE Mst_Movement_Type
+SET Movement_Name = 'New Movement Name',
+    Active_Status = 1,
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE Movement_ID = 1;
+
+-- Update Mst_Movement_List_Item
+UPDATE Mst_Movement_List_Item
+SET Movement_List_Name = 'New Movement List Name',
+    Active_Status = 1,
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE Movt_List_ID = 1;
+
+-- Update Mst_Vendor
+UPDATE Mst_Vendor
+SET Vendor_Name = 'New Vendor Name',
+    Vendor_Address = 'New Vendor Address',
+    Active_Status = 1,
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE Vendor_ID = 1;
+
+-- Update Mst_Customer
+UPDATE Mst_Customer
+SET Customer_Name = 'New Customer Name',
+    Customer_Address = 'New Customer Address',
+    Active_Status = 1,
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE Customer_ID = 1;
+
+-- Update Mst_Business_Division
+UPDATE Mst_Business_Division
+SET Business_Division_Name = 'New Business Division Name',
+    Active_Status = 1,
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE Business_Division_ID = 1;
+
+-- Update Mst_Access
+UPDATE Mst_Access
+SET Screen_ID = 2,
+    Active_Status = 1,
+    Modified_By = 'Admin',
+    Modified_on = GETDATE()
+WHERE Access_ID = 1;
+
+-- Update Mst_Screen
+UPDATE Mst_Screen
+SET Screen_Name = 'New Screen Name',
+    Screen_Code = 'NewScreenCode',
+    Active_Status = 1,
+    Modified_By = 'Admin',
+    Modified_On = GETDATE()
+WHERE Screen_ID = 1;
+
+-- Update Trn_Document
+UPDATE Trn_Document
+SET Status = 'Approved',
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE Doc_ID = 1;
+
+-- Update Trn_SapTransfer_Records
+UPDATE Trn_SapTransfer_Records
+SET Approval_Status = 'Approved',
+    SAP_Process_Status = 'Processed',
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE Trn_Sap_ID = 1;
+
+-- Update Trn_Approvall_History
+UPDATE Trn_Approvall_History
+SET Approver_Comment = 'Approved the transaction',
+    Approver_Status = 'Approved',
+    Modified_By = 1,
+    Modified_On = GETDATE()
+WHERE Trn_Appl_His_ID = 1;
