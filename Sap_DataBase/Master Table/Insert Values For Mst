@@ -1,0 +1,263 @@
+-- Mst Com T1
+INSERT INTO Mst_Company (Com_code, Com_Name, Active_Status, Created_By, Created_On)
+VALUES 
+	(1000, 'Rane (Madras) Limited', 1, 1, GETDATE()
+);
+
+
+
+
+--Mst Plant T2
+INSERT INTO Mst_Plant (Com_ID, Plant_Code, Plant_Name, Short_Name, Active_Status, Created_By, Created_On)
+VALUES 
+	(1, 1200, 'RML - Mysore', 'P2', 1, 1, GETDATE()),
+	(1, 1300, 'RML - Pondicherry', 'P3', 1, 2, GETDATE()),
+	(1, 1150, 'RML - Varanavasi', 'P4', 1, 3, GETDATE()),
+	(1, 1210, 'RML-Mysore Unit-1', 'P6', 1, 4, GETDATE()),
+	(1, 1250, 'RML - Pantnager', 'P5', 1, 5, GETDATE()),
+	(1, 1000, 'RML-HO', 'P1', 1, 6, GETDATE()
+);
+
+
+--T M 3
+INSERT INTO Mst_Department (Dept_Code, Dept_Name, Active_Status, Created_By, Created_On)
+VALUES
+
+	('01', 'MED/MFD - ENGINEERING', 1, 1, GETDATE()),
+	('02', 'CMED/CMFD - CORPORATE MFG ENGINEERING', 1, 1, GETDATE()),
+	('03', 'MTD - MACHINE TOOL DEVELOPMENT', 1, 1, GETDATE()),
+	('04', 'PLE - MECH - MECHANICAL MAINENANCE', 1, 1, GETDATE()),
+	('05', 'PLE - ELEC - ELECTRICAL- MAINENANCE', 1, 1, GETDATE()),
+	('06', 'PLE - UTI -UTILITIES MAINTENANCE', 1, 1, GETDATE()),
+	('07', 'R&D', 1, 1, GETDATE()),
+	('08', 'FIN - FINANCE', 1, 1, GETDATE()),
+	('09', 'IS - INFORMATION SYSTEMS', 1, 1, GETDATE()),
+	('10', 'MFG / PRODN PRODUCTION', 1, 1, GETDATE()),
+	('11', 'QAD - QUALITY', 1, 1, GETDATE()),
+	('12', 'PMMD - PLANT MATERIALS', 1, 1, GETDATE()),
+	('13', 'CMMD - CORPORATE MATERIALS', 1, 1, GETDATE()),
+	('14', 'CHR - PLANT HUMAN RESOURCE', 1, 1, GETDATE()),
+	('15', 'PHR - PLANT HUMAN RESOURCE', 1, 1, GETDATE()),
+	('16', 'MKT - MARKETING', 1, 1, GETDATE()),
+	('17', 'HEAT TREATMENT', 1, 1, GETDATE()),
+	('18', 'PRODUCT NGINEERING', 1, 1, GETDATE()),
+	('19', 'TOOL GRINDING PROCESS', 1, 1, GETDATE()),
+	('20', 'TOOL HOLDING', 1, 1, GETDATE()),
+	('21', 'RM - STORES', 1, 1, GETDATE()),
+	('22', 'DIE ASTING', 1, 1, GETDATE()),
+	('23', 'DIE MAINTENANCE', 1, 1, GETDATE()),
+	('24', 'SCRAP WEIGHING', 1, 1, GETDATE()),
+	('25', 'NEW PRODUCT DEVELOPMENT', 1, 1, GETDATE()),
+	('26', 'SAFETY', 1, 1, GETDATE()),
+	('27', 'CQAD', 1, 1, GETDATE()),
+	('28', 'NPD', 1, 1, GETDATE()
+);
+
+
+--T M 4
+INSERT INTO Mst_Material_Type (Mat_Type, Active_Status, Created_By, Created_On) 
+VALUES 
+	('ROH', 1, 1, GETDATE()),
+	('HALB', 1, 1, GETDATE()),
+	('FERT', 1, 1, GETDATE()
+	
+);
+
+
+
+--T M 5
+INSERT INTO Mst_Material (Plant_ID, Material_Code, Description, Material_Type, Rate, Active_Status, Created_By, Created_On)
+VALUES 
+	(1, 'MAT001', 'Test Part No 1', 'ROH', 100.00, 1, 1, GETDATE()),
+	(1, 'MAT002', 'Test Part No 2', 'HALB', 200.00, 1, 1, GETDATE()),
+	(2, 'MAT003', 'Test Part No 3', 'FERT', 150.00, 1, 1, GETDATE()),
+	(2, 'MAT004', 'Test Part No 4', 'ROH', 150.00, 1, 1, GETDATE()),
+	(3, 'MAT005', 'Test Part No 5', 'HALB', 125.00, 1, 1, GETDATE()
+);
+
+
+--T M 6
+
+INSERT INTO Mst_Storage_Location (Plant_ID, Storage_Code, SLoc_Name, Active_Status, Created_By, Created_On)
+VALUES
+	(1, 1000, 'HO RM Stores', 1, 1, GETDATE()),
+	(2, 1200, 'P2 RM Stores', 1, 2, GETDATE()),
+	(3, 1300, 'P3 RM Stores', 1, 3, GETDATE()),
+	(4, 1150, 'P4 RM Stores', 1, 4, GETDATE()),
+	(5, 1250, 'P5 RM Stores', 1, 5, GETDATE()),
+	(6, 1210, 'P6 RM Stores', 1, 6, GETDATE()
+
+);
+
+
+
+--T M 7
+
+INSERT INTO Mst_Cost_Center (Plant_ID, CostCenter_Code, CostCenter_Name, Active_Status, Created_By, Created_On)
+VALUES 
+
+	(1, 1001000, 'Cost Center 1001000', 1, 1, GETDATE()),
+	(2, 1002000, 'Cost Center 1002000', 1, 1, GETDATE()),
+	(3, 1003000, 'Cost Center 1003000', 1, 1, GETDATE()),
+	(4, 1001000, 'Cost Center 1001000', 1, 1, GETDATE()),
+	(5, 1002000, 'Cost Center 1002000', 1, 1, GETDATE()
+);
+
+SELECT * FROM Mst_Cost_Center
+--T M 8
+
+INSERT INTO Mst_Role (Role_Name, Active_Status, Created_By, Created_On)
+VALUES (
+   
+);
+
+SELECT * FROM Mst_Role;
+
+--T M 9
+INSERT INTO Mst_User (Plant_ID, Employee_ID, User_Name, Dept_ID, User_Email, Role_ID, User_Level,Password, Active_Status, Created_By, Created_On)
+VALUES
+
+   
+);
+
+SELECT * FROM Mst_User;
+
+--T M 10
+
+INSERT INTO Mst_Movement_Type (Movement_Code, Movement_Name, Active_Status, Created_By, Created_On)
+VALUES
+	(551, 'Movement type 551', 1, 1, GETDATE()),
+	(201, 'Movement type 201', 1, 2, GETDATE()),
+	(202, 'Movement type 202', 1, 3, GETDATE()),
+	(309, 'Movement type 309', 1, 4, GETDATE()),
+	(311, 'Movement type 311', 1, 5, GETDATE()
+);
+
+SELECT * FROM Mst_Movement_Type;
+
+--T M 11
+
+INSERT INTO Mst_Movement_List_Item (Movement_ID, Movement_List_Code, Movement_List_Name, Active_Status, Created_By, Created_On)
+VALUES 
+
+    (1, '0091', 'Shrinkage', 1, 1, GETDATE()),
+    (1, '0092', 'Spoiled', 1, 1, GETDATE()),
+    (2, '0001', 'For Remelting', 1, 1, GETDATE()),
+    (2, '0002', 'Loan from Customer', 1, 1, GETDATE()),
+    (2, '0015', 'Qty to Scrap', 1, 1, GETDATE()),
+    (2, '0018', 'Service Purpose', 1, 1, GETDATE()),
+    (2, '0201', 'Vendor Issue', 1, 1, GETDATE()),
+    (2, '0202', '202 Wrong Entry', 1, 1, GETDATE()),
+    (2, '0204', 'Qty to Remelt', 1, 1, GETDATE()),
+    (3, '0001', 'For Remelting', 1, 1, GETDATE()),
+    (3, '0015', 'Qty to Scrap', 1, 1, GETDATE()),
+    (3, '0016', 'Return to Vendor', 1, 1, GETDATE()),
+    (3, '0017', 'Scrap Stock Raise', 1, 1, GETDATE()),
+    (3, '0018', 'Service Purpose', 1, 1, GETDATE()),
+    (3, '0202', '201 Wrong Entry', 1, 1, GETDATE()),
+    (3, '0203', 'NPD STOCK RAISE', 1, 1, GETDATE()),
+    (3, '0204', 'Qty to Remelt', 1, 1, GETDATE()),
+    (3, '0205', 'Dsgn,teststock rais', 1, 1, GETDATE()),
+    (3, '0206', 'Salvage frmcust ret', 1, 1, GETDATE()),
+    (3, '0207', 'Scrao frm Cust ret', 1, 1, GETDATE()),
+    (3, '0208', 'FOC to Customer', 1, 1, GETDATE()),
+    (3, '0209', 'Loan from Customer', 1, 1, GETDATE()),
+    (4, '3091', 'OE to OES', 1, 1, GETDATE()),
+    (4, '3092', 'Inwarding in Wrong Part Number', 1, 1, GETDATE()),
+    (4, '3093', 'Part Mix Up', 1, 1, GETDATE()),
+    (4, '3094', 'Non Moving Conversion', 1, 1, GETDATE()),
+    (4, '3095', 'Wrong Entry During Physical Inventory', 1, 1, GETDATE()),
+    (4, '3096', 'Proto Part to Regular Part', 1, 1, GETDATE()),
+    (4, '3097', 'Others', 1, 1, GETDATE());
+
+
+SELECT * FROM Mst_Movement_List_Item;
+
+
+--T M 12
+
+INSERT INTO Mst_Vendor (Plant_ID,Vendor_Code, Vendor_Name, Vendor_Address, Active_Status, Created_By, Created_On)
+VALUES 
+
+    (1,1001, 'Vendor One', '123 Vendor St, City, Country', 1, 1, GETDATE()),
+    (2,1002, 'Vendor Two', '456 Vendor Ave, City, Country', 1, 1, GETDATE()),
+    (3,1003, 'Vendor Three', '789 Vendor Blvd, City, Country', 1, 1, GETDATE()),
+    (4,1004, 'Vendor Four', '101 Vendor Road, City, Country', 1, 1, GETDATE()),
+    (5,1005, 'Vendor Five', '202 Vendor Lane, City, Country', 1, 1, GETDATE()),
+	
+    (6,1006, 'Vendor Six', '301 Vendor Lane, City, Country', 1, 1, GETDATE()
+);
+
+
+SELECT * FROM Mst_Vendor
+
+--T M 13
+
+INSERT INTO Mst_Customer (Customer_Code, Customer_Name, Customer_Address, Active_Status, Created_By, Created_On)
+VALUES 
+
+    (1001, 'Customer One', '123 Customer St, City, Country', 1, 1, GETDATE()),
+    (1002, 'Customer Two', '456 Customer Ave, City, Country', 1, 1, GETDATE()),
+    (1003, 'Customer Three', '789 Customer Blvd, City, Country', 1, 1, GETDATE()),
+    (1004, 'Customer Four', '101 Customer Road, City, Country', 1, 1, GETDATE()),
+    (1005, 'Customer Five', '202 Customer Lane, City, Country', 1, 1, GETDATE()
+);
+
+--T M 14
+
+INSERT INTO Mst_Screen (Screen_Name, Screen_Code, Screen_Type, Active_Status, Created_By, Created_On)
+VALUES 
+('company', 'company', 'Masters', '1', '1', GETDATE()),
+('BusinessDivision', 'BusinessDivision', 'Masters', '1', '1', GETDATE()),
+('Plant', 'Plant', 'Masters', '1', '1', GETDATE()),
+('Department', 'Department', 'Masters', '1', '1', GETDATE()),
+('UserMaster', 'UserMaster', 'Masters', '1', '1', GETDATE()),
+('Role', 'Role', 'Masters', '1', '1', GETDATE()),
+('Material', 'Material', 'Masters', '1', '1', GETDATE()),
+('Vendor', 'Vendor', 'Masters', '1', '1', GETDATE()),
+('Customer', 'Customer', 'Masters', '1', '1', GETDATE()),
+('StorageLocation', 'StorageLocation', 'Masters', '1', '1', GETDATE()),
+('Movement_Type', 'Movement_Type', 'Masters', '1', '1', GETDATE()),
+('MVT_LIST_ITEM', 'MVT_LIST_ITEM', 'Masters', '1', '1', GETDATE()),
+('CostCenter', 'CostCenter', 'Masters', '1', '1', GETDATE()),
+('Approval_309', 'Approval_309', 'Approval', '1', '1', GETDATE()),
+(('dashboard', 'dashboard', 'Dashboard', 1, 1, GETDATE())
+;
+
+--T M 15
+
+
+
+INSERT INTO Mst_Access (Role_ID, Screen_ID, Active_Status, Created_By, Created_On) VALUES
+(1, 15, 1, 1, GETDATE()),
+(2, 14, 1, 1, GETDATE()),
+(3, 14, 1, 1, GETDATE()),
+(4, 14, 1, 1, GETDATE()),
+(5, 14, 1, 1, GETDATE()),
+(6, 14, 1, 1, GETDATE()),
+(7, 7, 1, 1, GETDATE()),
+(7, 8, 1, 1, GETDATE()),
+(7, 9, 1, 1, GETDATE()),
+(7, 10, 1, 1, GETDATE()),
+(7, 12, 1, 1, GETDATE()),
+(7, 13, 1, 1, GETDATE()),
+(8, 14, 1, 1, GETDATE()),
+(9, 1, 1, 1, GETDATE()),
+(9, 2, 1, 1, GETDATE()),
+(9, 3, 1, 1, GETDATE()),
+(9, 4, 1, 1, GETDATE()),
+(9, 5, 1, 1, GETDATE()),
+(9, 6, 1, 1, GETDATE()),
+(9, 7, 1, 1, GETDATE()),
+(9, 8, 1, 1, GETDATE()),
+(9, 9, 1, 1, GETDATE()),
+(9, 10, 1, 1, GETDATE()),
+(9, 11, 1, 1, GETDATE()),
+(9, 12, 1, 1, GETDATE()),
+(9, 13, 1, 1, GETDATE()),
+(9, 14, 1, 1, GETDATE()),
+(9, 15, 1, 1, GETDATE());
+
+--T M 16
+
+Busines Table front end data insert
