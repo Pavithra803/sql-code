@@ -1,0 +1,300 @@
+Approval.post('/approve_document', async (req, res) => {
+  try {
+    const { docID, comment } = req.body;
+
+    if (!docID) {
+      return res.status(400).json({ success: false, message: "Missing Doc_ID parameter" });
+    }
+
+    const pool = await db.poolPromise;
+
+    const result = await pool
+      .request()
+      .input('Doc_ID', sql.Int, docID)
+      .input('Comment', sql.NVarChar, comment) // Assuming comment is optional
+      .query(`EXEC ApproveDocument @Doc_ID = @Doc_ID, @Comment = @Comment`);
+
+    res.json({ success: true, message: `Document ${docID} approved successfully.` });
+  } catch (error) {
+    console.error("❌ Error approving document:", error.message, error.stack);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+
+
+
+Approval.post('/reject_document', async (req, res) => {
+  try {
+    const { docID, comment } = req.body;
+
+    if (!docID) {
+      return res.status(400).json({ success: false, message: "Missing Doc_ID parameter" });
+    }
+
+    const pool = await db.poolPromise;
+
+    const result = await pool
+      .request()
+      .input('Doc_ID', sql.Int, docID)
+      .input('Comment', sql.NVarChar, comment) // Assuming comment is optional
+      .query(`EXEC RejectDocument @Doc_ID = @Doc_ID, @Comment = @Comment`);
+
+    res.json({ success: true, message: `Document ${docID} rejected successfully.` });
+  } catch (error) {
+    console.error("❌ Error rejecting document:", error.message, error.stack);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+
+
+
+Approval.post('/query_document', async (req, res) => {
+  try {
+    const { docID, comment } = req.body;
+
+    if (!docID) {
+      return res.status(400).json({ success: false, message: "Missing Doc_ID parameter" });
+    }
+
+    const pool = await db.poolPromise;
+
+    const result = await pool
+      .request()
+      .input('Doc_ID', sql.Int, docID)
+      .input('Comment', sql.NVarChar, comment) // Assuming comment is optional
+      .query(`EXEC QueryDocument @Doc_ID = @Doc_ID, @Comment = @Comment`);
+
+    res.json({ success: true, message: `Document ${docID} is under query.` });
+  } catch (error) {
+    console.error("❌ Error querying document:", error.message, error.stack);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+
+
+
+2. Frontend Changes (Handle Approve, Reject, Query)
+
+
+
+const handleApprove = async () => {
+  if (selectedRow) {
+    console.log("Approved row:", selectedRow);
+    try {
+      // Send approval request to the backend API
+      const response = await axios.post('/api/approve_document', {
+        docID: selectedRow.Doc_ID,
+        comment: comment,  // Optional comment
+      });
+
+      // Check if approval was successful
+      if (response.data.success) {
+        alert(`Approved Doc ID: ${selectedRow.Doc_ID}`);
+        setOpenActionModal(false);  // Close the modal after approval
+      }
+    } catch (error) {
+      console.error("Approval failed:", error);
+      alert("Failed to approve document.");
+    }
+  }
+};
+
+
+
+const handleReject = async () => {
+  if (selectedRow) {
+    console.log("Rejected row:", selectedRow);
+    try {
+      // Send rejection request to the backend API
+      const response = await axios.post('/api/reject_document', {
+        docID: selectedRow.Doc_ID,
+        comment: comment,  // Optional comment
+      });
+
+      // Check if rejection was successful
+      if (response.data.success) {
+        alert(`Rejected Doc ID: ${selectedRow.Doc_ID}`);
+        setOpenActionModal(false);  // Close the modal after rejection
+      }
+    } catch (error) {
+      console.error("Rejection failed:", error);
+      alert("Failed to reject document.");
+    }
+  }
+};
+
+
+const handleQuery = async () => {
+  if (selectedRow) {
+    console.log("Query for Doc ID:", selectedRow.Doc_ID);
+    try {
+      // Send query request to the backend API
+      const response = await axios.post('/api/query_document', {
+        docID: selectedRow.Doc_ID,
+        comment: comment,  // Optional comment
+      });
+
+      // Check if the query request was successful
+      if (response.data.success) {
+        alert(`Document Doc ID: ${selectedRow.Doc_ID} is under query`);
+        setOpenActionModal(false);  // Close modal after querying
+      }
+    } catch (error) {
+      console.error("Query failed:", error);
+      alert("Failed to query document.");
+    }
+  }
+};
+
+
+
+CREATE PROCEDURE ApproveDocument
+    @Doc_ID INT,
+    @Comment NVARCHAR(MAX) = NULL
+AS
+BEGIN
+    -- Update document status to 'Approved'
+    UPDATE Documents
+    SET Status = 'Approved', ApprovalComment = @Comment, ApprovalDate = GETDATE()
+    WHERE Doc_ID = @Doc_ID;
+
+    -- Check if the document was updated
+    IF @@ROWCOUNT = 0
+    BEGIN
+        RAISERROR('Document not found or already approved', 16, 1);
+    END
+END
+GO
+
+
+
+CREATE PROCEDURE RejectDocument
+    @Doc_ID INT,
+    @Comment NVARCHAR(MAX) = NULL
+AS
+BEGIN
+    -- Update document status to 'Rejected'
+    UPDATE Documents
+    SET Status = 'Rejected', RejectionComment = @Comment, RejectionDate = GETDATE()
+    WHERE Doc_ID = @Doc_ID;
+
+    -- Check if the document was updated
+    IF @@ROWCOUNT = 0
+    BEGIN
+        RAISERROR('Document not found or already rejected', 16, 1);
+    END
+END
+GO
+
+
+
+
+CREATE PROCEDURE QueryDocument
+    @Doc_ID INT,
+    @Comment NVARCHAR(MAX) = NULL
+AS
+BEGIN
+    -- Update document status to 'Under Query'
+    UPDATE Documents
+    SET Status = 'Under Query', QueryComment = @Comment, QueryDate = GETDATE()
+    WHERE Doc_ID = @Doc_ID;
+
+    -- Check if the document was updated
+    IF @@ROWCOUNT = 0
+    BEGIN
+        RAISERROR('Document not found or already under query', 16, 1);
+    END
+END
+GO
+
+
+
+CREATE TABLE Documents (
+    Doc_ID INT PRIMARY KEY,
+    Doc_Name NVARCHAR(255),
+    Status NVARCHAR(50),         -- Status: Approved, Rejected, Under Query, etc.
+    ApprovalComment NVARCHAR(MAX),
+    ApprovalDate DATETIME,
+    RejectionComment NVARCHAR(MAX),
+    RejectionDate DATETIME,
+    QueryComment NVARCHAR(MAX),
+    QueryDate DATETIME
+);
+
+
+
+Approval.post('/approve_document', async (req, res) => {
+  try {
+    const { docID, comment } = req.body;
+
+    if (!docID) {
+      return res.status(400).json({ success: false, message: "Missing Doc_ID parameter" });
+    }
+
+    const pool = await db.poolPromise;
+
+    const result = await pool
+      .request()
+      .input('Doc_ID', sql.Int, docID)
+      .input('Comment', sql.NVarChar, comment || '') // Use empty string if no comment is provided
+      .query(`EXEC ApproveDocument @Doc_ID = @Doc_ID, @Comment = @Comment`);
+
+    res.json({ success: true, message: `Document ${docID} approved successfully.` });
+  } catch (error) {
+    console.error("❌ Error approving document:", error.message, error.stack);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+
+
+Approval.post('/reject_document', async (req, res) => {
+  try {
+    const { docID, comment } = req.body;
+
+    if (!docID) {
+      return res.status(400).json({ success: false, message: "Missing Doc_ID parameter" });
+    }
+
+    const pool = await db.poolPromise;
+
+    const result = await pool
+      .request()
+      .input('Doc_ID', sql.Int, docID)
+      .input('Comment', sql.NVarChar, comment || '') // Use empty string if no comment is provided
+      .query(`EXEC RejectDocument @Doc_ID = @Doc_ID, @Comment = @Comment`);
+
+    res.json({ success: true, message: `Document ${docID} rejected successfully.` });
+  } catch (error) {
+    console.error("❌ Error rejecting document:", error.message, error.stack);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
+
+
+
+Approval.post('/query_document', async (req, res) => {
+  try {
+    const { docID, comment } = req.body;
+
+    if (!docID) {
+      return res.status(400).json({ success: false, message: "Missing Doc_ID parameter" });
+    }
+
+    const pool = await db.poolPromise;
+
+    const result = await pool
+      .request()
+      .input('Doc_ID', sql.Int, docID)
+      .input('Comment', sql.NVarChar, comment || '') // Use empty string if no comment is provided
+      .query(`EXEC QueryDocument @Doc_ID = @Doc_ID, @Comment = @Comment`);
+
+    res.json({ success: true, message: `Document ${docID} is under query.` });
+  } catch (error) {
+    console.error("❌ Error querying document:", error.message, error.stack);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
