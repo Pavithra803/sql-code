@@ -1,0 +1,56 @@
+-- Truncate Mst_Company
+TRUNCATE TABLE Mst_Company;
+
+-- Truncate Mst_Plant
+TRUNCATE TABLE Mst_Plant;
+
+-- Truncate Mst_Department
+TRUNCATE TABLE Mst_Department;
+
+-- Truncate Mst_Material_Type
+TRUNCATE TABLE Mst_Material_Type;
+
+-- Truncate Mst_Material
+TRUNCATE TABLE Mst_Material;
+
+-- Truncate Mst_Storage_Location
+TRUNCATE TABLE Mst_Storage_Location;
+
+-- Truncate Mst_Cost_Center
+TRUNCATE TABLE Mst_Cost_Center;
+
+-- Truncate Mst_Role
+TRUNCATE TABLE Mst_Role;
+
+-- Truncate Mst_User
+TRUNCATE TABLE Mst_User;
+
+-- Truncate Mst_Movement_Type
+TRUNCATE TABLE Mst_Movement_Type;
+
+-- Truncate Mst_Movement_List_Item
+TRUNCATE TABLE Mst_Movement_List_Item;
+
+-- Truncate Mst_Vendor
+TRUNCATE TABLE Mst_Vendor;
+
+-- Truncate Mst_Customer
+TRUNCATE TABLE Mst_Customer;
+
+-- Truncate Mst_Business_Division
+TRUNCATE TABLE Mst_Business_Division;
+
+-- Truncate Mst_Access
+TRUNCATE TABLE Mst_Access;
+
+-- Truncate Mst_Screen
+TRUNCATE TABLE Mst_Screen;
+
+-- Truncate Trn_Document
+TRUNCATE TABLE Trn_Document;
+
+-- Truncate Trn_SapTransfer_Records
+TRUNCATE TABLE Trn_SapTransfer_Records;
+
+-- Truncate Trn_Approvall_History
+TRUNCATE TABLE Trn_Approvall_History;
