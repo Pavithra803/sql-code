@@ -1,0 +1,32 @@
+-- Add a new column to Mst_Company
+ALTER TABLE Mst_Company
+ADD Com_Description NVARCHAR(255);
+
+-- Add a new column to Mst_Plant
+ALTER TABLE Mst_Plant
+ADD Plant_Description NVARCHAR(255);
+
+-- Add a new column to Mst_Department
+ALTER TABLE Mst_Department
+ADD Dept_Head NVARCHAR(255);
+---------------------------------------------------
+-- Modify the data type of the column in Mst_Company
+ALTER TABLE Mst_Company
+ALTER COLUMN Com_Name NVARCHAR(500);
+
+-- Modify the data type of the column in Mst_Plant
+ALTER TABLE Mst_Plant
+ALTER COLUMN Plant_Code NVARCHAR(20);
+
+---------------------------------------------------
+-- Drop a column from Mst_Company
+ALTER TABLE Mst_Company
+DROP COLUMN Com_Description;
+
+-- Drop a column from Mst_Plant
+ALTER TABLE Mst_Plant
+DROP COLUMN Plant_Description;
+
+-- Drop a column from Mst_Department
+ALTER TABLE Mst_Department
+DROP COLUMN Dept_Head;
