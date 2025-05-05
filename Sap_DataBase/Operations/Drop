@@ -1,0 +1,112 @@
+-- Drop query for Mst_Company
+DROP TABLE IF EXISTS Mst_Company;
+
+-- Drop query for Mst_Plant
+DROP TABLE IF EXISTS Mst_Plant;
+
+-- Drop query for Mst_Department
+DROP TABLE IF EXISTS Mst_Department;
+
+-- Drop query for Mst_Material_Type
+DROP TABLE IF EXISTS Mst_Material_Type;
+
+-- Drop query for Mst_Material
+DROP TABLE IF EXISTS Mst_Material;
+
+-- Drop query for Mst_Storage_Location
+DROP TABLE IF EXISTS Mst_Storage_Location;
+
+-- Drop query for Mst_Cost_Center
+DROP TABLE IF EXISTS Mst_Cost_Center;
+
+-- Drop query for Mst_Role
+DROP TABLE IF EXISTS Mst_Role;
+
+-- Drop query for Mst_User
+DROP TABLE IF EXISTS Mst_User;
+
+-- Drop query for Mst_Movement_Type
+DROP TABLE IF EXISTS Mst_Movement_Type;
+
+-- Drop query for Mst_Movement_List_Item
+DROP TABLE IF EXISTS Mst_Movement_List_Item;
+
+-- Drop query for Mst_Vendor
+DROP TABLE IF EXISTS Mst_Vendor;
+
+-- Drop query for Mst_Customer
+DROP TABLE IF EXISTS Mst_Customer;
+
+-- Drop query for Mst_Business_Division
+DROP TABLE IF EXISTS Mst_Business_Division;
+
+-- Drop query for Mst_Access
+DROP TABLE IF EXISTS Mst_Access;
+
+-- Drop query for Mst_Screen
+DROP TABLE IF EXISTS Mst_Screen;
+
+-- Drop query for Trn_Document
+DROP TABLE IF EXISTS Trn_Document;
+
+-- Drop query for Trn_SapTransfer_Records
+DROP TABLE IF EXISTS Trn_SapTransfer_Records;
+
+-- Drop query for Trn_Approvall_History
+DROP TABLE IF EXISTS Trn_Approvall_History;
+-- Drop query for Mst_Company
+DROP TABLE IF EXISTS Mst_Company;
+
+-- Drop query for Mst_Plant
+DROP TABLE IF EXISTS Mst_Plant;
+
+-- Drop query for Mst_Department
+DROP TABLE IF EXISTS Mst_Department;
+
+-- Drop query for Mst_Material_Type
+DROP TABLE IF EXISTS Mst_Material_Type;
+
+-- Drop query for Mst_Material
+DROP TABLE IF EXISTS Mst_Material;
+
+-- Drop query for Mst_Storage_Location
+DROP TABLE IF EXISTS Mst_Storage_Location;
+
+-- Drop query for Mst_Cost_Center
+DROP TABLE IF EXISTS Mst_Cost_Center;
+
+-- Drop query for Mst_Role
+DROP TABLE IF EXISTS Mst_Role;
+
+-- Drop query for Mst_User
+DROP TABLE IF EXISTS Mst_User;
+
+-- Drop query for Mst_Movement_Type
+DROP TABLE IF EXISTS Mst_Movement_Type;
+
+-- Drop query for Mst_Movement_List_Item
+DROP TABLE IF EXISTS Mst_Movement_List_Item;
+
+-- Drop query for Mst_Vendor
+DROP TABLE IF EXISTS Mst_Vendor;
+
+-- Drop query for Mst_Customer
+DROP TABLE IF EXISTS Mst_Customer;
+
+-- Drop query for Mst_Business_Division
+DROP TABLE IF EXISTS Mst_Business_Division;
+
+-- Drop query for Mst_Access
+DROP TABLE IF EXISTS Mst_Access;
+
+-- Drop query for Mst_Screen
+DROP TABLE IF EXISTS Mst_Screen;
+
+-- Drop query for Trn_Document
+DROP TABLE IF EXISTS Trn_Document;
+
+-- Drop query for Trn_SapTransfer_Records
+DROP TABLE IF EXISTS Trn_SapTransfer_Records;
+
+-- Drop query for Trn_Approvall_History
+DROP TABLE IF EXISTS Trn_Approvall_History;
