@@ -1,0 +1,25 @@
+	CREATE PROCEDURE GetUserDetailsByEmployeeID
+    @EmployeeID NVARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        L.User_ID, 
+        L.User_Name, 
+        L.Plant_ID, 
+        L.Dept_ID, 
+        L.User_Email, 
+        L.Active_Status,
+        L.Employee_ID,
+        d.Dept_Name, 
+        p.Plant_Name, 
+        p.Plant_Code
+    FROM 
+        Mst_User L
+        INNER JOIN Mst_Plant p ON L.Plant_ID = p.Plant_ID
+        INNER JOIN Mst_Department d ON L.Dept_ID = d.Dept_ID
+    WHERE 
+        L.Active_Status = 1 
+        AND L.Employee_ID = @EmployeeID 
+END;
