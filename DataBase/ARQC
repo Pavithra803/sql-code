@@ -1,0 +1,61 @@
+
+ALTER PROCEDURE HandleApprovalAction
+    @Doc_ID INT,
+    @Approver_ID INT,
+    @Action NVARCHAR(50),
+    @Comment NVARCHAR(MAX) = NULL,
+    @Approval_Level INT = NULL
+AS
+BEGIN
+    -- Declare a variable to store the action status
+    DECLARE @Status NVARCHAR(50);
+
+    -- Based on the action type, update the document status
+    IF @Action = 'Approve'
+    BEGIN
+        -- Logic for Approving the document
+        UPDATE Trn_Approval_History
+        SET Approver_Status = 'Approved',
+            Approver_ID = @Approver_ID,
+            Approval_Level = @Approval_Level,
+            Approver_Comment = @Comment,
+            Created_On = GETDATE()
+        WHERE Doc_ID = @Doc_ID;
+
+        SET @Status = 'Approved';
+    END
+    ELSE IF @Action = 'Reject'
+    BEGIN
+        -- Logic for Rejecting the document
+        UPDATE Trn_Approval_History
+        SET Approver_Status = 'Rejected',
+            Approver_ID = @Approver_ID,
+            Approval_Level = @Approval_Level,
+            Approver_Comment = @Comment,
+            Created_On = GETDATE()
+        WHERE Doc_ID = @Doc_ID;
+
+        SET @Status = 'Rejected';
+    END
+    ELSE IF @Action = 'Query'
+    BEGIN
+        -- Logic for Marking the document as under Query
+        UPDATE Trn_Approval_History
+        SET Approver_Status = 'Under Query',
+            Approver_ID = @Approver_ID,
+            Approval_Level = @Approval_Level,
+            Approver_Comment = @Comment,
+            Created_On = GETDATE()
+        WHERE Doc_ID = @Doc_ID;
+
+        SET @Status = 'Under Query';
+    END
+    ELSE
+    BEGIN
+        -- If an invalid action is provided, return an error message
+        SET @Status = 'Invalid Action';
+    END
+
+    -- Optionally, return the status to indicate what action was performed
+    SELECT @Status AS ActionStatus;
+END
