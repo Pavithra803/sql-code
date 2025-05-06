@@ -1,0 +1,34 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[GetUserDetailsByEmployeeID]    Script Date: 06-05-2025 15:50:35 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[GetUserDetailsByEmployeeID]  
+    @EmployeeID NVARCHAR(50)  
+AS  
+BEGIN  
+    SET NOCOUNT ON;  
+  
+    SELECT   
+        L.User_ID,   
+        L.User_Name,   
+        L.Plant_ID,   
+        L.Dept_ID,   
+        L.User_Email,   
+        L.Active_Status,  
+        L.Employee_ID,  
+        d.Dept_Name,   
+        p.Plant_Name,   
+        p.Plant_Code  ,
+		L.Role_ID,r.Role_Name,L.User_Level
+    FROM   
+        Mst_User L  
+        INNER JOIN Mst_Plant p ON L.Plant_ID = p.Plant_ID  
+        INNER JOIN Mst_Department d ON L.Dept_ID = d.Dept_ID  
+		INNER JOIN Mst_Role r ON L.Role_ID = r.Role_ID  
+    WHERE   
+        L.Active_Status = 1   
+        AND L.Employee_ID = @EmployeeID   
+END;  
