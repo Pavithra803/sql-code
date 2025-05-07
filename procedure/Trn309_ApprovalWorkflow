@@ -1,0 +1,95 @@
+
+
+ALTER PROCEDURE Trn309_ApprovalWorkflow
+    @Doc_ID INT,
+    @Approver_ID INT,
+    @Action NVARCHAR(50),
+    @Comment NVARCHAR(255),
+    @Approval_Level INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM Trn_Document WHERE Doc_ID = @Doc_ID)
+    BEGIN
+        -- Normalize action
+        SET @Action = LTRIM(RTRIM(@Action));
+        IF @Action = 'Approve'
+            SET @Action = 'Approved';
+
+        DECLARE @NextLevel INT;
+        SET @NextLevel = CASE @Approval_Level
+                            WHEN 1 THEN 2
+                            WHEN 2 THEN 3
+                            WHEN 3 THEN 4
+                            ELSE NULL
+                         END;
+
+        -- Rejected or Under Query logic - applies to all levels
+        IF @Action = 'Rejected' OR @Action = 'Under Query'
+        BEGIN
+            UPDATE Trn_Approval_History
+            SET Approver_Status = @Action,
+                Approver_Comment = @Comment
+            WHERE Doc_ID = @Doc_ID AND Approval_Level = @Approval_Level;
+
+            RETURN;
+        END
+
+        -- Approval logic by level
+        IF @Approval_Level = 1
+        BEGIN
+            IF @Action = 'Approved'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Approved 1'
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 1;
+
+                INSERT INTO Trn_Approval_History (Doc_ID, Approver_Status, Approval_Level)
+                VALUES (@Doc_ID, 'Pending', @NextLevel);
+            END
+            ELSE IF @Action = 'Verified'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Verified'
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 1;
+
+                INSERT INTO Trn_Approval_History (Doc_ID, Approver_Status, Approval_Level)
+                VALUES (@Doc_ID, 'Pending', @NextLevel);
+            END
+        END
+        ELSE IF @Approval_Level = 2
+        BEGIN
+            IF @Action = 'Approved'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Approved 2'
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 2;
+
+                INSERT INTO Trn_Approval_History (Doc_ID, Approver_Status, Approval_Level)
+                VALUES (@Doc_ID, 'Pending', @NextLevel);
+            END
+        END
+        ELSE IF @Approval_Level = 3
+        BEGIN
+            IF @Action = 'Approved'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Approved 3'
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 3;
+
+                INSERT INTO Trn_Approval_History (Doc_ID, Approver_Status, Approval_Level)
+                VALUES (@Doc_ID, 'Pending', @NextLevel);
+            END
+        END
+        ELSE IF @Approval_Level = 4
+        BEGIN
+            IF @Action = 'Approved'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Completed'
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 4;
+            END
+        END
+    END
+END
