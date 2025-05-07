@@ -1,0 +1,255 @@
+
+
+
+
+--select * from  Trn_Approval_History
+
+alter PROCEDURE Trn309_ApprovalWorkflow
+    @Doc_ID INT,
+    @Approver_ID INT,
+    @Action NVARCHAR(50),
+    @Comment NVARCHAR(255),
+    @Approval_Level INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    --  document exists
+    IF EXISTS (SELECT 1 FROM Trn_Document WHERE Doc_ID = @Doc_ID)
+    BEGIN
+        
+
+        DECLARE @NextLevel INT;
+        
+        -- approval level based on the current level
+			IF @Approval_Level = 1 -- level id 3,4
+		BEGIN
+			SET @NextLevel = 2; -- level id 5
+		END
+		ELSE IF @Approval_Level = 2
+		BEGIN
+			SET @NextLevel = 3; -- level id 6
+		END
+		ELSE IF @Approval_Level = 3
+		BEGIN
+			SET @NextLevel = 4; -- level id 7
+		END
+		ELSE IF @Approval_Level = 4
+		BEGIN
+			SET @NextLevel = 5; -- level id 7
+		END
+		ELSE
+		BEGIN
+			SET @NextLevel = NULL; -- Last level reached
+		END
+
+
+        -- Level 1 (ID 3)
+        IF @Approval_Level = 1  
+        BEGIN
+            -- Action: Pending to Approved 1
+            IF @Action = 'Approved'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Approved 1'
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 1;
+            END
+
+		    INSERT INTO Trn_Approval_History (
+                    Doc_ID,  Approver_Status, Approval_Level
+                )
+                VALUES (
+                    @Doc_ID,  'Approved 1', @NextLevel
+                );
+            END
+
+            -- Action: Rejected Status
+            ELSE IF @Action = 'Rejected'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Rejected',
+                    Approver_Comment = @Comment
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 1;
+            END
+
+            -- Action: Under Query Status with Comment
+            ELSE IF @Action = 'Under Query'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Under Query',
+                    Approver_Comment = @Comment
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 1;
+            END
+
+    
+	----Level 1 (ID 4)
+
+        ELSE IF @Approval_Level = 1
+        BEGIN
+            -- Action: Pending to Approved 1
+            IF @Action = 'Approved 1'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Verified'
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 1;
+            END
+
+
+            -- Action: Rejected Status
+            ELSE IF @Action = 'Rejected'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Rejected',
+                    Approver_Comment = @Comment
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 1;
+            END
+
+            -- Action: Under Query Status with Comment
+            ELSE IF @Action = 'Under Query'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Under Query',
+                    Approver_Comment = @Comment
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 1;
+            END
+
+            -- Action: Verified
+            ELSE IF @Action = 'Verified'
+            BEGIN
+                -- Insert next level (Level 3)
+                INSERT INTO Trn_Approval_History (
+                    Doc_ID, Approver_Status, Approval_Level
+                )
+                VALUES (
+                    @Doc_ID,  'Pending', @NextLevel
+                );
+            END
+        END
+
+
+
+        -- Level 2 (Approval id 5)
+        ELSE IF @Approval_Level = ' '
+        BEGIN
+            -- Action: Pending to Approved 1
+            IF @Action = 'Pending'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Approved '
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 2;
+            END
+
+            -- Action: Rejected Status
+            ELSE IF @Action = 'Rejected'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Rejected',
+                    Approver_Comment = @Comment
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 2;
+            END
+
+            -- Action: Under Query Status with Comment
+            ELSE IF @Action = 'Under Query'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Under Query',
+                    Approver_Comment = @Comment
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 2;
+            END
+
+            -- Action: Approved  to Insert next level (Level 4)
+            ELSE IF @Action = 'Approved '
+            BEGIN
+                INSERT INTO Trn_Approval_History (
+                    Doc_ID,  Approver_Status, Approval_Level
+                )
+                VALUES (
+                    @Doc_ID,  'Pending', @NextLevel
+                );
+            END
+        END
+
+
+
+        -- Level 3 (Approval id 6)
+        ELSE IF @Approval_Level = 2
+        BEGIN
+            -- Action: Pending to Approved 1
+            IF @Action = 'Pending'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Approved '
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 3;
+            END
+
+            -- Action: Rejected Status
+            ELSE IF @Action = 'Rejected'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Rejected',
+                    Approver_Comment = @Comment
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 3;
+            END
+
+            -- Action: Under Query Status with Comment
+            ELSE IF @Action = 'Under Query'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Under Query',
+                    Approver_Comment = @Comment
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 3;
+            END
+
+            -- Action: Approved to Insert next level (Level 5)
+            ELSE IF @Action = 'Approved'
+            BEGIN
+                INSERT INTO Trn_Approval_History (
+                    Doc_ID,  Approver_Status, Approval_Level
+                )
+                VALUES (
+                    @Doc_ID,  'Pending', @NextLevel
+                );
+            END
+        END
+
+
+
+        -- Level 4 (Approval id 7)
+        ELSE IF @Approval_Level = 3
+        BEGIN
+            -- Action: Pending to Approved 
+            IF @Action = 'Pending'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Approved'
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 4;
+            END
+
+            -- Action: Rejected Status
+            ELSE IF @Action = 'Rejected'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Rejected',
+                    Approver_Comment = @Comment
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 4;
+            END
+
+            -- Action: Under Query Status with Comment
+            ELSE IF @Action = 'Under Query'
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Under Query',
+                    Approver_Comment = @Comment
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 4;
+            END
+
+            -- Action: Approved 1 to Final step
+            ELSE IF @Action = 'Approved '
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Completed'
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = 4;
+            END
+        END
+    END
+END
