@@ -6,15 +6,12 @@ CREATE TABLE Trn_Document (
     Movement_ID INT,
     Movement_Name NVARCHAR(255),
     Status NVARCHAR(50),
+    Approval_Status NVARCHAR(255);
     Created_By INT,
     Created_On DATETIME,
     Modified_By INT,
     Modified_On DATETIME
 );
-
-ALTER TABLE Trn_Document
-ADD Approval_Status NVARCHAR(255);
-
 
 --2 Trn 
 
