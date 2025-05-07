@@ -1,0 +1,525 @@
+
+
+
+
+
+
+--------------
+
+select * from Trn_Approval_History
+
+select * from Trn_Document
+
+select * from Trn_SapTransfer_Records
+
+select * from Mst_User
+
+select * from Mst_Role
+
+
+
+---------------
+
+--DROP TABLE IF EXISTS Trn_Document;
+--DROP TABLE IF EXISTS Trn_SapTransfer_Records;
+--DROP TABLE IF EXISTS Trn_Approval_History;
+
+SELECT *
+FROM information_schema.tables
+WHERE table_name = 'Trn_Document';
+
+--T 1 Trn  Doc
+
+CREATE TABLE Trn_Document (
+    Doc_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Plant_ID INT , 
+    Movement_ID INT,
+    Movement_Name NVARCHAR(255),
+    Status NVARCHAR(50),
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+ALTER TABLE Trn_Document
+ADD Approval_Status NVARCHAR(255);
+
+
+--2 Trn 
+
+CREATE TABLE Trn_SapTransfer_Records (
+    Trn_Sap_ID INT IDENTITY(1,1) PRIMARY KEY,
+    
+    Doc_ID INT ,
+    Movement_ID int ,
+    
+    Plant_ID INT ,
+    SLoc_ID INT ,
+    To_SLoc_ID INT,
+    
+    Material_Type NVARCHAR(4),  -- No FK / keeping type same as in Mst_Material
+    Material_ID INT,
+    To_Material_ID INT,
+    
+    --Material_Description NVARCHAR(255),  -- Fetched from Mst_Material.Description
+    
+    Rate_PerPart DECIMAL(6,2),
+    To_Rate_309 DECIMAL(6,2),
+    
+    Qty INT,
+    Value DECIMAL(18,2),  -- Value = Qty * Rate
+    
+    Movt_List_ID INT,
+    
+    Remarks NVARCHAR(255),
+    
+    CostCenter_ID INT,
+    Valuation_Type NVARCHAR(50),
+    Batch NVARCHAR(50),
+    
+    --Prov_Qty INT,
+    --Prov_Value DECIMAL(18,2),
+    
+    Approval_Status NVARCHAR(50),
+    SAP_Process_Status NVARCHAR(50),
+    
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+
+--3 Trn 
+
+
+CREATE TABLE Trn_Approval_History (
+    Trn_Appl_His_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Doc_ID INT,
+    Plant_ID INT ,
+    Movement_ID INT,
+    Approver_ID INT,
+    Approver_Comment NVARCHAR(255),
+    Approver_Status NVARCHAR(50),
+	Approval_level NVARCHAR(255),
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+
+
+-------------------
+CREATE TABLE #Trn_Approval_History (
+    Trn_Appl_His_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Doc_ID INT,
+    Plant_ID INT ,
+    Movement_ID INT,
+    Approver_ID INT,
+    Approver_Comment NVARCHAR(255),
+    Approver_Status NVARCHAR(50),
+	Approval_level NVARCHAR(255),
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+--s-1
+
+INSERT INTO #Trn_Approval_History (
+ 
+    Doc_ID, 
+    Plant_ID, 
+    Movement_ID, 
+    Approver_ID, 
+    Approver_Comment, 
+    Approver_Status, 
+    Approval_level, 
+    Created_By, 
+    Created_On
+)
+VALUES
+( 1, 4, 4, 1, 'Initial approval', 'Pending', 1, 2,GETDATE());
+
+
+--( 2, 4, 4, 3, 'Initial approval', 'Pending', 1, 3, GETDATE() );
+
+--select * from  #Trn_Approval_History
+
+--step2
+
+UPDATE #Trn_Approval_History
+SET
+Approver_Status = 'Approved'
+WHERE Doc_ID = 1;
+
+
+INSERT INTO #Trn_Approval_History (
+ 
+    Doc_ID, 
+    Plant_ID, 
+    Movement_ID, 
+    Approver_ID, 
+    Approver_Comment, 
+    Approver_Status, 
+    Approval_level, 
+    Created_By, 
+    Created_On
+)
+VALUES
+( 1, 4, 4, 3, 'Approval 1', 'Pending', 1, 2,GETDATE());
+
+
+--select * from  #Trn_Approval_History
+
+-- step 3
+
+
+UPDATE #Trn_Approval_History
+SET
+Approver_Status = 'Approved'
+WHERE Approver_ID = 3;
+
+
+
+INSERT INTO #Trn_Approval_History (
+ 
+    Doc_ID, 
+    Plant_ID, 
+    Movement_ID, 
+    Approver_ID, 
+    Approver_Comment, 
+    Approver_Status, 
+    Approval_level, 
+    Created_By, 
+    Created_On
+)
+VALUES
+( 1, 4, 4, 4, 'Verification 1', 'Pending', 1, 2,GETDATE());
+
+
+
+--select * from  #Trn_Approval_History
+
+-- step 4
+
+
+UPDATE #Trn_Approval_History
+SET
+Approver_Status = 'Approved'
+WHERE Approver_ID = 4;
+
+
+
+INSERT INTO #Trn_Approval_History (
+ 
+    Doc_ID, 
+    Plant_ID, 
+    Movement_ID, 
+    Approver_ID, 
+    Approver_Comment, 
+    Approver_Status, 
+    Approval_level, 
+    Created_By, 
+    Created_On
+)
+VALUES
+( 1, 4, 4, 5, 'Approval 2', 'Pending', 2, 2,GETDATE());
+
+
+--select * from  #Trn_Approval_History
+
+-- step 5
+
+
+UPDATE #Trn_Approval_History
+SET
+Approver_Status = 'Approved'
+WHERE Approver_ID = 5;
+
+
+
+INSERT INTO #Trn_Approval_History (
+ 
+    Doc_ID, 
+    Plant_ID, 
+    Movement_ID, 
+    Approver_ID, 
+    Approver_Comment, 
+    Approver_Status, 
+    Approval_level, 
+    Created_By, 
+    Created_On
+)
+VALUES
+( 1, 4, 4, 6, 'Approval 3', 'Pending', 3, 2,GETDATE());
+
+
+
+
+--select * from  #Trn_Approval_History
+
+-- step 6
+
+
+UPDATE #Trn_Approval_History
+SET
+Approver_Status = 'Approved'
+WHERE Approver_ID = 6;
+
+
+
+INSERT INTO #Trn_Approval_History (
+ 
+    Doc_ID, 
+    Plant_ID, 
+    Movement_ID, 
+    Approver_ID, 
+    Approver_Comment, 
+    Approver_Status, 
+    Approval_level, 
+    Created_By, 
+    Created_On
+)
+VALUES
+( 1, 4, 4, 7, 'Updation', 'Pending', 4, 2,GETDATE());
+
+--step 7
+
+--select * from  #Trn_Approval_History
+
+UPDATE #Trn_Approval_History
+SET
+Approver_Status = 'Approved'
+WHERE Approver_ID = 7;
+
+
+
+
+
+
+--UPDATE #Trn_Approval_History
+--SET
+--Approver_Status = 'Approved',
+-- Approver_Comment ='Approval 1',
+-- Approver_ID='3'
+
+--WHERE Doc_ID = 1;
+
+--select * from  #Trn_Approval_History
+
+
+-------------------
+
+CREATE TABLE #Trn_Approval_History (
+    Trn_Appl_His_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Doc_ID INT,
+    Plant_ID INT,
+    Movement_ID INT,
+    Approver_ID INT,
+    Approver_Comment NVARCHAR(255),
+    Approver_Status NVARCHAR(50),
+    Approval_level NVARCHAR(255),
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+
+CREATE PROCEDURE Process_309_Approval_Workflow
+    @Doc_ID INT,
+    @Plant_ID INT,
+    @Movement_ID INT,
+    @Created_By INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRANSACTION;
+
+    BEGIN TRY
+        DECLARE @Now DATETIME = GETDATE();
+
+        -- Level 1
+        INSERT INTO #Trn_Approval_History
+        VALUES (@Doc_ID, @Plant_ID, @Movement_ID, 1, 'Initial approval', 'Approved', 'Level1', @Created_By, @Now, NULL, NULL);
+
+        INSERT INTO #Trn_Approval_History
+        VALUES (@Doc_ID, @Plant_ID, @Movement_ID, 3, 'Approval 1', 'Approved', 'Level1', @Created_By, @Now, NULL, NULL);
+
+        INSERT INTO #Trn_Approval_History
+        VALUES (@Doc_ID, @Plant_ID, @Movement_ID, 4, 'Verification 1', 'Approved', 'Level1', @Created_By, @Now, NULL, NULL);
+
+        -- Level 2
+        INSERT INTO #Trn_Approval_History
+        VALUES (@Doc_ID, @Plant_ID, @Movement_ID, 5, 'Approval 2', 'Approved', 'Level2', @Created_By, @Now, NULL, NULL);
+
+        -- Level 3
+        INSERT INTO #Trn_Approval_History
+        VALUES (@Doc_ID, @Plant_ID, @Movement_ID, 6, 'Approval 3', 'Approved', 'Level3', @Created_By, @Now, NULL, NULL);
+
+        -- Level 4
+        INSERT INTO #Trn_Approval_History
+        VALUES (@Doc_ID, @Plant_ID, @Movement_ID, 7, 'Final Approval', 'Approved', 'Level4', @Created_By, @Now, NULL, NULL);
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+
+        DECLARE @ErrMsg NVARCHAR(4000), @ErrSeverity INT;
+        SELECT @ErrMsg = ERROR_MESSAGE(), @ErrSeverity = ERROR_SEVERITY();
+        RAISERROR(@ErrMsg, @ErrSeverity, 1);
+    END CATCH
+END;
+
+---------------------
+
+CREATE PROCEDURE usp_ProcessNextApprovalStep
+    @Doc_ID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @LastLevel NVARCHAR(50),
+            @NextLevel NVARCHAR(50),
+            @NextApprover_ID INT,
+            @NextComment NVARCHAR(255),
+            @Plant_ID INT,
+            @Movement_ID INT,
+            @Created_By INT,
+            @Now DATETIME = GETDATE();
+
+    -- Get last approved row for the Doc_ID
+    SELECT TOP 1
+        @LastLevel = Approval_level,
+        @Plant_ID = Plant_ID,
+        @Movement_ID = Movement_ID,
+        @Created_By = Created_By
+    FROM #Trn_Approval_History
+    WHERE Doc_ID = @Doc_ID AND Approver_Status = 'Approved'
+    ORDER BY Trn_Appl_His_ID DESC;
+
+    -- Determine next level based on current level
+    IF @LastLevel = 'Level1'
+    BEGIN
+        -- Insert Level2: Plant Head (Role_ID 5, e.g. Approver_ID = 5)
+        SET @NextLevel = 'Level2';
+        SET @NextApprover_ID = 5;
+        SET @NextComment = 'Approval 2 by Plant Head';
+    END
+    ELSE IF @LastLevel = 'Level2'
+    BEGIN
+        -- Insert Level3: Corp Finance Head (Role_ID 6)
+        SET @NextLevel = 'Level3';
+        SET @NextApprover_ID = 6;
+        SET @NextComment = 'Approval 3 by Corp Finance Head';
+    END
+    ELSE IF @LastLevel = 'Level3'
+    BEGIN
+        -- Insert Level4: Corp MRPC (Role_ID 7)
+        SET @NextLevel = 'Level4';
+        SET @NextApprover_ID = 7;
+        SET @NextComment = 'Final Approval by Corp MRPC';
+    END
+    ELSE
+    BEGIN
+        -- No more levels
+        RETURN;
+    END
+
+    -- Insert next level approver row
+    INSERT INTO #Trn_Approval_History (
+        Doc_ID, Plant_ID, Movement_ID, Approver_ID, Approver_Comment,
+        Approver_Status, Approval_level, Created_By, Created_On
+    )
+    VALUES (
+        @Doc_ID, @Plant_ID, @Movement_ID, @NextApprover_ID, @NextComment,
+        'Pending', @NextLevel, @Created_By, @Now
+    );
+END;
+
+
+
+
+
+
+----------------------
+CREATE PROCEDURE usp_ProcessNextApprovalStep
+    @Doc_ID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @LastLevel NVARCHAR(50),
+            @NextLevel NVARCHAR(50),
+            @NextApprover_ID INT,
+            @NextComment NVARCHAR(255),
+            @Plant_ID INT,
+            @Movement_ID INT,
+            @Created_By INT,
+            @Now DATETIME = GETDATE(),
+            @Role_ID INT;
+
+    -- Get last approved row for the Doc_ID from trn_approval_history table
+    SELECT TOP 1
+        @LastLevel = Approval_level,
+        @Plant_ID = Plant_ID,
+        @Movement_ID = Movement_ID,
+        @Created_By = Created_By
+    FROM #Trn_Approval_History
+    WHERE Doc_ID = @Doc_ID AND Approver_Status = 'Approved'
+    ORDER BY Trn_Appl_His_ID DESC;
+
+    -- Get the Role_ID of the next approver based on the current level
+    IF @LastLevel = 'Level1'
+    BEGIN
+        -- Role_ID 5: Plant Head (Level 2)
+        SET @NextLevel = 'Level2';
+        SET @NextApprover_ID = (SELECT User_ID FROM mst_user WHERE Role_ID = 5);  -- Query to get the User_ID for Plant Head
+        SET @NextComment = 'Approval 2 by Plant Head';
+    END
+    ELSE IF @LastLevel = 'Level2'
+    BEGIN
+        -- Role_ID 6: Corp Finance Head (Level 3)
+        SET @NextLevel = 'Level3';
+        SET @NextApprover_ID = (SELECT User_ID FROM mst_user WHERE Role_ID = 6);  -- Query to get the User_ID for Corp Finance Head
+        SET @NextComment = 'Approval 3 by Corp Finance Head';
+    END
+    ELSE IF @LastLevel = 'Level3'
+    BEGIN
+        -- Role_ID 7: Corp MRPC (Level 4)
+        SET @NextLevel = 'Level4';
+        SET @NextApprover_ID = (SELECT User_ID FROM mst_user WHERE Role_ID = 7);  -- Query to get the User_ID for Corp MRPC
+        SET @NextComment = 'Final Approval by Corp MRPC';
+    END
+    ELSE
+    BEGIN
+        -- No more levels
+        RETURN;
+    END
+
+    -- Insert next level approver row into #Trn_Approval_History
+    INSERT INTO #Trn_Approval_History (
+        Doc_ID, Plant_ID, Movement_ID, Approver_ID, Approver_Comment,
+        Approver_Status, Approval_level, Created_By, Created_On
+    )
+    VALUES (
+        @Doc_ID, @Plant_ID, @Movement_ID, @NextApprover_ID, @NextComment,
+        'Apptoved', @NextLevel, @Created_By, @Now
+    );
+    
+    -- Optionally, you may want to update the 'trn_document' table here to reflect the current step or status of the document
+    UPDATE trn_document
+    SET Last_Approval_Level = @NextLevel, Modified_On = @Now
+    WHERE Doc_ID = @Doc_ID;
+    
+    -- Optionally, if applicable, you could insert/update the 'trn_saptransfer' table
+    -- depending on whether the document has been approved and transferred, for example:
+    INSERT INTO trn_saptransfer (Doc_ID, Transfer_Status, Created_On)
+    VALUES (@Doc_ID, 'Approved', @Now);
+END;
