@@ -1,0 +1,196 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[ApprovalView]    Script Date: 13-05-2025 17:20:29 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[ApprovalView]
+    @Doc_ID INT = NULL   -- Default value
+AS
+BEGIN
+    -- Select the documents
+    SELECT 
+        p.Plant_Code,
+        d.Doc_ID, 
+        FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date,   -- Format Created_On as dd-MM-yyyy
+        mt.Movement_Name AS Movement_Type,            -- Movement Type Name
+        u.User_Name AS Request_By,                    -- Employee_ID mapped to User_Name
+	    d.Approval_Status AS Status                            -- Added Approval Status here
+
+    FROM Trn_Document AS d
+    LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
+    LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
+    LEFT JOIN mst_user AS u ON u.User_ID = d.Created_By
+    WHERE 
+        d.Movement_ID = 4  -- <<< Only Movement_ID 309
+        AND (@Doc_ID IS NULL OR d.Doc_ID = @Doc_ID);  -- Fetch all if NULL, else specific Doc_ID
+END;        
+                
+=============================================================================================================================
+
+
+
+
+
+ALTER PROCEDURE [dbo].[ApprovalView]
+    @User_ID INT,            -- Current User ID (approver)
+    @Doc_ID INT = NULL        -- Document ID (optional, default is NULL to get all documents)
+AS
+BEGIN
+    -- Output: Show only documents that are pending, rejected, or queried, relevant to the current user and at the correct approval level
+    SELECT
+        p.Plant_Code,                          -- Plant Code
+        d.Doc_ID,                              -- Document ID
+        FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date, -- Format Created On Date
+        mt.Movement_Name AS Movement_Type,     -- Movement Type
+        u.User_Name AS Request_By,             -- Requester Name
+        d.Approval_Status AS Status,           -- Document Approval Status (Pending, Approved, etc.)
+        latest_status.Approval_Level AS Current_Level -- Current Approval Level (for user)
+
+    FROM Trn_Document AS d
+    LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
+    LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
+    LEFT JOIN mst_user AS u ON u.User_ID = d.Created_By
+
+    -- Join only the documents where:
+    -- 1. The status is either Pending, Rejected, or Queried
+    -- 2. The document is relevant to the current approver (the approver's level is appropriate)
+    -- 3. The approval level is between 1 and 6 (valid levels only)
+    INNER JOIN (
+        SELECT *
+        FROM (
+            SELECT 
+                ah.Doc_ID, 
+                ah.Approver_ID, 
+                ah.Approval_Level, 
+                ah.Approver_Status,
+                ROW_NUMBER() OVER (PARTITION BY ah.Doc_ID ORDER BY ah.Approval_Level DESC) AS rn
+            FROM Trn_Approval_History ah
+            WHERE ah.Approver_Status IN ('Pending', 'Rejected', 'Queried')  -- Filter by Pending, Rejected, Queried
+        ) AS latest_status
+        WHERE
+            latest_status.rn = 1  -- Select the most recent approval record (based on Approval_Level)
+            AND latest_status.Approver_ID = @User_ID  -- Ensure it's relevant to the current approver
+            AND latest_status.Approver_Status IN ('Pending', 'Rejected', 'Queried')  -- Filter for Pending, Rejected, Queried
+            AND latest_status.Approval_Level BETWEEN 1 AND 6  -- Restrict to valid levels (1-6)
+    ) AS latest_status ON d.Doc_ID = latest_status.Doc_ID
+
+    WHERE 
+        d.Movement_ID = 4  -- Filter for specific Movement_ID (in this case, Movement_ID = 4)
+        AND d.Approval_Status = 'Pending'  -- Only show documents that are still "Pending" overall
+        AND (@Doc_ID IS NULL OR d.Doc_ID = @Doc_ID);  -- Optionally filter by specific Document ID if provided
+END;
+===========================================================================================================
+
+
+
+
+
+SELECT * FROM Trn_Approval_History WHERE Doc_ID = 1 AND Approval_Level = 1;
+
+SELECT * FROM Trn_Approval_History
+
+SELECT * FROM Trn_Document
+
+SELECT * FROM Trn_SapTransfer_Records
+
+select * from Mst_User
+
+select * from Mst_Role
+
+SELECT * FROM Trn_Document WHERE Doc_ID = 1;
+SELECT * FROM Trn_Approval_History WHERE Doc_ID = 1 AND Approval_Level = 1;
+
+
+--drop table Trn_Approval_History
+
+
+--drop table Trn_Document
+
+
+--drop table Trn_SapTransfer_Records
+
+--T 1 Trn  Doc
+
+CREATE TABLE Trn_Document (
+    Doc_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Plant_ID INT , 
+    Movement_ID INT,
+    Movement_Name NVARCHAR(255),
+    Status NVARCHAR(50),
+    Approval_Status NVARCHAR(255),
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+--2 Trn 
+
+CREATE TABLE Trn_SapTransfer_Records (
+    Trn_Sap_ID INT IDENTITY(1,1) PRIMARY KEY,
+    
+    Doc_ID INT ,
+    Movement_ID int ,
+    
+    Plant_ID INT ,
+    SLoc_ID INT ,
+    To_SLoc_ID INT,
+    
+    Material_Type NVARCHAR(4),  -- No FK / keeping type same as in Mst_Material
+    Material_ID INT,
+    To_Material_ID INT,
+    
+    --Material_Description NVARCHAR(255),  -- Fetched from Mst_Material.Description
+    
+    Rate_PerPart DECIMAL(6,2),
+    To_Rate_309 DECIMAL(6,2),
+    
+    Qty INT,
+    Value DECIMAL(18,2),  -- Value = Qty * Rate
+    
+    Movt_List_ID INT,
+    
+    Remarks NVARCHAR(255),
+    
+    CostCenter_ID INT,
+    Valuation_Type NVARCHAR(50),
+    Batch NVARCHAR(50),
+    
+    --Prov_Qty INT,
+    --Prov_Value DECIMAL(18,2),
+    
+    Approval_Status NVARCHAR(50),
+    SAP_Process_Status NVARCHAR(50),
+    
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+
+--3 Trn 
+
+
+CREATE TABLE Trn_Approval_History (
+    Trn_Appl_His_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Doc_ID INT,
+    Plant_ID INT ,
+    Movement_ID INT,
+    Approver_ID INT,
+    Approver_Comment NVARCHAR(255),
+    Approver_Status NVARCHAR(50),
+	Approval_level NVARCHAR(255),
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
+
+--DELETE FROM Trn_Approval_History 
+--WHERE Trn_Appl_His_ID IN (8);
+
