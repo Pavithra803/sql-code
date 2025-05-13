@@ -1,0 +1,125 @@
+
+
+
+ALTER PROCEDURE [dbo].[Trn309_ApprovalWorkflow]
+    @Doc_ID INT,
+    @Action NVARCHAR(50),
+    @Comment NVARCHAR(255),
+    @Approval_Level INT,
+	@UserID int
+AS
+BEGIN
+    SET NOCOUNT ON;
+ 
+    
+    -- Check if the document exists
+    IF EXISTS (SELECT 1 FROM Trn_Document WHERE Doc_ID = @Doc_ID)
+    BEGIN
+        DECLARE @NextLevel INT;
+        DECLARE @Plant_ID INT, @Movement_ID INT;
+
+        -- Get the Plant_ID and Movement_ID from the document
+        SELECT @Plant_ID = Plant_ID, @Movement_ID = Movement_ID
+        FROM Trn_Document
+        WHERE Doc_ID = @Doc_ID;
+
+        -- Determine the next approval level based on the current level
+        SET @NextLevel = CASE 
+            WHEN @Approval_Level = 1 THEN 2  -- Level 1 moves to level 2
+            WHEN @Approval_Level = 2 THEN 3  -- Level 2 moves to level 3
+            WHEN @Approval_Level = 3 THEN 4  -- Level 3 moves to level 4
+            ELSE NULL  -- No further levels after level 4
+        END;
+
+   IF @Approval_Level = 1
+        BEGIN
+            -- Step 1: Handle the approval at Level 1 (Initial Pending Approval)
+            IF @Action IN ('Approved', 'Rejected', 'Under Query')
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = @Action,
+                    Approver_Comment = @Comment,
+                    Modified_By = @UserID,
+                    Modified_On = GETDATE()
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = @Approval_Level AND Approver_Status = 'Approved';
+            END
+
+            -- If Level 1 is approved, insert next row (Step 2: Pending Verification)
+            IF @Action = 'Approved'
+            BEGIN
+                -- Insert new row for the next step (pending verification)
+                INSERT INTO Trn_Approval_History (
+                    Doc_ID, Plant_ID, Movement_ID, Approver_ID, Approval_Level, Approver_Status, Approver_Comment, Created_By, Created_On
+                )
+                VALUES (
+                    @Doc_ID, @Plant_ID, @Movement_ID, @UserID, 2, 'Pending', @Comment, @UserID, GETDATE()
+                );
+            END
+        END
+
+        -- Handle the second step of Level 1 (Pending -> Verified/Rejected/Under Query)
+        IF @Approval_Level = 1
+        BEGIN
+            -- Handle the second approval (Verification) at Level 1
+            IF @Action IN ('Verified', 'Rejected', 'Under Query')
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = @Action,
+                    Approver_Comment = @Comment,
+                    Modified_By = @UserID,
+                    Modified_On = GETDATE()
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = @Approval_Level AND Approver_Status = 'Pending';
+            END
+
+            -- If Verified at Level 1, move to next level
+            IF @Action = 'Verified'
+            BEGIN
+                -- Insert new row for next approval level (Level 2, pending)
+                INSERT INTO Trn_Approval_History (
+                    Doc_ID, Plant_ID, Movement_ID, Approver_ID, Approval_Level, Approver_Status, Approver_Comment, Created_By, Created_On
+                )
+                VALUES (
+                    @Doc_ID, @Plant_ID, @Movement_ID, @UserID, 3, 'Pending', @Comment, @UserID, GETDATE()
+                );
+            END
+        END
+
+
+        -- Handle Approval Levels 2, 3, 4
+        ELSE IF @Approval_Level IN (2, 3, 4)
+        BEGIN
+            -- Update status based on action (Approved, Rejected, or Under Query)
+            IF @Action IN ('Approved', 'Rejected', 'Under Query')
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = @Action,
+                    Approver_Comment = @Comment,
+                    Modified_By = @UserID,
+                    Modified_On = GETDATE()
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = @Approval_Level;
+            END
+
+            -- If approved and next level exists, insert next level approval record
+            IF @Action = 'Approved' AND @NextLevel IS NOT NULL
+            BEGIN
+                INSERT INTO Trn_Approval_History (
+                    Doc_ID, Plant_ID, Movement_ID, Approver_ID, Approval_Level, Approver_Status, Approver_Comment, Created_By, Created_On
+                )
+                VALUES (
+                    @Doc_ID, @Plant_ID, @Movement_ID, @UserID, @NextLevel, 'Pending', @Comment,@UserID, GETDATE()
+                );
+            END
+        END
+
+        -- Final level completion handling (if the last approval level, mark as Completed)
+        IF @Approval_Level = 4 AND @Action = 'Approved'
+        BEGIN
+            -- Mark final approval level as 'Completed'
+            UPDATE Trn_Approval_History
+            SET Approver_Status = 'Completed',
+                Modified_By = @UserID,
+                Modified_On = GETDATE()
+            WHERE Doc_ID = @Doc_ID AND Approval_Level = @Approval_Level AND Approver_Status = 'Approved';
+        END
+    END
+END
