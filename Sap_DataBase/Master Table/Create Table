@@ -158,7 +158,7 @@ CREATE TABLE Mst_Movement_Type (
 CREATE TABLE Mst_Movement_List_Item (
     Movt_List_ID INT IDENTITY(1,1) PRIMARY KEY,
     Movement_ID INT ,
-    Movement_List_Code INT,
+    Movement_List_Code NVARCHAR(250),
     Movement_List_Name NVARCHAR(250),
     Active_Status BIT,
     Created_By INT,
