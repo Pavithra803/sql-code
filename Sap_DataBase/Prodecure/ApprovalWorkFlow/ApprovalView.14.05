@@ -1,0 +1,191 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[ApprovalView]    Script Date: 14-05-2025 16:19:12 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[ApprovalView]
+    @Role_Id INT,
+    @Plant_ID INT
+  
+AS
+BEGIN
+
+    IF @Role_ID = 1
+    BEGIN
+        -- Level 1: Show requester (documents created by  user)
+        SELECT 
+            p.Plant_Code,
+            --d.Doc_ID, 
+            FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date, 
+            mt.Movement_Name AS Movement_Type,           
+            u.User_Name AS Request_By,                   
+            d.Approval_Status AS Status,
+            ah.Plant_ID,
+            ah.Doc_ID, 
+            ah.Movement_ID,
+            ah.Approver_ID, 
+            ah.Approval_Level, 
+            ah.Approver_Status
+        FROM Trn_Document AS d
+        LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
+        LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
+        LEFT JOIN mst_user AS u ON u.User_ID = d.Created_By
+        LEFT JOIN Trn_Approval_History AS ah ON ah.Doc_ID = d.Doc_ID AND ah.Plant_ID = p.Plant_ID AND ah.Movement_ID = d.Movement_ID
+
+        WHERE ah. Plant_ID = @Plant_ID  AND ah. Approver_Status= 'Pending' AND ah. Approval_level =1
+    END
+   
+
+    ELSE IF @Role_ID = 3
+    BEGIN
+        -- Level 2: Plant Finance Head – show only pending approvals at level 2
+        SELECT 
+
+		p.Plant_Code,
+		--d.Doc_ID, 
+		FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date, 
+		mt.Movement_Name AS Movement_Type,           
+		u.User_Name AS Request_By,                   
+		d.Approval_Status AS Status,
+		ah.Plant_ID,
+		ah.Doc_ID, 
+		ah.Movement_ID,
+		ah.Approver_ID, 
+		ah.Approval_Level, 
+		ah.Approver_Status
+	FROM Trn_Document AS d
+	LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
+	LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
+	LEFT JOIN mst_user AS u ON u.User_ID = d.Created_By
+	LEFT JOIN Trn_Approval_History AS ah ON ah.Doc_ID = d.Doc_ID AND ah.Plant_ID = p.Plant_ID AND ah.Movement_ID = d.Movement_ID
+
+
+           WHERE  ah. Plant_ID = @Plant_ID  AND ah. Approver_Status= 'Pending'  AND ah. Approval_level =1
+    END
+
+    ELSE IF @Role_ID = 4
+    BEGIN
+        -- Level 3: Plant MRPC – show only pending approvals at level 3
+        SELECT 
+
+		
+		p.Plant_Code,
+		--d.Doc_ID, 
+		FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date, 
+		mt.Movement_Name AS Movement_Type,           
+		u.User_Name AS Request_By,                   
+		d.Approval_Status AS Status,
+		ah.Plant_ID,
+		ah.Doc_ID, 
+		ah.Movement_ID,
+		ah.Approver_ID, 
+		ah.Approval_Level, 
+		ah.Approver_Status
+	FROM Trn_Document AS d
+	LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
+	LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
+	LEFT JOIN mst_user AS u ON u.User_ID = d.Created_By
+	LEFT JOIN Trn_Approval_History AS ah ON ah.Doc_ID = d.Doc_ID AND ah.Plant_ID = p.Plant_ID AND ah.Movement_ID = d.Movement_ID
+	WHERE  ah. Plant_ID = @Plant_ID  AND ah. Approver_Status= 'Pending'  AND ah. Approver_ID =2
+    END
+
+    ELSE IF @Role_ID = 5
+    BEGIN
+        -- Level 4: Plant Head – show only pending approvals at level 4
+        SELECT 
+
+		
+		p.Plant_Code,
+		--d.Doc_ID, 
+		FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date, 
+		mt.Movement_Name AS Movement_Type,           
+		u.User_Name AS Request_By,                   
+		d.Approval_Status AS Status,
+		ah.Plant_ID,
+		ah.Doc_ID, 
+		ah.Movement_ID,
+		ah.Approver_ID, 
+		ah.Approval_Level, 
+		ah.Approver_Status
+	FROM Trn_Document AS d
+	LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
+	LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
+	LEFT JOIN mst_user AS u ON u.User_ID = d.Created_By
+	LEFT JOIN Trn_Approval_History AS ah ON ah.Doc_ID = d.Doc_ID AND ah.Plant_ID = p.Plant_ID AND ah.Movement_ID = d.Movement_ID
+
+
+
+        
+           WHERE  ah. Plant_ID = @Plant_ID  AND ah. Approver_Status= 'Pending'  AND ah. Approver_ID = 3
+
+    END
+
+    ELSE IF @Role_ID = 6
+    BEGIN
+        -- Level 5: Corp Finance Head – show only pending approvals at level 5
+        SELECT 
+
+		
+		p.Plant_Code,
+		--d.Doc_ID, 
+		FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date, 
+		mt.Movement_Name AS Movement_Type,           
+		u.User_Name AS Request_By,                   
+		d.Approval_Status AS Status,
+		ah.Plant_ID,
+		ah.Doc_ID, 
+		ah.Movement_ID,
+		ah.Approver_ID, 
+		ah.Approval_Level, 
+		ah.Approver_Status
+	FROM Trn_Document AS d
+	LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
+	LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
+	LEFT JOIN mst_user AS u ON u.User_ID = d.Created_By
+	LEFT JOIN Trn_Approval_History AS ah ON ah.Doc_ID = d.Doc_ID AND ah.Plant_ID = p.Plant_ID AND ah.Movement_ID = d.Movement_ID
+
+
+	
+           WHERE  ah. Plant_ID = @Plant_ID  AND ah. Approver_Status= 'Pending'   AND ah. Approver_ID = 4
+
+    END
+
+    ELSE IF @Role_ID = 7
+    BEGIN
+        -- Level 6: Corp MRPC – show only pending approvals at level 6
+        SELECT 
+
+		
+		p.Plant_Code,
+		--d.Doc_ID, 
+		FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date, 
+		mt.Movement_Name AS Movement_Type,           
+		u.User_Name AS Request_By,                   
+		d.Approval_Status AS Status,
+		ah.Plant_ID,
+		ah.Doc_ID, 
+		ah.Movement_ID,
+		ah.Approver_ID, 
+		ah.Approval_Level, 
+		ah.Approver_Status
+	FROM Trn_Document AS d
+	LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
+	LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
+	LEFT JOIN mst_user AS u ON u.User_ID = d.Created_By
+	LEFT JOIN Trn_Approval_History AS ah ON ah.Doc_ID = d.Doc_ID AND ah.Plant_ID = p.Plant_ID AND ah.Movement_ID = d.Movement_ID
+
+
+
+        
+           WHERE  ah. Plant_ID = @Plant_ID  AND ah. Approver_Status= 'Pending'   AND ah. Approver_ID = 5
+
+    END
+	
+END
+
+
+
+
+--exec ApprovalView 1, 4
