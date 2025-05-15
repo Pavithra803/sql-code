@@ -1,0 +1,29 @@
+
+	CREATE PROCEDURE ApprovalListView
+		@User_Level INT,
+		@Plant_ID INT
+	AS
+	BEGIN
+		SELECT 
+			p.Plant_Code,
+			FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date,
+			mt.Movement_Name AS Movement_Type,
+			u.User_Name AS Request_By,
+			d.Approval_Status AS Status,
+			ah.Plant_ID,
+			ah.Doc_ID,
+			ah.Movement_ID,
+			ah.Approver_ID,
+			ah.Approval_Level,
+			ah.Approver_Status
+		FROM Trn_Document AS d
+			LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
+			LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
+			LEFT JOIN mst_user AS u ON u.User_ID = d.Created_By
+			LEFT JOIN Trn_Approval_History AS ah ON ah.Doc_ID = d.Doc_ID AND ah.Plant_ID = d.Plant_ID AND ah.Movement_ID = d.Movement_ID
+
+		WHERE ah.Approval_Level = @User_Level  --1
+		  AND ah.Approver_Status = 'Pending'
+		  AND ah.Plant_ID = @Plant_ID --4
+	END
+
