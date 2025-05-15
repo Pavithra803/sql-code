@@ -1,0 +1,198 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[Trn309_ApprovalWorkflow]    Script Date: 15-05-2025 15:23:59 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+ALTER PROCEDURE [dbo].[Trn309_ApprovalWorkflow]
+    @Doc_ID INT,
+    @Action NVARCHAR(50),
+    @Comment NVARCHAR(255),
+    @Approval_Level Int,
+    @UserID NVARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Check if the document exists
+    IF EXISTS (SELECT * FROM Trn_Document WHERE Doc_ID = @Doc_ID)
+    BEGIN
+        DECLARE @NextLevel INT;
+        DECLARE @Plant_ID INT, @Movement_ID INT;
+
+        -- Get the Plant_ID and Movement_ID from the document
+        SELECT @Plant_ID = Plant_ID, @Movement_ID = Movement_ID
+        FROM Trn_Document
+        WHERE Doc_ID = @Doc_ID;
+
+        -- Level 1 approval logic
+        IF @Approval_Level = 1
+        BEGIN
+            IF EXISTS (
+                SELECT *
+                FROM Trn_Approval_History
+                WHERE Doc_ID = 1 
+                  AND Approver_Status = 'Pending'
+            )
+          
+        BEGIN
+            -- Update current approval record if it's still pending
+            IF @Action IN ('Approved', 'Rejected', 'Under Query')
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = @Action,
+                    Approver_Comment = @Comment,
+					Approver_ID = @UserID,
+					Approval_Level = @Approval_Level,
+					Approver_Status = @Comment,
+                    Modified_By = @UserID,
+                    Modified_On = GETDATE()
+                WHERE Doc_ID = @Doc_ID 
+                
+                  AND Approver_Status = 'Pending';
+            END
+
+            -- Insert next level (Level 3) if action is 'Approved'
+            IF @Action = 'Approved'
+            BEGIN
+                INSERT INTO Trn_Approval_History (
+                    Doc_ID, Plant_ID, Movement_ID, Approver_Status,, Created_By, Created_On
+                )
+                VALUES (
+                    @Doc_ID, @Plant_ID, @Movement_ID, 'Pending', @UserID, GETDATE()
+                );
+            END
+        END
+
+        -- Level 3 approval logic
+        IF @Approval_Level = 3
+        BEGIN
+            -- Update current record if still pending
+            IF @Action IN ('Approved', 'Rejected', 'Under Query')
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = @Action,
+                    Approver_Comment = @Comment,
+                    Modified_By = @UserID,
+                    Modified_On = GETDATE()
+                WHERE Doc_ID = @Doc_ID 
+                  AND Approval_Level = @Approval_Level 
+                  AND Approver_Status = 'Pending';
+            END
+
+            -- Insert next level (Level 4) if action is 'Verified'
+            IF @Action = 'Approved'
+            BEGIN
+                INSERT INTO Trn_Approval_History (
+                    Doc_ID, Plant_ID, Movement_ID, Approver_ID, Approver_Status, Approval_Level, Approver_Comment, Created_By, Created_On
+                )
+                VALUES (
+                    @Doc_ID, @Plant_ID, @Movement_ID, @UserID, 'Pending', 4, @Comment, @UserID, GETDATE()
+                );
+            END
+        END
+
+        -- Level 4 approval logic
+        IF @Approval_Level = 4
+        BEGIN
+            -- Update current record if still pending
+            IF @Action IN ('Approved', 'Rejected', 'Under Query')
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = @Action,
+                    Approver_Comment = @Comment,
+                    Modified_By = @UserID,
+                    Modified_On = GETDATE()
+                WHERE Doc_ID = @Doc_ID 
+                  AND Approval_Level = @Approval_Level 
+                  AND Approver_Status = 'Pending';
+            END
+
+            -- Insert next level (Level 5) if action is 'Approved'
+            IF @Action = 'Approved'
+            BEGIN
+                INSERT INTO Trn_Approval_History (
+                    Doc_ID, Plant_ID, Movement_ID, Approver_ID, Approver_Status, Approval_Level, Approver_Comment, Created_By, Created_On
+                )
+                VALUES (
+                    @Doc_ID, @Plant_ID, @Movement_ID, @UserID, 'Pending', 5, @Comment, @UserID, GETDATE()
+                );
+            END
+        END
+
+        -- Level 5 approval logic
+        IF @Approval_Level = 5
+        BEGIN
+            -- Update current record if still pending
+            IF @Action IN ('Approved', 'Rejected', 'Under Query')
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = @Action,
+                    Approver_Comment = @Comment,
+                    Modified_By = @UserID,
+                    Modified_On = GETDATE()
+                WHERE Doc_ID = @Doc_ID 
+                  AND Approval_Level = @Approval_Level 
+                  AND Approver_Status = 'Pending';
+            END
+
+            -- Insert next level (Level 6) if action is 'Approved'
+            IF @Action = 'Approved'
+            BEGIN
+                INSERT INTO Trn_Approval_History (
+                    Doc_ID, Plant_ID, Movement_ID, Approver_ID, Approver_Status, Approval_Level, Approver_Comment, Created_By, Created_On
+                )
+                VALUES (
+                    @Doc_ID, @Plant_ID, @Movement_ID, @UserID, 'Pending', 6, @Comment, @UserID, GETDATE()
+                );
+            END
+        END
+
+        -- Level 6 approval logic
+        IF @Approval_Level = 6
+        BEGIN
+            -- Update current record if still pending
+            IF @Action IN ('Approved', 'Rejected', 'Under Query')
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = @Action,
+                    Approver_Comment = @Comment,
+                    Modified_By = @UserID,
+                    Modified_On = GETDATE()
+                WHERE Doc_ID = @Doc_ID 
+                  AND Approval_Level = @Approval_Level 
+                  AND Approver_Status = 'Pending';
+            END
+
+            -- If action is 'Approved', finalize the document as 'Completed'
+            IF @Action = 'Approved'
+            BEGIN
+			 INSERT INTO Trn_Approval_History (
+                    Doc_ID, Plant_ID, Movement_ID, Approver_ID, Approver_Status, Approval_Level, Approver_Comment, Created_By, Created_On
+                )
+                VALUES (
+                    @Doc_ID, @Plant_ID, @Movement_ID, @UserID, 'Pending', 7, @Comment, @UserID, GETDATE()
+                );
+                -- Mark Level 6 approval as Completed
+                UPDATE Trn_Approval_History
+                SET Approver_Status = 'Completed',
+                    Modified_By = @UserID,
+                    Modified_On = GETDATE()
+                WHERE Doc_ID = @Doc_ID 
+                  AND Approval_Level = @Approval_Level 
+                  AND Approver_Status = 'Approved';
+
+                -- Also update the Trn_Document table to reflect final approval
+                UPDATE Trn_Document
+                SET Approval_Status = 'Finalized',  -- Mark the document as 'Finalized' or 'Completed'
+                    Modified_By = @UserID,
+                    Modified_On = GETDATE()
+                WHERE Doc_ID = @Doc_ID;
+            END
+        END
+
+    END  -- End IF EXISTS (SELECT * FROM Trn_Document ...)
+END  -- End of stored procedure
