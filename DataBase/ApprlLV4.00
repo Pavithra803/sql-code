@@ -1,0 +1,209 @@
+
+
+16.05.25
+
+
+
+	ALTER PROCEDURE ApprovalListView
+		@User_Level INT,
+		@Plant_ID INT,
+		@Role_ID INT
+	AS
+	BEGIN
+		SELECT 
+			p.Plant_Code,
+			FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date,
+			mt.Movement_Name AS Movement_Type,
+			u.User_Name AS Request_By,
+			d.Approval_Status AS Status,
+			ah.Plant_ID,
+			ah.Doc_ID,
+			ah.Movement_ID,
+			ah.Approver_ID,
+			ah.Approval_Level,
+			ah.Approver_Status
+		FROM Trn_Document AS d
+			LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
+			LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
+			LEFT JOIN mst_user AS u ON u.User_ID = d.Created_By
+
+			LEFT JOIN Trn_Approval_History AS ah 
+			ON ah.Doc_ID = d.Doc_ID
+			AND ah.Plant_ID = d.Plant_ID 
+			AND ah.Movement_ID = d.Movement_ID
+
+  WHERE ah.Plant_ID = 4 AND
+        ah.Movement_ID =4 AND 
+        ah.Approver_Status = 'Pending'
+                   AND
+				    ah.Approval_Level = 1
+				   OR ah.Approval_Level = 2
+                   OR ah.Approval_Level = 3
+                   OR ah.Approval_Level = 4
+                   OR ah.Approval_Level = 5
+                   OR ah.Approval_Level = 6
+        End
+
+
+
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[Trn309_ApprovalWorkflow]    Script Date: 16-05-2025 15:41:57 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+ALTER PROCEDURE [dbo].[Trn309_ApprovalWorkflow]
+    @Doc_ID INT,
+    @Action NVARCHAR(50),
+    @Comment NVARCHAR(255),
+    @Approval_Level INT,
+    @UserID NVARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Check if the document exists
+    IF EXISTS (SELECT * FROM Trn_Document WHERE Doc_ID = @Doc_ID)
+    BEGIN
+       
+        DECLARE @Plant_ID INT, @Movement_ID INT;
+
+        -- Get the Plant_ID and Movement_ID from the document
+        SELECT @Plant_ID = Plant_ID, @Movement_ID = Movement_ID
+        FROM Trn_Document
+        WHERE Doc_ID = @Doc_ID;
+
+        -- Approval logic
+        IF EXISTS (
+            SELECT *
+            FROM Trn_Approval_History
+            WHERE Doc_ID = @Doc_ID
+        
+              AND Approver_Status = 'Pending'
+        )
+        BEGIN
+            -- Update current approval record
+            IF @Action IN ('Approved', 'Rejected', 'Under Query')
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = @Action,
+                    Approver_Comment = @Comment,
+                    Approver_ID = @UserID,
+                    Modified_By = @UserID,
+				    Approval_Level = @Approval_Level,
+                    Modified_On = GETDATE()
+                WHERE Doc_ID = @Doc_ID 
+            
+                  AND Approver_Status = 'Pending';
+            END
+
+            -- Insert next level approval only if current action is 'Approved'
+            IF @Action = 'Approved'
+            BEGIN
+                INSERT INTO Trn_Approval_History (
+                    Doc_ID, Plant_ID, Movement_ID, Approver_Status,Approval_level,
+                    Created_By, Created_On
+                )
+                VALUES (
+                    @Doc_ID, @Plant_ID, @Movement_ID, 'Pending',@Approval_Level,
+                    @UserID, GETDATE()
+                );
+            END
+        END
+    END
+END
+
+
+
+
+
+
+select * from Trn_SapTransfer_Records
+
+
+
+select * from Trn_Document
+
+select * from Trn_Approval_History
+
+
+select * from Mst_User  where Plant_ID=4 and User_Level=4
+
+select * from Mst_Role
+
+
+
+--TRUNCATE TABLE Trn_Document;
+
+--TRUNCATE TABLE Trn_SapTransfer_Records;
+
+--TRUNCATE TABLE Trn_Approval_History;
+
+
+------------testing
+
+
+
+
+	ALTER PROCEDURE [dbo].[ApprovalListView]
+		@User_Level INT,
+		@Plant_ID INT,
+		@Role_ID INT
+	AS
+	BEGIN
+		SELECT 
+			p.Plant_Code,
+			FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date,
+			mt.Movement_Name AS Movement_Type,
+			u.User_Name AS Request_By,
+			d.Approval_Status AS Status,
+			ah.Plant_ID,
+			ah.Doc_ID,
+			ah.Movement_ID,
+			ah.Approver_ID,
+			ah.Approval_Level,
+			ah.Approver_Status
+		FROM Trn_Document AS d
+			LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
+			LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
+			LEFT JOIN mst_user AS u ON u.User_ID = d.Created_By
+			LEFT JOIN Trn_Approval_History AS ah ON ah.Doc_ID = d.Doc_ID AND ah.Plant_ID = d.Plant_ID AND ah.Movement_ID = d.Movement_ID
+
+  WHERE ah.Plant_ID = 4
+      AND 
+            -- STEP 1: Pending approval for Role 1 at Level 1 (or NULL for early data)
+            ah.Approver_Status = 'Approved' AND Approver_ID = 2 
+	
+
+            OR
+
+            -- STEP 2: Role-specific approvals when previous level was approved
+            (
+                ah.Approver_Status = 'Pending' AND (
+                       (@Role_ID = 3 AND ah.Approval_Level  is null )
+                    OR (@Role_ID = 4 AND ah.Approval_Level = 3)
+                    OR (@Role_ID = 5 AND ah.Approval_Level = 4)
+                    OR (@Role_ID = 6 AND ah.Approval_Level = 5)
+                    OR (@Role_ID = 7 AND ah.Approval_Level = 6)
+                )
+            )
+
+            OR
+
+            -- STEP 3: Rejected or queried approvals re-reviewed
+            (
+                ah.Approver_Status IN ('Reject', 'Query') AND (
+                       (@Role_ID = 1 AND ah.Approval_Level = 2)
+                    OR (@Role_ID = 4 AND ah.Approval_Level = 2)
+                    OR (@Role_ID = 5 AND ah.Approval_Level = 3)
+                    OR (@Role_ID = 6 AND ah.Approval_Level = 4)
+                )
+            )
+      )
+END
+
+
+
