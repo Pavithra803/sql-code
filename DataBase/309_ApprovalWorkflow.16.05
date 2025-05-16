@@ -1,0 +1,69 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[Trn309_ApprovalWorkflow]    Script Date: 16-05-2025 12:39:57 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+ALTER PROCEDURE [dbo].[Trn309_ApprovalWorkflow]
+    @Doc_ID INT,
+    @Action NVARCHAR(50),
+    @Comment NVARCHAR(255),
+    @Approval_Level INT,
+    @UserID NVARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Check if the document exists
+    IF EXISTS (SELECT 1 FROM Trn_Document WHERE Doc_ID = @Doc_ID)
+    BEGIN
+       
+        DECLARE @Plant_ID INT, @Movement_ID INT;
+
+        -- Get the Plant_ID and Movement_ID from the document
+        SELECT @Plant_ID = Plant_ID, @Movement_ID = Movement_ID
+        FROM Trn_Document
+        WHERE Doc_ID = @Doc_ID;
+
+        -- Approval logic
+        IF EXISTS (
+            SELECT *
+            FROM Trn_Approval_History
+            WHERE Doc_ID = @Doc_ID
+        
+              AND Approver_Status = 'Pending'
+        )
+        BEGIN
+            -- Update current approval record
+            IF @Action IN ('Approved', 'Rejected', 'Under Query')
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = @Action,
+                    Approver_Comment = @Comment,
+                    Approver_ID = @UserID,
+                    Modified_By = @UserID,
+				    Approval_Level = @Approval_Level,
+                    Modified_On = GETDATE()
+                WHERE Doc_ID = @Doc_ID 
+            
+                  AND Approver_Status = 'Pending';
+            END
+
+            -- Insert next level approval only if current action is 'Approved'
+            IF @Action = 'Approved'
+            BEGIN
+                INSERT INTO Trn_Approval_History (
+                    Doc_ID, Plant_ID, Movement_ID, Approver_Status,
+                    Created_By, Created_On
+                )
+                VALUES (
+                    @Doc_ID, @Plant_ID, @Movement_ID, 'Pending',
+                    @UserID, GETDATE()
+                );
+            END
+        END
+    END
+END
