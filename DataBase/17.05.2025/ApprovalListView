@@ -1,0 +1,69 @@
+
+
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[ApprovalListView]    Script Date: 15-05-2025 15:31:36 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
+ALTER PROCEDURE [dbo].[ApprovalListView]
+    @User_Level INT,
+    @Plant_ID INT,
+    @Role_ID INT
+AS
+BEGIN
+		SELECT 
+			p.Plant_Code,
+			FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date,
+			mt.Movement_Name AS Movement_Type,
+			u.User_Name AS Request_By,
+			d.Approval_Status AS Status,
+			ah.Plant_ID,
+			ah.Doc_ID,
+			ah.Movement_ID,
+			ah.Approver_ID,
+			ah.Approval_Level,
+			ah.Approver_Status
+		FROM Trn_Document AS d
+			LEFT JOIN Mst_Movement_Type AS mt ON mt.Movement_ID = d.Movement_ID
+			LEFT JOIN Mst_Plant AS p ON p.Plant_ID = d.Plant_ID
+			LEFT JOIN mst_user AS u ON u.User_ID = d.Created_By
+			LEFT JOIN Trn_Approval_History AS ah ON ah.Doc_ID = d.Doc_ID AND ah.Plant_ID = d.Plant_ID AND ah.Movement_ID = d.Movement_ID
+
+
+  WHERE ah.Plant_ID = @Plant_ID
+      AND (
+            -- STEP 1: Pending approval for Role 1 at Level 1 (or NULL for early data)
+            (ah.Approver_Status = 'Pending' AND @Role_ID = 1 )
+
+            OR
+
+            -- STEP 2: Role-specific approvals when previous level was approved
+            (
+                ah.Approver_Status = 'Pending' AND (
+                       (@Role_ID = 3 )
+                    OR (@Role_ID = 4 )
+                    OR (@Role_ID = 5 )
+                    OR (@Role_ID = 6)
+                    OR (@Role_ID = 7 )
+                )
+            )
+
+            OR
+
+            -- STEP 3: Rejected or queried approvals re-reviewed
+            (
+                ah.Approver_Status IN ('Reject', 'Query') AND (
+                       (@Role_ID = 1 )
+                    OR (@Role_ID = 4 )
+                    OR (@Role_ID = 5)
+                    OR (@Role_ID = 6 )
+                )
+            )
+      )
+END
+
