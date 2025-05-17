@@ -107,18 +107,29 @@ SELECT * FROM Mst_Cost_Center
 --T M 8
 
 INSERT INTO Mst_Role (Role_Name, Active_Status, Created_By, Created_On)
-VALUES (
+VALUES ('requestor',1,1,getdate()),
+ ('Plant MMD Head',1,1,getdate()), ('Plant Finance head',1,1,getdate()),
+  ('Plant MRPC',1,1,getdate()), ('Plant head',1,1,getdate()), ('corp Finance Head',1,1,getdate()),
+   ('Corp MRPC',1,1,getdate()), ('Business Head',1,1,getdate()), ('Admin',1,1,getdate())
    
-);
+;
+
+
+
 
 SELECT * FROM Mst_Role;
 
 --T M 9
-INSERT INTO Mst_User (Plant_ID, Employee_ID, User_Name, Dept_ID, User_Email, Role_ID, User_Level,Password, Active_Status, Created_By, Created_On)
-VALUES
 
-   
-);
+
+INSERT INTO Mst_User (Plant_ID, Employee_ID, User_Name, Dept_ID, User_Email, Role_ID, User_Level,Password, Active_Status, Created_By, Created_On)
+VALUES(4,16847,'Raj',1,'raj@gmail.com',1,1,123,1,1,getdate()),
+(4,02344,'kumar',1,'kumar@gmail.com',3,2,123,1,1,getdate()),
+(4,15432,'karthi',1,'karthi@gmail.com',4,3,123,1,1,getdate()),
+(4,16221,'Azar',1,'Azar@gmail.com',5,4,123,1,1,getdate()),
+(4,'C102624','Pavi',1,'pavi@gmail.com',6,5,123,1,1,getdate()),
+(4,'C102623','Vishnu',1,'vishnu@gmail.com',7,6,123,1,1,getdate()),
+(4,'16877','swarna',1,'swarna@gmail.com',9,6,123,1,1,getdate());
 
 SELECT * FROM Mst_User;
 
