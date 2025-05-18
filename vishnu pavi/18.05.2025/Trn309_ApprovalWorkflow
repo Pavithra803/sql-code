@@ -1,0 +1,109 @@
+USE [SAPAPPROVAL]
+GO
+/****** Object:  StoredProcedure [dbo].[Trn309_ApprovalWorkflow]    Script Date: 5/18/2025 3:29:55 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[Trn309_ApprovalWorkflow]
+    @Doc_ID INT,
+    @Action NVARCHAR(50),       -- 'Approved' or 'Rejected'
+    @Comment NVARCHAR(255),
+    @Approval_Level INT,        -- Current level (starts from 2)
+    @UserID NVARCHAR(255),      -- User performing the action
+    @Approver_ID INT = NULL     -- Optional: Approver to assign for new steps
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Next_Level INT = @Approval_Level + 1;
+    DECLARE @Plant_ID INT, @Movement_ID INT;
+    DECLARE @Max_Level INT = 6;
+    DECLARE @Min_Level INT = 2;
+
+    -- Get Plant_ID and Movement_ID for this Doc
+    SELECT @Plant_ID = Plant_ID, @Movement_ID = Movement_ID
+    FROM Trn_Document
+    WHERE Doc_ID = @Doc_ID;
+
+    -- Ensure that level 2 approval record exists for this document
+    IF NOT EXISTS (
+        SELECT 1 FROM Trn_Approval_History
+        WHERE Doc_ID = @Doc_ID AND Approval_Level = @Min_Level
+    )
+    BEGIN
+        INSERT INTO Trn_Approval_History (
+            Doc_ID, Plant_ID, Movement_ID, Approver_Status, Approval_Level,
+            Approver_ID, Created_By, Created_On
+        )
+        VALUES (
+            @Doc_ID, @Plant_ID, @Movement_ID, 'Pending', @Min_Level,
+            ISNULL(@Approver_ID, NULL), -- Assign approver if provided
+            @UserID, GETDATE()
+        );
+    END
+
+    -- Update the current approval record to action (Approved/Rejected)
+    UPDATE Trn_Approval_History
+    SET 
+        Approver_Status = @Action,
+        Approver_Comment = @Comment,
+        Approver_ID = @UserID,
+        Modified_By = @UserID,
+        Modified_On = GETDATE()
+    WHERE Doc_ID = @Doc_ID 
+      AND Approval_Level = @Approval_Level 
+      AND Approver_Status = 'Pending';
+
+    -- Handle approved case
+    IF @Action = 'Approved'
+    BEGIN
+        IF @Next_Level <= @Max_Level
+        BEGIN
+            -- Check if next level approval record exists before inserting
+            IF NOT EXISTS (
+                SELECT 1 FROM Trn_Approval_History
+                WHERE Doc_ID = @Doc_ID AND Approval_Level = @Next_Level
+            )
+            BEGIN
+                INSERT INTO Trn_Approval_History (
+                    Doc_ID, Plant_ID, Movement_ID, Approver_Status, Approval_Level,
+                    Approver_ID, Created_By, Created_On
+                )
+                VALUES (
+                    @Doc_ID, @Plant_ID, @Movement_ID, 'Pending', @Next_Level,
+                    NULL, -- Set Approver_ID as needed here
+                    @UserID, GETDATE()
+                );
+            END
+        END
+        ELSE
+        BEGIN
+            -- Final level reached, mark document and related records as Approved
+            UPDATE Trn_Document
+            SET Approval_Status = 'Approved'
+            WHERE Doc_ID = @Doc_ID;
+
+            UPDATE Trn_SapTransfer_Records
+            SET 
+                Approval_Status = 'Approved',
+                Modified_By = @UserID,
+                Modified_On = GETDATE()
+            WHERE Doc_ID = @Doc_ID;
+        END
+    END
+    ELSE IF @Action = 'Rejected'
+    BEGIN
+        -- Handle rejected case: update document and related records
+        UPDATE Trn_Document
+        SET Approval_Status = 'Rejected'
+        WHERE Doc_ID = @Doc_ID;
+
+        UPDATE Trn_SapTransfer_Records
+        SET 
+            Approval_Status = 'Rejected',
+            Modified_By = @UserID,
+            Modified_On = GETDATE()
+        WHERE Doc_ID = @Doc_ID;
+    END
+END
