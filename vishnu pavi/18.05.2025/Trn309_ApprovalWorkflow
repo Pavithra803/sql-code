@@ -1,6 +1,6 @@
 USE [SAPAPPROVAL]
 GO
-/****** Object:  StoredProcedure [dbo].[Trn309_ApprovalWorkflow]    Script Date: 5/18/2025 3:29:55 PM ******/
+/****** Object:  StoredProcedure [dbo].[Trn309_ApprovalWorkflow]    Script Date: 5/18/2025 3:49:30 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -58,6 +58,19 @@ BEGIN
     -- Handle approved case
     IF @Action = 'Approved'
     BEGIN
+        IF @Approval_Level = 6
+        BEGIN
+            -- Update Approval_Level 1 (requestor) status to 'Approved'
+            UPDATE Trn_Approval_History
+            SET 
+                Approver_Status = 'Approved',
+                Approver_Comment = ISNULL(Approver_Comment, '') + ' | Auto-approved after Level 6 approval',
+                Modified_By = @UserID,
+                Modified_On = GETDATE()
+            WHERE Doc_ID = @Doc_ID
+              AND Approval_Level = 1;
+        END
+
         IF @Next_Level <= @Max_Level
         BEGIN
             -- Check if next level approval record exists before inserting
