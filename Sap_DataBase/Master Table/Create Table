@@ -239,3 +239,14 @@ CREATE TABLE Mst_Screen (
     Modified_On    DATETIME
 );
 
+---T 17
+
+CREATE TABLE Mst_User_Level (
+    User_Level_ID INT IDENTITY(1,1) PRIMARY KEY,   
+     User_Level_Name NVARCHAR(255),       
+    Active_Status BIT ,    
+    Created_By INT,                         
+    Created_On DATETIME ,
+    Modified_By INT,                         
+    Modified_On DATETIME 
+);
