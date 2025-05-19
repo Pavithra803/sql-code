@@ -272,3 +272,9 @@ INSERT INTO Mst_Access (Role_ID, Screen_ID, Active_Status, Created_By, Created_O
 --T M 16
 
 Busines Table front end data insert
+
+
+----T M 17
+
+INSERT INTO Mst_User_Level (User_Level_Name, Active_Status, Created_By, Created_On)
+VALUES('L1.CREATOR/REQUESTOR',1,9,GETDATE()),('L2.DEPARTMENT HEAD',1,9,GETDATE()),('L3.FUNCTIONAL HEAD/PLANT HEAD',1,9,GETDATE()),('L1.BUSINESS HEAD',1,9,GETDATE())
