@@ -1,6 +1,6 @@
 USE [Sap_Approval]
 GO
-/****** Object:  StoredProcedure [dbo].[UploadTrn309SapTransferRecord]    Script Date: 19-05-2025 12:39:18 ******/
+/****** Object:  StoredProcedure [dbo].[UploadTrn309SapTransferRecord]    Script Date: 19-05-2025 16:10:53 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -114,7 +114,7 @@ BEGIN
     VALUES (
         (SELECT TOP 1 Plant_ID FROM Mst_Plant WHERE Plant_Code = '1210'),
         4,
-        'Movement type 309',
+        '309',
         'Active',
         @Created_By,
         GETDATE(),
@@ -180,7 +180,7 @@ BEGIN
         @Created_By,
         'Initial approval',
         'Pending',
-        2,
+        3,
         @Created_By,
         GETDATE()
     );
