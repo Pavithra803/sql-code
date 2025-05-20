@@ -1,0 +1,30 @@
+CREATE PROCEDURE CancelApproval
+    @DocId INT,
+    @UserId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Update Trn_SapTransfer_Records to 'Cancelled'
+    UPDATE Trn_SapTransfer_Records
+    SET Approval_Status = 'Cancelled',
+        Modified_By = @UserId,
+        Modified_On = GETDATE()
+    WHERE Doc_ID = @DocId;
+
+    -- Update trn_document to 'Cancelled'
+    UPDATE trn_document
+    SET Approval_Status = 'Cancelled',
+        Modified_By = @UserId,
+        Modified_On = GETDATE()
+    WHERE Doc_ID = @DocId;
+
+    -- Update Trn_Approval_History to 'Cancelled'
+    UPDATE Trn_Approval_History
+    SET Approver_Comment = 'Cancel',
+        Approver_Status = 'Cancelled',
+        Modified_By = @UserId,
+        Modified_On = GETDATE()
+    WHERE Doc_ID = @DocId;
+END
+GO
