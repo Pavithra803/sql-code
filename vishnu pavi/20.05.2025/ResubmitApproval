@@ -1,0 +1,36 @@
+
+
+CREATE PROCEDURE ResubmitApproval
+    @DocId INT,
+    @UserId INT,
+    @action NVARCHAR(20)  -- Declare with length
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @action = 'Rejected'
+    BEGIN
+        -- Update Trn_SapTransfer_Records where status is 'Rejected'
+        UPDATE Trn_SapTransfer_Records
+        SET Approval_Status = 'Pending',
+            Modified_By = @UserId,
+            Modified_On = GETDATE()
+        WHERE Doc_ID = @DocId;
+
+        -- Update trn_document where status is 'Rejected'
+        UPDATE trn_document
+        SET Approval_Status = 'Pending',
+            Modified_By = @UserId,
+            Modified_On = GETDATE()
+        WHERE Doc_ID = @DocId;
+
+        -- Update Trn_Approval_History where status is 'Rejected'
+        UPDATE Trn_Approval_History
+        SET Approver_Comment = 'Resubmit',
+            Approver_Status = 'Pending',
+            Modified_By = @UserId,
+            Modified_On = GETDATE()
+        WHERE Doc_ID = @DocId;
+    END
+END
+GO
