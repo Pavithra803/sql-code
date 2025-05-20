@@ -3,45 +3,50 @@
 
 USE [Sap_Approval]
 GO
-/****** Object:  StoredProcedure [dbo].[ApprovalViewButton]    Script Date: 20-05-2025 09:35:32 ******/
+/****** Object:  StoredProcedure [dbo].[ApprovalListView]    Script Date: 20-05-2025 11:26:14 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-ALTER PROCEDURE [dbo].[ApprovalViewButton]
-    @Doc_ID INT = NULL
+
+ALTER PROCEDURE [dbo].[ApprovalListView]
+    @Role_ID INT,
+    @Plant_ID INT
+  
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF @Doc_ID IS NULL
-    BEGIN
-        -- Set to the latest or first available Doc_ID if not supplied
-        SELECT TOP 1 @Doc_ID = Doc_ID FROM Trn_SapTransfer_Records ORDER BY Created_On ASC;
-    END
-
+ 
     SELECT 
-        t.Plant_ID,
         p.Plant_Code,
-        t.Doc_ID,
-        FORMAT(t.Created_On, 'dd-MM-yyyy') AS Date,
-        fm.Material_Code AS From_Material,
-        tm.Material_Code AS To_Material,
-        t.Qty ,
-        t.Movement_ID AS Movement_Type,
-        u.Employee_ID AS Request_By,
-        t.Created_By,
-       
-		CAST((t.Rate_PerPart - t.To_Rate_309) * t.Qty AS DECIMAL(10,2)) AS Net_Difference
+        FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date,
+        mt.Movement_Code AS Movement_Type,
+        u.User_Name AS Request_By,
+        ah.Doc_ID,
+        ah.Movement_ID,
+        ah.Approver_ID,
+        ah.Approval_Level,
+        ah.Approver_Status
+    FROM Trn_Document d
+    INNER JOIN Trn_Approval_History ah 
+        ON ah.Doc_ID = d.Doc_ID 
+        AND ah.Plant_ID = d.Plant_ID 
+        AND ah.Movement_ID = d.Movement_ID
+	 
+    LEFT JOIN Mst_Movement_Type mt ON mt.Movement_ID = d.Movement_ID
+    LEFT JOIN Mst_Plant p ON p.Plant_ID = d.Plant_ID
+    LEFT JOIN mst_user u ON u.User_ID = d.Created_By
+    WHERE ah.Plant_ID = @Plant_ID
+      AND ah.Approver_Status = 'Pending'
+      AND ah.Approval_Level = @Role_ID
 
-    FROM 
-        Trn_SapTransfer_Records AS t
-        INNER JOIN Mst_Plant AS p ON t.Plant_ID = p.Plant_ID
-        LEFT JOIN Mst_Material AS fm ON t.Material_ID = fm.Material_ID  -- From material
-        LEFT JOIN Mst_Material AS tm ON t.To_Material_ID = tm.Material_ID    -- To material
-        LEFT JOIN Mst_Movement_Type AS mt ON t.Movement_ID = mt.Movement_ID
-        LEFT JOIN Mst_User AS u ON t.Created_By = u.User_ID
-    WHERE
-        t.Doc_ID = @Doc_ID;
-END;
+	  OR ah.Plant_ID = @Plant_ID
+	  AND ah.Approver_Status IN ('Rejected','Under Query')
+      AND ah.Approval_Level =   @Role_ID
+END
+ 
+
+
+--exec ApprovalListView 2, 4
