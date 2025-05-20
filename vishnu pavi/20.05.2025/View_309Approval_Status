@@ -1,16 +1,17 @@
---view the detail from the trn approval history table
-CREATE PROCEDURE View_309Approval_Status
-    @Trn_Sap_ID INT,
-    @Approval_Status NVARCHAR(50),
-    @Comment NVARCHAR(255),
-    @Modified_By INT
+ALTER PROCEDURE View_309Approval_Status
+    @Doc_ID INT
 AS
 BEGIN
-    UPDATE dbo.Trn_SapTransfer_Records
-    SET 
-        Approval_Status = @Approval_Status,
-        Remarks = @Comment,
-        Modified_By = @Modified_By,
-        Modified_On = GETDATE()
-    WHERE Trn_Sap_ID = @Trn_Sap_ID
+    SELECT 
+        Trn_Appl_His_ID,
+        Approver_Status As Status,
+        Approver_Comment,
+        Modified_By,
+        Modified_On
+    FROM Trn_Approval_History
+    WHERE 
+        Doc_ID =  @Doc_ID
+        AND Approver_Status='Approved'
+        
+    ORDER BY Modified_On DESC
 END
