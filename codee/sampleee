@@ -1,0 +1,87 @@
+const [openParentModal, setOpenParentModal] = useState(false);  // Parent Modal
+const [openViewStatusModal, setOpenViewStatusModal] = useState(false);  // Nested Modal
+const [viewStatusData, setViewStatusData] = useState([]);
+const [selectedRow, setSelectedRow] = useState(null);  // Store selected row data
+
+// Function to handle opening the nested modal
+const handleOpenViewStatusModal = async (rowData) => {
+  setSelectedRow(rowData); // Store the selected row data
+
+  // Open the view status modal
+  setOpenViewStatusModal(true);
+
+  // Fetch approval data using Doc_ID
+  if (rowData && rowData.Doc_ID) {
+    await handleViewStatus(rowData.Doc_ID);
+  } else {
+    console.error("Doc_ID is missing in selected row");
+  }
+};
+
+// Function to fetch approval status
+const handleViewStatus = async (docId) => {
+  try {
+    // Make API request to fetch data for the selected Doc_ID
+    const response = await get309ApprovalView(docId);
+    setViewStatusData(response); // Set the data for the nested modal
+  } catch (error) {
+    console.error("❌ Error fetching approval status:", error);
+    setViewStatusData([]);  // Fallback to empty array if there is an error
+  }
+};
+
+// Function to handle closing the parent modal
+const handleCloseParentModal = () => {
+  setOpenParentModal(false);
+  setSelectedRow(null); // Reset selected row data when closing the modal
+};
+
+// Function to handle closing the nested modal
+const handleCloseViewStatusModal = () => {
+  setOpenViewStatusModal(false);
+  setSelectedRow(null); // Reset selected row data when closing the nested modal
+};
+
+// Parent Modal
+<Modal open={openParentModal} onClose={handleCloseParentModal}>
+  <Box sx={{ width: 500, bgcolor: "background.paper", borderRadius: 2, boxShadow: 24, p: 3 }}>
+    <Typography variant="h5">Parent Modal</Typography>
+    {/* Other content */}
+    <Button
+      variant="outlined"
+      color="primary"
+      onClick={() => handleOpenViewStatusModal(params.row)} // Pass params.row to open nested modal
+    >
+      View Approval Status
+    </Button>
+  </Box>
+</Modal>
+
+// Nested Modal (View Approval Status Modal)
+<Modal open={openViewStatusModal} onClose={handleCloseViewStatusModal}>
+  <Box sx={{ width: 500, bgcolor: "background.paper", borderRadius: 2, boxShadow: 24, p: 3 }}>
+    <Typography variant="h6" align="center" sx={{ mb: 2, fontWeight: "bold", color: "#1565c0" }}>
+      Approval Status Details
+    </Typography>
+    <Table size="small">
+      <TableHead>
+        <TableRow>
+          <TableCell>Date</TableCell>
+          <TableCell>Name</TableCell>
+          <TableCell>Comment</TableCell>
+          <TableCell>Status</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {viewStatusData.map((item, index) => (
+          <TableRow key={index}>
+            <TableCell>{item.Modified_On}</TableCell>
+            <TableCell>{item.Modified_By}</TableCell>
+            <TableCell>{item.Approver_Comment}</TableCell>
+            <TableCell>{item.Status}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </Box>
+</Modal>
