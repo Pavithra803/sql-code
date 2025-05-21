@@ -1,0 +1,234 @@
+
+
+
+ALTER PROCEDURE [dbo].[UploadTrn201_202_SapTransferRecord]
+AS
+BEGIN
+
+---- Step 0: Drop temporary tables if already exist
+--DROP TABLE IF EXISTS #trn201_202, #dedup_plant, #dedup_material, #dedup_sloc, #dedup_costcenter;
+--DROP TABLE IF EXISTS #t1, #t2, #dup, #InsertedRecords, #TempDocID;
+
+---- Step 1: Create Temp Table and Insert Sample Data
+--CREATE TABLE #trn201_202 (
+--    Doc_ID INT, 
+--    Plant_Code INT, 
+--    Material_Code NVARCHAR(50), 
+--    Quantity INT,
+--    SLoc_Code INT, 
+--    CostCenter_Code INT, 
+--    Reason_For_Movt NVARCHAR(255), 
+--    Movement_Code INT,
+--    Valuation_Type NVARCHAR(50), 
+--    Batch NVARCHAR(50),
+--    Rate_Unit DECIMAL(6,2), 
+--    Remark NVARCHAR(255), 
+--    User_ID INT,
+--    Approval_Status NVARCHAR(50), 
+--    SAP_Transaction_Status NVARCHAR(50),
+--    Created_By INT, 
+--    Created_On DATETIME
+--);
+
+--INSERT INTO #trn201_202 VALUES
+--(1,1200,  'MAT001', 100, 1200, 1001000,'201-0001 For Remelting', 201, 'DOMESTIC', 'B1', 10.10, 'test', 1, 'Pending', 'Pending', 1, GETDATE()),
+--(2,1150,  'MAT002', 200, 1300, 1002000,'201-0015 Qty to Scrap',  201, 'SUBCONTRACT', 'B2', 100.10, 'test', 2, 'Pending', 'Pending', 2, GETDATE()),
+--(3,1300,  'MAT003', 150, 1150, 1003000,'202-0202 201Wrong Entry',202, 'INHOUSE', 'B3', 200.10, 'test', 3, 'Pending', 'Pending', 3, GETDATE());
+
+-- Step 2: Create deduplicated temp tables from master tables
+
+
+SELECT * INTO #dedup_plant
+FROM (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY Plant_Code ORDER BY Plant_ID) AS rn
+    FROM Mst_Plant
+) AS sub
+WHERE rn = 1;
+
+SELECT * INTO #dedup_material
+FROM (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY Material_Code ORDER BY Material_ID) AS rn
+    FROM Mst_Material
+) AS sub
+WHERE rn = 1;
+
+SELECT * INTO #dedup_sloc
+FROM (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY Storage_Code ORDER BY SLoc_ID) AS rn
+    FROM Mst_Storage_Location
+) AS sub
+WHERE rn = 1;
+
+SELECT * INTO #dedup_costcenter
+FROM (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY CostCenter_Code ORDER BY CostCenter_ID) AS rn
+    FROM Mst_Cost_Center
+) AS sub
+WHERE rn = 1;
+
+-- Step 3: Enrich and Validate Input Data
+SELECT 
+    t.*,
+    p.Plant_ID,
+    m.Material_ID,
+    s.SLoc_ID,
+    cc.CostCenter_ID,
+    CASE WHEN p.Plant_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS Plant_Val,
+    CASE WHEN m.Material_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS Material_Val,
+    CASE WHEN s.SLoc_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS SLoc_Val,
+    CASE WHEN cc.CostCenter_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS CostCenter_Val
+INTO #t1
+FROM #trn201_202 AS t
+LEFT JOIN #dedup_plant p ON p.Plant_Code = t.Plant_Code
+LEFT JOIN #dedup_material m ON m.Material_Code = t.Material_Code
+LEFT JOIN #dedup_sloc s ON s.Storage_Code = t.SLoc_Code
+LEFT JOIN #dedup_costcenter cc ON cc.CostCenter_Code = t.CostCenter_Code;
+
+-- Step 4: Filter Valid Records
+SELECT * INTO #t2
+FROM #t1
+WHERE Plant_Val = 'Valid'
+  AND Material_Val = 'Valid'
+  AND SLoc_Val = 'Valid'
+  AND CostCenter_Val = 'Valid';
+
+-- Step 5: Detect Duplicates
+SELECT * INTO #dup
+FROM #t2 t
+WHERE EXISTS (
+    SELECT 1 FROM Trn_SapTransfer_Records r
+    WHERE r.Plant_ID = t.Plant_ID
+      AND r.Material_ID = t.Material_ID
+      AND r.SLoc_ID = t.SLoc_ID
+      AND r.Qty = t.Quantity
+      AND CAST(r.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+);
+
+-- Step 6: Identify New Records
+WITH CTE_NEW AS (
+    SELECT * 
+    FROM #t2 AS source
+    WHERE NOT EXISTS (
+        SELECT 1 
+        FROM Trn_SapTransfer_Records r
+        WHERE r.Plant_ID = source.Plant_ID
+          AND r.Material_ID = source.Material_ID
+          AND r.SLoc_ID = source.SLoc_ID
+          AND r.Qty = source.Quantity
+          AND CAST(r.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+    )
+)
+SELECT * INTO #InsertedRecords FROM CTE_NEW;
+
+-- Step 7: Insert into Trn_Document if new records exist
+IF EXISTS (SELECT 1 FROM #InsertedRecords)
+BEGIN
+    -- Only proceed if Movement_Code exists in Mst_Movement_Type
+    IF EXISTS (
+        SELECT 1
+        FROM #InsertedRecords ir
+        JOIN Mst_Movement_Type mt ON ir.Movement_Code = mt.Movement_ID
+    )
+    BEGIN
+        -- Insert header if not already present
+        IF NOT EXISTS (
+            SELECT 1 FROM Trn_Document
+            WHERE Movement_ID = (SELECT TOP 1 Movement_Code FROM #InsertedRecords)
+              AND Created_By = (SELECT TOP 1 Created_By FROM #InsertedRecords)
+              AND CAST(Created_On AS DATE) = CAST(GETDATE() AS DATE)
+        )
+        BEGIN
+            INSERT INTO Trn_Document (
+                Plant_ID,
+                Movement_ID,
+                Movement_Name,
+                Status,
+                Created_By,
+                Created_On,
+                Approval_Status
+            )
+            SELECT 
+                ir.Plant_ID,
+                ir.Movement_Code,
+                'Movement type ' + CAST(ir.Movement_Code AS NVARCHAR(10)),
+                'Active',
+                ir.Created_By,
+                GETDATE(),
+                'Pending'
+            FROM #InsertedRecords ir
+            JOIN Mst_Movement_Type mt ON ir.Movement_Code = mt.Movement_ID
+        END;
+
+
+		-- Drop temp table if it exists
+IF OBJECT_ID('tempdb..#TempDocID') IS NOT NULL
+    DROP TABLE #TempDocID;
+
+-- Create #TempDocID after the insertion into Trn_Document
+SELECT Doc_ID INTO #TempDocID
+FROM Trn_Document
+WHERE Movement_ID IN (SELECT DISTINCT Movement_Code FROM #InsertedRecords)
+  AND Created_By = (SELECT TOP 1 Created_By FROM #InsertedRecords)
+  AND CAST(Created_On AS DATE) = CAST(GETDATE() AS DATE);
+
+    --    -- Drop temp table if it exists
+    --    IF OBJECT_ID('tempdb..#TempDocID') IS NOT NULL
+    --        --DROP TABLE #TempDocID;
+
+    --    -- Get or reuse the Doc_ID
+    --    SELECT Doc_ID INTO #TempDocID
+    --    FROM Trn_Document
+    --    WHERE Movement_ID IN (SELECT DISTINCT Movement_Code FROM #InsertedRecords)
+    --      AND Created_By = (SELECT TOP 1 Created_By FROM #InsertedRecords)
+    --      AND CAST(Created_On AS DATE) = CAST(GETDATE() AS DATE);
+    END
+END;
+
+-- Step 8: Insert new records into detail table
+INSERT INTO Trn_SapTransfer_Records (
+    Doc_ID,
+    Plant_ID,
+    Material_ID,
+    Quantity,
+    SLoc_ID,
+    Movement_ID,
+    CostCenter_ID,
+    Valuation_Type,
+    Batch,
+    Rate_Unit,
+    Created_By,
+    Created_On
+)
+SELECT 
+    d.Doc_ID,
+    i.Plant_ID,
+    i.Material_ID,
+    i.Quantity,  -- Using Quantity instead of Qty
+    i.SLoc_ID,
+    i.Movement_Code,
+    i.CostCenter_ID,
+    i.Valuation_Type,
+    i.Batch,
+    i.Rate_Unit,
+    i.Created_By,
+    GETDATE()
+FROM #InsertedRecords i
+CROSS JOIN #TempDocID d;
+
+-- Step 9: Output Invalid Records
+SELECT *, 'Error_Records' AS Status FROM #t1
+WHERE Plant_Val = 'Invalid' 
+   OR Material_Val = 'Invalid' 
+   OR SLoc_Val = 'Invalid'
+   OR CostCenter_Val = 'Invalid';
+
+-- Step 10: Output Newly Inserted Records
+SELECT *, 'New_Records' AS Status FROM #InsertedRecords;
+
+-- Step 11: Output Duplicate Records
+SELECT *, 'Duplicate_Records' AS Status FROM #dup;
+
+-- Final Cleanup
+DROP TABLE IF EXISTS #t1, #t2, #dup, #InsertedRecords, #TempDocID, #trn201_202;
+
+end;
