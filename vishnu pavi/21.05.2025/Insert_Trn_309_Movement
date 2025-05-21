@@ -1,0 +1,19 @@
+
+ALTER PROCEDURE [dbo].[Insert_Trn_309_Movement] 
+    @PlantCode INT,  
+    @Date DATETIME,  
+    @FromMatCode NVARCHAR(255),  
+    @ToMatCode NVARCHAR(255),  
+    @FromRatePerUnit DECIMAL(18, 2),  
+    @ToRatePerUnit DECIMAL(18, 2),  
+    @ApprovalStatus NVARCHAR(50)  
+AS  
+BEGIN  
+    -- Calculate the net difference between From Rate Per Unit and To Rate Per Unit
+    DECLARE @NetDifferentPrice DECIMAL(18, 2);
+    SET @NetDifferentPrice = @ToRatePerUnit - @FromRatePerUnit;
+
+    -- Insert the provided values into Trn_309_Movement table
+    INSERT INTO Trn_309_Movement (Plant_ID, Created_On, From_Mat_ID, To_Mat_ID, From_Rate_Per_Unit, To_Rate_Per_Unit, Remark, Approval_Status)  
+    VALUES (@PlantCode, @Date, @FromMatCode, @ToMatCode, @FromRatePerUnit, @ToRatePerUnit, 'Net Difference: ' + CAST(@NetDifferentPrice AS NVARCHAR(50)), @ApprovalStatus);  
+END;
