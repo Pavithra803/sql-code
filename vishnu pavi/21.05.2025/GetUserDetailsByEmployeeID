@@ -1,0 +1,72 @@
+
+ALTER PROCEDURE [dbo].[GetUserDetailsByEmployeeID]  
+    @EmployeeID NVARCHAR(50)  
+AS  
+BEGIN  
+    SET NOCOUNT ON;  
+  
+    SELECT   
+	 c.Com_ID,  
+	 C.Com_code,        
+    C.Com_Name,    
+  
+
+        L.User_ID,  
+		 L.Employee_ID,  
+        L.User_Name, 
+		 L.User_Email, 
+        L.Plant_ID, 
+		 p.Plant_Code  ,
+		 p.Plant_Name,  
+        L.Dept_ID,  
+		  d.Dept_Name, 
+         
+        L.Active_Status,  
+       
+        
+         U.User_Level_Name,
+       
+		L.Role_ID,
+		r.Role_Name,
+		L.User_Level_ID,
+		
+		STRING_AGG(s.Screen_Code, ', ') AS Screen_Codes,       
+    MAX(a.Screen_id) AS Screen_id       
+         
+    
+  
+
+    FROM   
+        Mst_User L  
+		
+        INNER JOIN Mst_Plant p ON L.Plant_ID = p.Plant_ID 
+		INNER JOIN mst_Company C ON p.Com_ID = C.Com_ID 
+        INNER JOIN Mst_Department d ON L.Dept_ID = d.Dept_ID  
+		INNER JOIN Mst_Role r ON L.Role_ID = r.Role_ID  
+		INNER JOIN Mst_User_Level U ON L.User_Level_ID = U.User_Level_ID  
+		LEFT JOIN Mst_Access a ON a.Role_Id = L.Role_id        
+LEFT JOIN Mst_Screen s ON s.Screen_id = a.Screen_Id 
+    WHERE   
+        L.Active_Status = 1   
+        AND L.Employee_ID = @EmployeeID   AND a.Active_Status = 1        
+GROUP BY  
+  L.User_ID,
+    C.Com_code,        
+    C.Com_Name,     
+ c.Com_ID,    
+    P.Plant_Code,        
+    P.Plant_name,        
+    L.Employee_ID,        
+    L.User_Name,        
+    L.User_Email,        
+    L.Active_Status,
+	d.Dept_Name, 
+	 L.Dept_ID, 
+    r.Role_Name, 
+	L.Role_ID,
+	 U.User_Level_Name,
+   L.User_Level_ID,
+ L.Plant_ID  
+       
+
+END;  
