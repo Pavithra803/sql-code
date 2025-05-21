@@ -1,0 +1,39 @@
+
+ALTER PROCEDURE [dbo].[CancelApproval]
+    @DocId INT,
+    @UserId INT,
+    @Action NVARCHAR(50)  -- Specify length
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Check if approval history exists for the given Doc_ID
+    IF EXISTS (
+        SELECT *
+        FROM Trn_Approval_History
+        WHERE Doc_ID = @DocId
+    )
+    BEGIN
+        -- Update Trn_SapTransfer_Records to 'Cancelled'
+        UPDATE Trn_SapTransfer_Records
+        SET Approval_Status = 'Cancelled',
+            Modified_By = @UserId,
+            Modified_On = GETDATE()
+        WHERE Doc_ID = @DocId;
+
+        -- Update trn_document to 'Cancelled'
+        UPDATE trn_document
+        SET Approval_Status = 'Cancelled',
+            Modified_By = @UserId,
+            Modified_On = GETDATE()
+        WHERE Doc_ID = @DocId;
+
+        -- Update Trn_Approval_History to 'Cancelled'
+        UPDATE Trn_Approval_History
+        SET Approver_Comment = 'Cancel',
+            Approver_Status = 'Cancelled',
+            Modified_By = @UserId,
+            Modified_On = GETDATE()
+        WHERE Doc_ID = @DocId;
+    END
+END  -- <-- Closing the stored procedure
