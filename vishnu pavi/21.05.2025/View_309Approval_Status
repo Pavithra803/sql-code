@@ -1,0 +1,22 @@
+
+
+ALTER PROCEDURE [dbo].[View_309Approval_Status]
+    @Doc_ID INT
+AS
+BEGIN
+    SELECT 
+        A.Trn_Appl_His_ID,
+         A.Approver_Status As Status,
+         A.Approver_Comment,
+       U.User_Name As Modified_By ,
+        FORMAT( A.Modified_On, 'dd-MM-yyyy')AS Date,
+		  R.Role_Name AS Role
+    FROM Trn_Approval_History A
+	INNER JOIN Mst_User U ON A.Modified_By = U.User_ID 
+	INNER JOIN Mst_Role R ON A.Approver_ID = R.Role_ID 
+    WHERE 
+        Doc_ID =  @Doc_ID
+        
+        
+    ORDER BY  A.Modified_On DESC
+END
