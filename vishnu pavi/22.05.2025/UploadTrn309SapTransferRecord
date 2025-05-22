@@ -1,0 +1,201 @@
+
+ALTER PROCEDURE [dbo].[UploadTrn309SapTransferRecord]
+    @Created_By INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Docid INT;
+
+    -- Step 1: Enrich and Validate Input Data into #t1
+    SELECT 
+        t.*,
+        fm.Material_ID AS From_Material_ID,
+        tm.Material_ID AS To_Material_ID,
+        p.Plant_ID,
+        s1.SLoc_ID AS From_SLoc_ID,
+        s2.SLoc_ID AS To_SLoc_ID,
+        
+        CASE 
+            WHEN t.Plant_Code IN (SELECT Plant_Code FROM Mst_Plant WHERE Active_Status = 1) 
+            THEN 'Valid' ELSE 'Invalid' 
+        END AS Plant_Val,
+
+        CASE 
+            WHEN t.From_Material_Code IN (SELECT Material_Code FROM Mst_Material WHERE Active_Status = 1) 
+            THEN 'Valid' ELSE 'Invalid' 
+        END AS From_Mat_Val,
+
+        CASE 
+            WHEN t.To_Material_Code IN (SELECT Material_Code FROM Mst_Material WHERE Active_Status = 1) 
+            THEN 'Valid' ELSE 'Invalid' 
+        END AS To_Mat_Val,
+
+        CASE 
+            WHEN t.From_Storage_Code IN (SELECT Storage_Code FROM Mst_Storage_Location WHERE Active_Status = 1) 
+            THEN 'Valid' ELSE 'Invalid' 
+        END AS From_SLoc_Val,
+
+        CASE 
+            WHEN t.To_Storage_Code IN (SELECT Storage_Code FROM Mst_Storage_Location WHERE Active_Status = 1) 
+            THEN 'Valid' ELSE 'Invalid' 
+        END AS To_SLoc_Val,
+
+        ROW_NUMBER() OVER (
+            PARTITION BY t.Plant_Code, t.From_Material_Code, t.From_Storage_Code 
+            ORDER BY t.Plant_Code
+        ) AS RowNum
+
+    INTO #t1
+    FROM #transation AS t
+    LEFT JOIN Mst_Plant p ON p.Plant_Code = t.Plant_Code
+    LEFT JOIN Mst_Material fm ON fm.Material_Code = t.From_Material_Code
+    LEFT JOIN Mst_Material tm ON tm.Material_Code = t.To_Material_Code
+    LEFT JOIN Mst_Storage_Location s1 ON s1.Storage_Code = t.From_Storage_Code
+    LEFT JOIN Mst_Storage_Location s2 ON s2.Storage_Code = t.To_Storage_Code;
+
+    -- Step 2: Keep only Valid and Unique (non-repeated) rows
+    SELECT * INTO #t2
+    FROM #t1
+    WHERE Plant_Val = 'Valid'
+      AND From_Mat_Val = 'Valid'
+      AND To_Mat_Val = 'Valid'
+      AND From_SLoc_Val = 'Valid'
+      AND To_SLoc_Val = 'Valid'
+      AND RowNum = 1;
+
+    -- Step 3: Detect Duplicates from Trn_SapTransfer_Records
+    SELECT * INTO #dup
+    FROM #t2 t
+    WHERE EXISTS (
+        SELECT 1
+        FROM Trn_SapTransfer_Records r
+        WHERE r.Plant_ID = t.Plant_ID
+          AND r.Material_ID = t.From_Material_ID
+          AND r.To_Material_ID = t.To_Material_ID
+          AND r.SLoc_ID = t.From_SLoc_ID
+          AND r.To_SLoc_ID = t.To_SLoc_ID
+          AND CAST(r.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+    );
+
+    -- Step 4: Filter New Records Only
+    SELECT * INTO #InsertedRecords
+    FROM #t2 AS source
+    WHERE NOT EXISTS (
+        SELECT 1 
+        FROM Trn_SapTransfer_Records r
+        WHERE r.Plant_ID = source.Plant_ID
+          AND r.Material_ID = source.From_Material_ID
+          AND r.To_Material_ID = source.To_Material_ID
+          AND r.SLoc_ID = source.From_SLoc_ID
+          AND r.To_SLoc_ID = source.To_SLoc_ID
+          AND CAST(r.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+    );
+
+-- Step 5: Proceed only if there are NEW records (not duplicates)
+IF EXISTS (SELECT * FROM #InsertedRecords)
+BEGIN
+    -- Insert a new document
+    INSERT INTO Trn_Document (
+        Plant_ID,
+        Movement_ID,
+        Movement_Name,
+        Status,
+        Created_By,
+        Created_On,
+        Approval_Status
+    )
+    VALUES (
+        (SELECT  Plant_ID FROM Mst_Plant WHERE Plant_Code = '1210'),
+        4,
+        '309',
+        'Active',
+        @Created_By,
+        GETDATE(),
+        'Pending'
+    );
+
+    SET @Docid = SCOPE_IDENTITY();
+
+    -- Step 6: Insert only new records
+    INSERT INTO Trn_SapTransfer_Records (
+        Doc_ID,
+        Movement_ID,
+        Plant_ID,
+        Material_ID,
+        Qty,
+        SLoc_ID,
+        Valuation_Type,
+        Batch,
+        Rate_PerPart,
+        To_Material_ID,
+        To_SLoc_ID,
+        To_Rate_309,
+        Remarks,
+        Approval_Status,
+        Created_By,
+        Created_On
+    )
+    SELECT 
+        @Docid,
+        4,
+        Plant_ID,
+        From_Material_ID,
+        From_Qty,
+        From_SLoc_ID,
+        From_Valuation_Type,
+        From_Batch,
+        CAST(From_Rate_Per_Unit AS DECIMAL(6,2)),
+        To_Material_ID,
+        To_SLoc_ID,
+        CAST(To_Rate_Per_Unit AS DECIMAL(6,2)),
+        Remark,
+        'Pending',
+        @Created_By,
+        GETDATE()
+    FROM #InsertedRecords;
+
+    -- Step 7: Insert into Approval History
+    INSERT INTO Trn_Approval_History (
+        Doc_ID,
+        Plant_ID,
+        Movement_ID,
+        Approver_ID,
+        Approver_Comment,
+        Approver_Status,
+        Approval_level,
+        Created_By,
+        Created_On
+    )
+    VALUES (
+        @Docid, 
+        (SELECT Plant_ID FROM Trn_Document WHERE Doc_ID = @Docid), 
+        4,
+        @Created_By,
+        'Initial approval',
+        'Pending',
+        3,
+        @Created_By,
+        GETDATE()
+    );
+END
+
+    -- Step 8: Output Error Records
+    SELECT *, 'Error_Records' AS Status
+    FROM #t1
+    WHERE Plant_Val = 'Invalid'
+       OR From_Mat_Val = 'Invalid'
+       OR To_Mat_Val = 'Invalid'
+       OR From_SLoc_Val = 'Invalid'
+       OR To_SLoc_Val = 'Invalid';
+
+    -- Step 9: Output New Records
+    SELECT *, 'New_Records' AS Status FROM #InsertedRecords;
+
+    -- Step 10: Output Duplicate Records
+    SELECT *, 'Duplicate_Records' AS Status FROM #dup;
+
+    -- Step 11: Cleanup
+    DROP TABLE IF EXISTS #t1, #t2, #dup, #InsertedRecords, #transation;
+
+END;
