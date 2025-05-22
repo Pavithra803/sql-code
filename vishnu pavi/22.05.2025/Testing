@@ -1,0 +1,76 @@
+
+
+
+select * from mst_plant
+
+select * from Mst_Material
+
+select * from Mst_Material_Type
+
+select * from Mst_Storage_Location
+
+select * from Mst_Movement_Type
+
+select * from Mst_Cost_Center
+
+
+
+sp_helptext 'UploadTrn201_202_SapTransferRecord'
+
+
+-----------------
+ select * from trn_document
+
+  
+ select * from trn_approval_History
+
+  
+ select * from trn_sapTransfer_Records
+
+ 
+select * from Mst_Storage_Location
+
+ ----------------
+ truncate table trn_document
+
+  
+ truncate table trn_approval_History
+
+  
+ truncate table trn_sapTransfer_Records
+
+
+ 
+
+
+---- Step 0: Drop temporary tables if already exist
+--DROP TABLE IF EXISTS #trn201_202, #dedup_plant, #dedup_material, #dedup_sloc, #dedup_costcenter;
+--DROP TABLE IF EXISTS #t1, #t2, #dup, #InsertedRecords, #TempDocID;
+
+-- Step 1: Create Temp Table and Insert Sample Data
+--CREATE TABLE #trn201_202 (
+--    Doc_ID INT, 
+--    Plant_Code INT, 
+--    Material_Code NVARCHAR(50), 
+--    Quantity INT,
+--    SLoc_Code INT, 
+--    CostCenter_Code INT, 
+--    Reason_For_Movt NVARCHAR(255), 
+--    Movement_Code INT,
+--    Valuation_Type NVARCHAR(50), 
+--    Batch NVARCHAR(50),
+--    Rate_Unit DECIMAL(6,2), 
+--    Remark NVARCHAR(255), 
+--    User_ID INT,
+--    Approval_Status NVARCHAR(50), 
+--    SAP_Transaction_Status NVARCHAR(50),
+--    Created_By INT, 
+--    Created_On DATETIME
+--);
+
+--INSERT INTO #trn201_202 VALUES
+--(1,1200,  'MAT001', 100, 1200, 1001000,'201-0001 For Remelting', 201, 'DOMESTIC', 'B1', 10.10, 'test', 1, 'Pending', 'Pending', 1, GETDATE()),
+--(2,1150,  'MAT002', 200, 1300, 1002000,'201-0015 Qty to Scrap',  201, 'SUBCONTRACT', 'B2', 100.10, 'test', 2, 'Pending', 'Pending', 2, GETDATE()),
+--(3,1300,  'MAT003', 150, 1150, 1003000,'202-0202 201Wrong Entry',202, 'INHOUSE', 'B3', 200.10, 'test', 3, 'Pending', 'Pending', 3, GETDATE());
+
+-- Step 2: Create deduplicated temp tables from master tables  --select * from #trn201_202
