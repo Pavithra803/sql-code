@@ -131,6 +131,13 @@ VALUES(4,16847,'Raj',1,'raj@gmail.com',1,1,123,1,1,getdate()),
 (4,'C102623','Vishnu',1,'vishnu@gmail.com',7,6,123,1,1,getdate()),
 (4,'16877','swarna',1,'swarna@gmail.com',9,6,123,1,1,getdate());
 
+
+(5,'C101246','Aswin.A',1,'Aswin@gmail.com',1,1,123,1,1,getdate()),
+(5,'C100024','S.V.Karthi',1,'karthir@gmail.com',3,2,123,1,1,getdate()),
+(5,'C100025','Sutha',1,'Sutha@gmail.com',4,3,123,1,1,getdate()),
+(5,'C100026','Dhilli',1,'Dhillir@gmail.com',5,4,123,1,1,getdate()),
+(5,'C100027','Sanjai',1,'Sanjai@gmail.com',6,5,123,1,1,getdate()),
+(5,'C101234','Hari',1,'Hari@gmail.com',7,6,123,1,1,getdate());
 SELECT * FROM Mst_User;
 
 --T M 10
