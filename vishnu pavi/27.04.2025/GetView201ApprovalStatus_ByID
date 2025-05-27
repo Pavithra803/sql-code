@@ -1,0 +1,16 @@
+
+ CREATE PROCEDURE [dbo].[GetView201ApprovalStatus_ByID]
+    @Trn_Sap_ID INT
+AS
+BEGIN
+    SELECT 
+        Trn_Sap_ID,
+        Approval_Status,
+        Approval_Status AS Comment,
+        Modified_By AS Approver_ID,
+        FORMAT(Modified_On, 'dd-MM-yyyy') AS Action_Date
+    FROM dbo.Trn_SapTransfer_Records
+    WHERE Trn_Sap_ID = @Trn_Sap_ID
+      AND Movement_ID = 202
+      AND Approval_Status IN ('Rejected', 'Under Query');
+END
