@@ -1,0 +1,12 @@
+
+
+select*from Trn_Approval_History
+select*from Trn_Document
+select*from Trn_SapTransfer_Records
+
+
+----------------------------------------
+
+Truncate table Trn_Approval_History
+Truncate table Trn_Document
+Truncate table Trn_SapTransfer_Records
