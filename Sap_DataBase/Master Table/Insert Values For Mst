@@ -239,7 +239,9 @@ VALUES
 ('MVT_LIST_ITEM', 'MVT_LIST_ITEM', 'Masters', '1', '1', GETDATE()),
 ('CostCenter', 'CostCenter', 'Masters', '1', '1', GETDATE()),
 ('Approval_309', 'Approval_309', 'Approval', '1', '1', GETDATE()),
-(('dashboard', 'dashboard', 'Dashboard', 1, 1, GETDATE())
+(('dashboard', 'dashboard', 'Dashboard', 1, 1, GETDATE()),
+('Approval_201', 'Approval_201', 'Approval', '1', '1', GETDATE()),
+('Approval_202', 'Approval_202', 'Approval', '1', '1', GETDATE())
 ;
 
 --T M 15
