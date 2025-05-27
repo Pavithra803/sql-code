@@ -1,0 +1,173 @@
+
+
+CREATE PROCEDURE [dbo].[UploadTrn202SapTransferRecord]  
+    @Created_By INT  
+AS  
+BEGIN  
+    SET NOCOUNT ON;  
+  
+    DECLARE @Docid INT;  
+  
+    -- Step 1: Enrich and Validate Input Data into #t1  
+    SELECT   
+        t.*,  
+        p.Plant_ID,  
+        m.Material_ID,  
+        s.SLoc_ID,  
+        cc.CostCenter_ID,  
+  
+        CASE WHEN p.Plant_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS Plant_Val,  
+        CASE WHEN m.Material_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS Material_Val,  
+        CASE WHEN s.SLoc_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS SLoc_Val,  
+        CASE WHEN cc.CostCenter_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS CostCenter_Val,  
+  
+        ROW_NUMBER() OVER (  
+            PARTITION BY t.Plant_Code, t.Material_Code, t.SLoc_Code, t.Movement_Code  
+            ORDER BY t.Plant_Code  
+        ) AS RowNum  
+  
+    INTO #t1  
+    FROM #trn202 AS t  
+    LEFT JOIN Mst_Plant p ON p.Plant_Code = t.Plant_Code  
+    LEFT JOIN Mst_Material m ON m.Material_Code = t.Material_Code  
+    LEFT JOIN Mst_Storage_Location s ON s.Storage_Code = t.SLoc_Code  
+    LEFT JOIN Mst_Cost_Center cc ON cc.CostCenter_Code = t.CostCenter_Code;  
+  
+    -- Step 2: Filter valid and unique rows  
+    SELECT * INTO #t2  
+    FROM #t1  
+    WHERE Plant_Val = 'Valid'  
+      AND Material_Val = 'Valid'  
+      AND SLoc_Val = 'Valid'  
+      AND CostCenter_Val = 'Valid'  
+      AND RowNum = 1;  
+  
+    -- Step 3: Detect Duplicates  
+    SELECT * INTO #dup  
+    FROM #t2 t  
+    WHERE EXISTS (  
+        SELECT 1 FROM Trn_SapTransfer_Records r  
+        WHERE r.Plant_ID = t.Plant_ID  
+          AND r.Material_ID = t.Material_ID  
+          AND r.SLoc_ID = t.SLoc_ID  
+          AND r.Qty = t.Quantity  
+          AND r.Movement_ID = t.Movement_Code  
+          AND CAST(r.Created_On AS DATE) = CAST(GETDATE() AS DATE)  
+    );  
+  
+    -- Step 4: Identify new records  
+    SELECT * INTO #InsertedRecords  
+    FROM #t2 AS source  
+    WHERE NOT EXISTS (  
+        SELECT 1   
+        FROM Trn_SapTransfer_Records r  
+        WHERE r.Plant_ID = source.Plant_ID  
+          AND r.Material_ID = source.Material_ID  
+          AND r.SLoc_ID = source.SLoc_ID  
+          AND r.Qty = source.Quantity  
+          AND r.Movement_ID = source.Movement_Code  
+          AND CAST(r.Created_On AS DATE) = CAST(GETDATE() AS DATE)  
+    );  
+  
+    -- Step 5: Proceed only if new records exist  
+    IF EXISTS (SELECT * FROM #InsertedRecords)  
+    BEGIN  
+        -- Insert new document header  
+        INSERT INTO Trn_Document (  
+            Plant_ID,  
+            Movement_ID,  
+            Movement_Name,  
+            Status,  
+            Created_By,  
+            Created_On,  
+            Approval_Status  
+        )  
+        SELECT   
+            Plant_ID,  
+            Movement_Code,  
+            '202',  
+            'Active',  
+            @Created_By,  
+            GETDATE(),  
+            'Pending'  
+        FROM #InsertedRecords;  
+  
+        SET @Docid = SCOPE_IDENTITY();  
+  
+        -- Insert detail records  
+        INSERT INTO Trn_SapTransfer_Records (  
+            Doc_ID,  
+            Plant_ID,  
+            Material_ID,  
+            Qty,  
+            SLoc_ID,  
+            Movement_ID,  
+            CostCenter_ID,  
+            Valuation_Type,  
+            Batch,  
+            Rate_PerPart,  
+            Remarks, ---As Reason_for_Movt,  
+            Approval_Status,  
+            Created_By,  
+            Created_On  
+        )  
+        SELECT   
+            @Docid,  
+            Plant_ID,  
+            Material_ID,  
+            Quantity,  
+            SLoc_ID,  
+            Movement_Code,  
+            CostCenter_ID,  
+            Valuation_Type,  
+            Batch,  
+            Rate_Per_Unit,  
+            Remarks As Reason_for_Movt,  
+            'Pending',  
+            @Created_By,  
+            GETDATE()  
+        FROM #InsertedRecords;  
+  
+        -- Insert into approval history  
+        INSERT INTO Trn_Approval_History (  
+            Doc_ID,  
+            Plant_ID,  
+            Movement_ID,  
+            Approver_ID,  
+            Approver_Comment,  
+            Approver_Status,  
+            Approval_level,  
+            Created_By,  
+            Created_On  
+        )  
+        VALUES (  
+            @Docid,  
+            (SELECT Plant_ID FROM Trn_Document WHERE Doc_ID = @Docid),  
+            (SELECT Movement_ID FROM Trn_Document WHERE Doc_ID = @Docid),  
+            @Created_By,  
+            'Initial approval',  
+            'Pending',  
+            3,  
+            @Created_By,  
+            GETDATE()  
+        );  
+    END  
+  
+    -- Step 6: Output Error Records  
+    SELECT *, 'Error_Records' AS Status  
+    FROM #t1  
+    WHERE Plant_Val = 'Invalid'  
+       OR Material_Val = 'Invalid'  
+       OR SLoc_Val = 'Invalid'  
+       OR CostCenter_Val = 'Invalid';  
+  
+    -- Step 7: Output New Records  
+    SELECT *, 'New_Records' AS Status FROM #InsertedRecords;  
+  
+    -- Step 8: Output Duplicate Records  
+    SELECT *, 'Duplicate_Records' AS Status FROM #dup;  
+  
+    -- Step 9: Cleanup  
+    DROP TABLE IF EXISTS #t1, #t2, #dup, #InsertedRecords, #trn201_202;  
+  
+END;
