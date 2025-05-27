@@ -1,0 +1,95 @@
+
+
+ ALTER  PROCEDURE [dbo].[Trn201ApprovalWorkflow]
+    @Doc_ID INT,
+    @Action NVARCHAR(50),
+    @Comment NVARCHAR(255),
+    @Approval_Level INT,
+    @UserID NVARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Approve INT = 1;
+    DECLARE @approve1 INT = @Approve + @Approval_Level;
+    DECLARE @Created_By INT;
+
+    IF EXISTS (SELECT * FROM Trn_Document WHERE Doc_ID = @Doc_ID)
+    BEGIN
+        DECLARE @Plant_ID INT, @Movement_ID INT;
+
+        SELECT 
+            @Plant_ID = Plant_ID, 
+            @Movement_ID = Movement_ID,
+            @Created_By = Created_By
+        FROM Trn_Document
+        WHERE Doc_ID = @Doc_ID;
+
+        -- ✅ Only proceed if movement type is 201 or 202
+        IF @Movement_ID = 201
+        BEGIN
+            IF EXISTS (
+                SELECT *
+                FROM Trn_Approval_History
+                WHERE Doc_ID = @Doc_ID AND Approver_Status = 'Pending'
+            )
+            BEGIN
+                -- Update current approval record
+                IF @Action IN ('Approved', 'Rejected', 'Under Query')
+                BEGIN
+                    UPDATE Trn_Approval_History
+                    SET Approver_Status = @Action,
+                        Approver_Comment = @Comment,
+                        Approver_ID = @UserID,
+                        Modified_By = @UserID,
+                        Modified_On = GETDATE()
+                    WHERE Doc_ID = @Doc_ID
+                      AND Approver_Status = 'Pending';
+                END
+
+                -- If Approved, check for next level or close
+                IF @Action = 'Approved'
+                BEGIN
+                    DECLARE @Max_Level INT = 7;
+
+                    IF @Approval_Level < @Max_Level
+                    BEGIN
+                        INSERT INTO Trn_Approval_History (
+                            Doc_ID, Plant_ID, Movement_ID, Approver_Status, Approval_Level,
+                            Created_By, Created_On
+                        )
+                        VALUES (
+                            @Doc_ID, @Plant_ID, @Movement_ID, 'Pending', @approve1,
+                            @Created_By, GETDATE()
+                        );
+                    END
+                    ELSE
+                    BEGIN
+                        -- Final approval
+                        UPDATE Trn_Document
+                        SET Approval_Status = 'Closed'
+                        WHERE Doc_ID = @Doc_ID;
+
+                        UPDATE Trn_SapTransfer_Records
+                        SET Approval_Status = 'Closed',
+                            Modified_By = @UserID,
+                            Modified_On = GETDATE()
+                        WHERE Doc_ID = @Doc_ID;
+                    END
+                END
+                ELSE IF @Action IN ('Rejected', 'Under Query')
+                BEGIN
+                    UPDATE Trn_Document
+                    SET Approval_Status = @Action
+                    WHERE Doc_ID = @Doc_ID;
+
+                    UPDATE Trn_SapTransfer_Records
+                    SET Approval_Status = @Action,
+                        Modified_By = @UserID,
+                        Modified_On = GETDATE()
+                    WHERE Doc_ID = @Doc_ID;
+                END
+            END
+        END
+    END
+END
