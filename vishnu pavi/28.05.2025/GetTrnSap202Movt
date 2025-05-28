@@ -1,4 +1,4 @@
-  stock 202 pg show the data
+
 ALTER PROCEDURE [dbo].[GetTrnSap202Movt]
     @Created INT
 AS
@@ -30,5 +30,6 @@ BEGIN
     LEFT JOIN Mst_Movement_Type MT ON T.Movement_ID = MT.Movement_ID
     LEFT JOIN Mst_Cost_Center CC ON T.CostCenter_ID = CC.CostCenter_ID
     LEFT JOIN Trn_Document D ON T.Doc_ID = D.Doc_ID
-    WHERE T.Created_By = @Created;
+    WHERE T.Created_By = @Created
+	AND T.Movement_ID = 202
 END;
