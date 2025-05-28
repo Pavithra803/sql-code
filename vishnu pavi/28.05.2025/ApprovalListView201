@@ -1,9 +1,10 @@
 
 
 
- create PROCEDURE [dbo].[ApprovalListView201]
+ ALTER PROCEDURE [dbo].[ApprovalListView201]
     @Role_ID INT,
     @Plant_ID INT
+	
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -29,8 +30,9 @@ BEGIN
     WHERE 
         d.Movement_ID = 201 AND
         (
-            (ah.Plant_ID = @Plant_ID AND ah.Approver_Status = 'Pending' AND ah.Approval_Level = @Role_ID)
+            (ah.Plant_ID = @Plant_ID AND ah.Approver_Status = 'Pending' AND ah.Approval_Level = @Role_ID )
             OR
-            (ah.Plant_ID = @Plant_ID AND ah.Approver_Status IN ('Rejected', 'Under Query') AND ah.Approval_Level = 1)
+            (ah.Plant_ID = @Plant_ID AND ah.Approver_Status IN ('Rejected', 'Under Query') AND ah.Approval_Level = 1 )
         )
 END
+
