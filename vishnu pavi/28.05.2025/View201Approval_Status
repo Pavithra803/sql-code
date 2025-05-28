@@ -1,6 +1,4 @@
-Approval pg viw in action bytton view approval status
-
- ALTER PROCEDURE [dbo].[View201Approval_Status]
+ALTER PROCEDURE [dbo].[View201Approval_Status]
     @Doc_ID INT
 AS
 BEGIN
@@ -8,16 +6,17 @@ BEGIN
         A.Trn_Appl_His_ID,
         A.Approver_Status AS Status,
         A.Approver_Comment,
+        A.Approver_ID,
         U.User_Name AS Modified_By,
         FORMAT(A.Modified_On, 'dd-MM-yyyy') AS Date,
         R.Role_Name AS Role
     FROM Trn_Approval_History A
-    LEFT JOIN Mst_User U ON A.Modified_By = U.User_ID 
-    LEFT JOIN Mst_Role R ON A.Approver_ID = R.Role_ID 
+    LEFT JOIN Mst_User U ON A.Approver_ID = U.User_ID 
+    LEFT JOIN Mst_Role R ON U.Role_ID = R.Role_ID -- Join role using User's Role_ID
     INNER JOIN Trn_Document D ON A.Doc_ID = D.Doc_ID
     WHERE 
-        A.Doc_ID = @Doc_ID
+        A.Doc_ID = @Doc_ID -- Use parameter here, not hardcoded 1
         AND D.Movement_ID = 201 
+        AND A.Approver_Status = 'Approved'
     ORDER BY A.Modified_On DESC
 END
-
