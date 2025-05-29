@@ -250,3 +250,16 @@ CREATE TABLE Mst_User_Level (
     Modified_By INT,                         
     Modified_On DATETIME 
 );
+
+
+---T 18
+
+CREATE TABLE Mst_Valuation_Type (
+    Valuation_ID INT IDENTITY(1,1) PRIMARY KEY,
+    Valuation_Name VARCHAR(255),
+    Created_By VARCHAR(100),
+    Created_On DATETIME,
+    Modified_By VARCHAR(100),
+    Modified_On DATETIME
+);
+
