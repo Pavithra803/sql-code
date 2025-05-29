@@ -122,8 +122,10 @@ SELECT * FROM Mst_Role;
 --T M 9
 
 
-INSERT INTO Mst_User (Plant_ID, Employee_ID, User_Name, Dept_ID, User_Email, Role_ID, User_Level,Password, Active_Status, Created_By, Created_On)
-VALUES(4,16847,'Raj',1,'raj@gmail.com',1,1,123,1,1,getdate()),
+INSERT INTO Mst_User (Plant_ID, Employee_ID, User_Name, Dept_ID, User_Email, Role_ID, User_Level_ID, Password, Active_Status, Created_By, Created_On)
+VALUES
+
+(4,16847,'Raj',1,'raj@gmail.com',1,1,123,1,1,getdate()),
 (4,02344,'kumar',1,'kumar@gmail.com',3,2,123,1,1,getdate()),
 (4,15432,'karthi',1,'karthi@gmail.com',4,3,123,1,1,getdate()),
 (4,16221,'Azar',1,'Azar@gmail.com',5,4,123,1,1,getdate()),
@@ -139,13 +141,17 @@ VALUES(4,16847,'Raj',1,'raj@gmail.com',1,1,123,1,1,getdate()),
 (5,'C100027','Sanjai',1,'Sanjai@gmail.com',6,5,123,1,1,getdate()),
 (5,'C101234','Hari',1,'Hari@gmail.com',7,6,123,1,1,getdate());
 
-(6, 1020201, 'Arun', 1, 'arun@company.com', 1, 1, 123, 1, 1, GETDATE()),
-(6, 1020202, 'Kannan', 1, 'kannan@company.com', 2, 2, 123, 1, 1, GETDATE()),
-(6, 1020203, 'Murugan', 1, 'murugan@company.com', 3, 3, 123, 1, 1, GETDATE()),
-(6, 1020204, 'Suresh', 1, 'suresh@company.com', 4, 4, 123, 1, 1, GETDATE()),
-(6, 1020205, 'Prabhu', 1, 'prabhu@company.com', 5, 5, 123, 1, 1, GETDATE()),
-(6, 1020206, 'Vignesh', 1, 'vignesh@company.com', 6, 6, 123, 1, 1, GETDATE()),
-(6, 1020207, 'Dinesh', 1, 'dinesh@company.com', 7, 7, 123, 1, 1, GETDATE());
+
+(6, 1020201, 'A.Arun', 1, 'arun@company.com', 1, 1, 123, 1, 1, GETDATE()),
+(6, 1020202, 'B.Kannan', 1, 'kannan@company.com', 2, 2, 123, 1, 1, GETDATE()),
+(6, 1020203, 'C.Murugan', 1, 'murugan@company.com', 3, 2, 123, 1, 1, GETDATE()),
+(6, 1020204, 'E.Suresh', 1, 'suresh@company.com', 4, 2, 123, 1, 1, GETDATE()),
+(6, 1020205, 'F.Prabhu', 1, 'prabhu@company.com', 5, 3, 123, 1, 1, GETDATE()),
+(6, 1020206, 'G.Vignesh', 1, 'vignesh@company.com', 6, 3, 123, 1, 1, GETDATE()),
+(6, 1020207, 'H.Dinesh', 1, 'dinesh@company.com', 7, 3, 123, 1, 1, GETDATE()),
+(6, 1020208, 'I.Saravanan', 1, 'saravanan@company.com', 8, 4, 123, 1, 1, GETDATE()),
+(6, 1020209, 'J.Babu',    1, 'babu@company.com',    9, 3, 123, 1, 1, GETDATE());
+
 SELECT * FROM Mst_User;
 
 --T M 10
