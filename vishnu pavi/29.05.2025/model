@@ -1,0 +1,92 @@
+<Modal open={openEditModal} onClose={() => setOpenEditModal(false)}>
+  <Box sx={{ padding: 4, width: 300, margin: 'auto', marginTop: '10%', bgcolor: 'background.paper', borderRadius: 2 }}>
+    <h2>Edit Document</h2>
+    <Button onClick={() => handleOpenViewStatusModal(selectedRow)}>
+      View Approval Status
+    </Button>
+  </Box> 
+</Modal>
+
+
+{/*🟦 Resubmit Confirmation Modal*/}
+<Modal open={openResubmitModal} onClose={() => setOpenResubmitModal(false)}>
+  <Box sx={{ padding: 4, width: 300, margin: 'auto', marginTop: '10%', bgcolor: 'background.paper', borderRadius: 2 }}>
+    <Typography variant="h6">Confirm Resubmission</Typography>
+    <Typography>Are you sure you want to resubmit this document?</Typography>
+    <Button onClick={handleResubmit}>Confirm</Button>
+    <Button onClick={() => setOpenResubmitModal(false)}>Cancel</Button>
+  </Box>
+</Modal>
+
+
+
+{/*🟥 Cancel Confirmation Modal*/}
+
+<Modal open={openCancelModal} onClose={() => setOpenCancelModal(false)}>
+  <Box sx={{ padding: 4, width: 300, margin: 'auto', marginTop: '10%', bgcolor: 'background.paper', borderRadius: 2 }}>
+    <Typography variant="h6">Confirm Cancellation</Typography>
+    <Typography>Are you sure you want to cancel this document?</Typography>
+    <Button onClick={handleCancel}>Confirm</Button>
+    <Button onClick={() => setOpenCancelModal(false)}>Back</Button>
+  </Box>
+</Modal>
+
+
+<Modal open={openViewStatusModal} onClose={() => setOpenViewStatusModal(false)}>
+  <Box sx={{ padding: 4, width: 600, margin: 'auto', marginTop: '10%', bgcolor: 'background.paper', borderRadius: 2 }}>
+    <Typography variant="h6" sx={{ mb: 2 }}>Approval Status</Typography>
+
+    {viewStatusData?.length > 0 ? (
+      <>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Date</TableCell>
+              <TableCell>Role</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Comment</TableCell>
+              <TableCell>Status</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {viewStatusData.map((row, idx) => (
+              <TableRow key={idx}>
+                <TableCell>{row.Date}</TableCell>
+                <TableCell>{row.Role}</TableCell>
+                <TableCell>{row.Modified_By}</TableCell>
+                <TableCell>{row.Approver_Comment || "—"}</TableCell>
+                <TableCell>{row.Status}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+
+        {(selectedRow?.Approval_Status?.toLowerCase() === "rejected" || selectedRow?.Approval_Status?.toLowerCase() === "under query") && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, marginTop: 3 }}>
+            <Button
+              variant="contained"
+              onClick={() => {
+                setOpenViewStatusModal(false);
+                setOpenResubmitModal(true);
+              }}
+            >
+             Resubmit Request
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => {
+                setOpenViewStatusModal(false);
+                setOpenCancelModal(true);
+              }}
+            >
+              Request Cancel
+            </Button>
+          </Box>
+        )}
+      </>
+    ) : (
+      <Typography>No approval data found.</Typography>
+    )}
+  </Box>
+</Modal>
