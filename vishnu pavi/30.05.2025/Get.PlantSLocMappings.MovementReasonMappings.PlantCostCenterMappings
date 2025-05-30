@@ -1,0 +1,32 @@
+
+
+CREATE PROCEDURE GetPlantSLocMappings
+AS
+BEGIN
+    SELECT p.Plant_Code, s.Storage_Code
+    FROM Mst_Storage_Location s
+    JOIN Mst_Plant p ON p.Plant_ID = s.Plant_ID
+    WHERE s.Active_Status = 1 AND p.Active_Status = 1
+END
+
+-----------------------
+CREATE OR ALTER PROCEDURE GetMovementReasonMappings
+AS
+BEGIN
+    SELECT 
+        Movement_ID, 
+        Movement_List_Code + ' - ' + Movement_List_Name AS Reason_For_Movt
+    FROM Mst_Movement_List_Item
+END
+
+
+--------------------------
+
+CREATE PROCEDURE GetPlantCostCenterMappings
+AS
+BEGIN
+    SELECT p.Plant_Code, c.CostCenter_Code
+    FROM Mst_Cost_Center c
+    JOIN Mst_Plant p ON p.Plant_ID = c.Plant_ID
+    WHERE c.Active_Status = 1 AND p.Active_Status = 1
+END
