@@ -1,0 +1,45 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[GetExistingTrn201Movt]    Script Date: 30-05-2025 16:55:56 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+ALTER PROCEDURE [dbo].[GetExistingTrn201Movt]
+    @Doc_ID VARCHAR(50) = NULL  -- Assuming Doc_ID is varchar; adjust type accordingly
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+ SELECT 
+        T.Trn_Sap_ID,
+       P.Plant_Code,
+        T.Doc_ID,
+        CONVERT(VARCHAR(10), T.Created_On, 103) AS Date,
+       M.Material_Code,
+        M.Description AS Material_Description,
+        T.Qty,
+       S.Storage_Code AS SLoc_Code,
+        T.Valuation_Type,
+        T.Batch,
+        T.Rate_PerPart,
+        MT.Movement_Code AS Movement_Type,
+        CC.CostCenter_Code,
+        T.Remarks,
+       D.Approval_Status,
+       D.Status AS SAP_Transaction_Status,
+        U.User_Name AS Created_By
+    FROM Trn_SapTransfer_Records T
+    INNER JOIN Trn_Document D ON T.Doc_ID = D.Doc_ID
+    INNER JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID
+    INNER JOIN Mst_Material M ON T.Material_ID = M.Material_ID
+    INNER JOIN Mst_Storage_Location S ON T.SLoc_ID = S.SLoc_ID
+   INNER JOIN Mst_Movement_Type MT ON T.Movement_ID = MT.Movement_ID
+    INNER JOIN Mst_Cost_Center CC ON T.CostCenter_ID = CC.CostCenter_ID
+    LEFT JOIN Mst_User U ON T.Created_By = U.User_ID
+    WHERE MT.Movement_ID = 2
+      AND (@Doc_ID IS NULL OR T.Doc_ID = @Doc_ID)
+    ORDER BY T.Created_On DESC;
+END;
