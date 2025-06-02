@@ -1,0 +1,22 @@
+
+
+-- Create temp table #trn201 with relevant columns
+--CREATE TABLE #trn201 (
+--    Plant_Code NVARCHAR(50),
+--    Material_Code NVARCHAR(50),
+--    Quantity INT,
+--    SLoc_Code NVARCHAR(50),
+--    Reason_For_Movt NVARCHAR(255),
+--    CostCenter_Code NVARCHAR(50),
+--    Movement_Code NVARCHAR(50),
+--    Valuation_Type NVARCHAR(50),
+--    Batch NVARCHAR(50),
+--    Rate_Per_Unit DECIMAL(18,2)
+--);
+
+-- Insert your sample data
+--INSERT INTO #trn201 (Plant_Code, Material_Code, Quantity, SLoc_Code, Reason_For_Movt, CostCenter_Code, Movement_Code, Valuation_Type, Batch, Rate_Per_Unit)
+--VALUES
+--('1000', 'MAT034', 10, '1210', '0001-For Remelting', '1006005', '201', 'INHOUSE', 'b1', 100),
+--('1150', 'MAT013', 20, '1300', '0015-Qty to Scrap', '1003000', '201', 'SUBCONTRACT', 'b2', 200);
+
