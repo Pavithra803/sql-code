@@ -1,0 +1,36 @@
+
+ALTER PROCEDURE [dbo].[GetApprovalListByMovement309]
+  @Role_ID INT
+ 
+ 
+AS
+BEGIN
+  SET NOCOUNT ON;
+
+  SELECT 
+    d.Doc_ID,
+    d.Plant_ID,
+    p.Plant_Code,
+    d.Movement_ID,
+    mt.Movement_Code AS Movement_Type,
+    d.Status,
+    d.Approval_Status,
+    FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date,
+    u.User_Name AS Request_By,
+    ah.Approver_ID,
+    ah.Approval_Level,
+    ah.Approver_Status
+  FROM Trn_Document d
+  INNER JOIN Trn_Approval_History ah 
+    ON ah.Doc_ID = d.Doc_ID 
+    AND ah.Plant_ID = d.Plant_ID 
+    AND ah.Movement_ID = d.Movement_ID
+  LEFT JOIN Mst_Movement_Type mt ON mt.Movement_ID = d.Movement_ID  
+  LEFT JOIN Mst_Plant p ON p.Plant_ID = d.Plant_ID  
+  LEFT JOIN mst_user u ON u.User_ID = d.Created_By  
+  WHERE 
+ 
+    d.Movement_ID = 4 AND
+     ah.Approval_Level = @Role_ID
+    AND ah.Approver_Status IN ('Pending', 'Rejected', 'Under Query')
+END
