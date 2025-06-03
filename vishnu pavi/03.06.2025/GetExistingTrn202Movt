@@ -1,0 +1,40 @@
+ALTER PROCEDURE [dbo].[GetExistingTrn202Movt]
+    @FromDate DATETIME = NULL,
+    @ToDate DATETIME = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        T.Trn_Sap_ID,
+        P.Plant_Code,
+        T.Doc_ID,
+        CONVERT(VARCHAR(10), T.Created_On, 103) AS Date,
+        M.Material_Code,
+        M.Description AS Material_Description,
+        T.Qty,
+        S.Storage_Code AS SLoc_Code,
+        T.Valuation_Type,
+        T.Batch,
+        T.Rate_PerPart,
+        MT.Movement_Code AS Movement_Type,
+        CC.CostCenter_Code,
+        T.Remarks,
+        D.Approval_Status,
+        D.Status AS SAP_Transaction_Status,
+        U.User_Name AS Created_By
+    FROM Trn_SapTransfer_Records T
+    INNER JOIN Trn_Document D ON T.Doc_ID = D.Doc_ID
+    INNER JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID
+    INNER JOIN Mst_Material M ON T.Material_ID = M.Material_ID
+    INNER JOIN Mst_Storage_Location S ON T.SLoc_ID = S.SLoc_ID
+    INNER JOIN Mst_Movement_Type MT ON T.Movement_ID = MT.Movement_ID
+    INNER JOIN Mst_Cost_Center CC ON T.CostCenter_ID = CC.CostCenter_ID
+    LEFT JOIN Mst_User U ON T.Created_By = U.User_ID
+    WHERE MT.Movement_ID = 3
+      AND (
+            (@FromDate IS NULL OR CAST(T.Created_On AS DATE) >= CAST(@FromDate AS DATE))
+            AND (@ToDate IS NULL OR CAST(T.Created_On AS DATE) <= CAST(@ToDate AS DATE))
+          )
+    ORDER BY T.Created_On DESC;
+END;
