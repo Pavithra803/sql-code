@@ -1,0 +1,37 @@
+
+
+ALTER PROCEDURE [dbo].[View_PartnoApproval_Status]
+    @Doc_ID INT
+AS
+BEGIN
+       SELECT 
+        A.Approver_ID,
+        A.Trn_Appl_His_ID,
+        A.Approver_Status AS Status,
+        A.Approver_Comment,
+
+        -- Conditional logic for who modified or created
+        CASE 
+            WHEN A.Modified_By IS NOT NULL THEN MU.User_Name
+            ELSE CU.User_Name
+        END AS Action_By,
+
+        -- Conditional logic for date
+        CASE 
+            WHEN A.Modified_On IS NOT NULL THEN 
+                FORMAT(A.Modified_On, 'dd-MM-yyyy') + '  -  ' + FORMAT(A.Modified_On, 'HH:mm:ss')
+            ELSE 
+                FORMAT(A.Created_On, 'dd-MM-yyyy') + '  -  ' + FORMAT(A.Created_On, 'HH:mm:ss')
+        END AS Action_Date,
+
+        R.Role_Name AS Role
+    FROM Trn_Approval_History A
+    LEFT JOIN Mst_User MU ON A.Modified_By = MU.User_ID       -- Modifier user
+    INNER JOIN Mst_User AU ON A.Approver_ID = AU.User_ID      -- Approver user
+    LEFT JOIN Mst_Role R ON AU.Role_ID = R.Role_ID            -- Approver's role
+    LEFT JOIN Mst_User CU ON A.Created_By = CU.User_ID        -- Creator user
+    WHERE 
+        A.Doc_ID = @Doc_ID
+        AND A.Movement_ID = 4
+    ORDER BY A.Modified_On DESC
+END
