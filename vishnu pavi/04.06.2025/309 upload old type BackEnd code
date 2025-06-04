@@ -1,0 +1,252 @@
+// POST route to handle file uploads
+transaction.post('/File', upload_1.single('User_Add'), async (req, res) => {
+  console.log('Uploaded File:', req.file);
+
+console.log('asdfghjk', req.body)
+
+  try {
+    // Step 1: Validate file upload
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded. Please upload a file.' });
+    }
+
+    const pool = await db.poolPromise;
+
+    // Step 4: If everything passes, process the file
+    const workbook = xlsx.read(req.file.buffer, { type: 'array' });
+
+    // Step 5: Validate that the uploaded file has sheets
+    if (workbook.SheetNames.length === 0) {
+      return res.status(400).json({ error: 'No sheets in the uploaded file.' });
+    }
+
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    // Step 6: Validate that the sheet is not empty
+    if (!sheet) {
+      return res.status(400).json({ error: 'The sheet is empty or missing data.' });
+    }
+
+    // Step 7: Convert the sheet data to JSON for further processing
+    const data = xlsx.utils.sheet_to_json(sheet, { defval: '' });
+
+    if (data.length === 0) {
+      return res.status(400).json({ error: 'No data found in the sheet.' });
+    }
+    // Step 8: Validate expected columns in the sheet
+    const expectedColumns = [
+      'Plant_Code', 'Movement_Code','From_Material_Code', 'From_Qty', 'From_Storage_Code', 'From_Valuation_Type', 'From_Batch',
+      'From_Rate_Per_Unit', 'To_Material_Code', 'To_Qty', 'To_Storage_Code', 'To_Valuation_Type', 'To_Batch',
+      'To_Rate_Per_Unit', 'Remark'
+    ];
+    const actualColumns = Object.keys(data[0] || {});
+
+    const mismatchedColumns = expectedColumns.filter(col => !actualColumns.includes(col));
+
+    if (mismatchedColumns.length > 0) {
+      return res.status(400).json({
+        message: `Invalid column names: ${mismatchedColumns.join(', ')}`
+      });
+    }
+    // Step 9: Validate data integrity 
+    const emptyData = [];
+    const ValidData = [];
+    const invalidQty = [];
+    const NullQty = [];
+    const invalidBatch = [];
+    const NullBatch = [];
+    const inValidRate = [];
+    const ValidRate = [];
+
+    // ✅ Function to validate decimal(18,2)
+    function isValidDecimal(value) {
+      const decimalPattern = /^\d{1,18}(\.\d{1,2})?$/;
+      return decimalPattern.test(value) && Number(value) > 0;
+    }
+    data.forEach(entry => {
+      if (entry.Plant_Code === '' ||
+        entry.Movement_Code === '' ||
+        entry.From_Material_Code === '' ||
+        entry.From_Qty === '' ||
+        entry.From_Storage_Code === '' ||
+        entry.From_Valuation_Type === '' ||
+        entry.From_Batch === '' ||
+        entry.From_Rate_Per_Unit === '' ||
+        entry.To_Material_Code === '' ||
+        entry.To_Qty === '' ||
+        entry.To_Storage_Code === '' ||
+        entry.To_Valuation_Type === '' ||
+        entry.To_Batch === '' ||
+        entry.To_Rate_Per_Unit === '' ||
+        entry.Remark === ''
+
+      ) {
+        emptyData.push(entry)
+      }
+      else if (entry.From_Qty === 0 ||
+        entry.To_Qty === 0) {
+        invalidQty.push(entry)
+      }
+      else if (entry.From_Qty === 'Null' ||
+        entry.To_Qty === 'Null' ||
+        entry.From_Qty === 'null' ||
+        entry.To_Qty === 'null') {
+        NullQty.push(entry)
+      }
+      else if (entry.From_Batch === 0 ||
+        entry.To_Batch === 0) {
+        invalidBatch.push(entry)
+      }
+      else if (entry.From_Batch === 'Null' ||
+        entry.To_Batch === 'Null' ||
+        entry.From_Batch === 'null' ||
+        entry.To_Batch === 'null') {
+        NullBatch.push(entry)
+      }
+      else if (entry.From_Rate_Per_Unit === 0 ||
+        entry.To_Rate_Per_Unit === 0) {
+        inValidRate.push(entry)
+      }
+      else if (
+        !isValidDecimal(entry.From_Rate_Per_Unit) || !isValidDecimal(entry.To_Rate_Per_Unit)
+      ) {
+        ValidRate.push(entry);
+      }
+
+      else {
+        ValidData.push(entry)
+      }
+
+    });
+
+    console.log('empty data length', emptyData.length);
+    console.log('empty data', emptyData)
+
+    if (emptyData.length > 0) {
+      return res.status(400).json({
+        message: 'Uploaded File Contains Blank Columns'
+      });
+    }
+    else if (invalidQty.length > 0) {
+      return res.status(400).json({
+        message: 'Uploaded File Contains 0 Value for From_Qty Or To_Qty'
+      });
+    }
+    else if (NullQty.length > 0) {
+      return res.status(400).json({
+        message: 'Uploaded File Contains Null Value for From_Qty Or To_Qty'
+      });
+    }
+    else if (invalidBatch.length > 0) {
+      return res.status(400).json({
+        message: 'Uploaded File Contains 0 Value for  From_Batch Or To_Batch'
+      });
+    }
+    else if (NullBatch.length > 0) {
+      return res.status(400).json({
+        message: 'Uploaded File Contains Null Value for From_Batch Or To_Batch'
+      });
+    }
+    else if (inValidRate.length > 0) {
+      return res.status(400).json({
+        message: 'Uploaded File Contains 0 Value for  From_Rate_Per_Unit Or To_Rate_Per_Unit'
+      });
+    }
+    else if (ValidRate.length > 0) {
+      return res.status(400).json({
+        message: 'Uploaded File Contains Invalid Rate (must be decimal(18,2))'
+      });
+
+    }
+    else {
+      const request = pool.request();
+      const table = new sql.Table("#transation");
+      table.create = true;
+      table.columns.add("Plant_Code", sql.VarChar(100), { nullable: false });
+      table.columns.add("Movement_Code", sql.VarChar(100), { nullable: false });
+      table.columns.add("From_Material_Code", sql.VarChar(100), { nullable: false });
+      table.columns.add("From_Qty", sql.VarChar(100), { nullable: false });
+      table.columns.add("From_Storage_Code", sql.VarChar(100), { nullable: false });
+      table.columns.add("From_Valuation_Type", sql.VarChar(100), { nullable: false });
+      table.columns.add("From_Batch", sql.VarChar(100), { nullable: false });
+      table.columns.add("From_Rate_Per_Unit", sql.Decimal(18,2), { nullable: false });
+      table.columns.add("To_Material_Code", sql.VarChar(100), { nullable: false });
+      table.columns.add("To_Qty", sql.VarChar(100), { nullable: false });
+      table.columns.add("To_Storage_Code", sql.VarChar(100), { nullable: false });
+      table.columns.add("To_Valuation_Type", sql.VarChar(100), { nullable: false });
+      table.columns.add("To_Batch", sql.VarChar(100), { nullable: false });
+      table.columns.add("To_Rate_Per_Unit", sql.Decimal(18,2), { nullable: false });
+      table.columns.add("Remark", sql.VarChar(100), { nullable: false });
+     
+
+
+
+      // Insert valid data into the table
+      ValidData.forEach((item) => {
+        const PlantCode = String(item.Plant_Code);
+        const MovementCode = item.Movement_Code;
+
+        const FromMatCode = item.From_Material_Code;
+        const FromQty = item.From_Qty;
+        const FromStorageCode = item.From_Storage_Code;
+        const FromValuationType = item.From_Valuation_Type;
+        const FromBatch = item.From_Batch;
+        const FromRatePerUnit = item.From_Rate_Per_Unit;
+        const ToMatCode = item.To_Material_Code;
+        const ToQty = item.To_Qty;
+        const ToStoargeCode = item.To_Storage_Code;
+        const ToValuationType = item.To_Valuation_Type;
+        const ToBatch = item.To_Batch;
+        const ToRatePerUnit = item.To_Rate_Per_Unit;
+        const Remark = item.Remark;
+
+        table.rows.add(
+
+          `${PlantCode}`,
+          `${MovementCode}`,
+          `${FromMatCode}`,
+          `${FromQty}`,
+          `${FromStorageCode}`,
+          `${FromValuationType}`,
+          `${FromBatch}`,
+          `${FromRatePerUnit}`,
+          `${ToMatCode}`,
+          `${ToQty}`,
+          `${ToStoargeCode}`,
+          `${ToValuationType}`,
+          `${ToBatch}`,
+          `${ToRatePerUnit}`,
+          `${Remark}`,
+        );
+
+      });
+      console.log('table', table);
+      await request.bulk(table);
+
+
+      const UserID = req.body.UserID;  // Get value properly
+      //const Plant = req.query.Plant;
+      // FIX: match query param name
+//const Plant = req.query.Plant_ID;
+
+      request.input('Created_By', UserID);  // Now it’s not undefined
+       const insertdata = await request
+
+       .execute('UploadTrn309SapTransferRecord')
+      console.log('insert data', insertdata);
+    
+      res.status(200).json({
+        message: 'File uploaded and validated successfully!',
+        NewRecord: insertdata.recordsets[1] || [],    // Newly inserted
+        DuplicateRecords: insertdata.recordsets[2] || [],   //  Duplicate
+        ErrorRecords: insertdata.recordsets[0] || [],  // Invalids
+
+      });
+    }
+
+  } catch (error) {
+    console.error('Error while processing the file:', error);
+    res.status(500).send('Error while processing the file.');
+  }
+});
