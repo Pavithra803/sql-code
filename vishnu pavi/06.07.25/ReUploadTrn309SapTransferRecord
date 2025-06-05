@@ -1,6 +1,6 @@
 USE [SAPAPPROVAL]
 GO
-
+/****** Object:  StoredProcedure [dbo].[ReUploadTrn309SapTransferRecord]    Script Date: 6/5/2025 9:56:33 PM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -78,10 +78,10 @@ BEGIN
       AND User_Plant_Val = 'Valid'
       AND RowNum = 1;
 
-    -- Step 3: Update Trn_SapTransfer_Records based only on Doc_ID match
+    -- Step 3: Update Trn_SapTransfer_Records for @Doc_ID based on valid rows
     UPDATE r
     SET
-        r.Movement_ID = 4, -- or get dynamically if needed
+        r.Movement_ID = 4, -- or get movement id dynamically if needed
         r.Plant_ID = v.Plant_ID,
         r.Material_ID = v.From_Material_ID,
         r.Qty = v.From_Qty,
@@ -97,13 +97,18 @@ BEGIN
         r.Modified_By = @Created_By,
         r.Modified_On = GETDATE()
     FROM Trn_SapTransfer_Records r
-    INNER JOIN #ValidRows v ON r.Doc_ID = v.Doc_ID
-    WHERE r.Doc_ID = @Doc_ID;
+    INNER JOIN #ValidRows v ON
+        r.Doc_ID = @Doc_ID
+        AND r.Plant_ID = v.Plant_ID
+        AND r.Material_ID = v.From_Material_ID
+        AND r.To_Material_ID = v.To_Material_ID
+        AND r.SLoc_ID = v.From_SLoc_ID
+        AND r.To_SLoc_ID = v.To_SLoc_ID;
 
-    -- Step 4: Get PlantID
+    -- Step 4: Get PlantID for status updates (MovementID can be set if needed)
     SELECT TOP 1 @PlantID = Plant_ID FROM #ValidRows;
 
-    -- Step 5: Update approval history
+    -- Step 5: Update approval history status to Pending
     UPDATE Trn_Approval_History
     SET 
         Approver_Status = 'Pending',
@@ -111,7 +116,7 @@ BEGIN
         Modified_On = GETDATE()
     WHERE Doc_ID = @Doc_ID;
 
-    -- Step 6: Update document status
+    -- Step 6: Update document status to Pending
     UPDATE Trn_Document
     SET 
         Approval_Status = 'Pending',
@@ -119,7 +124,7 @@ BEGIN
         Modified_On = GETDATE()
     WHERE Doc_ID = @Doc_ID;
 
-    -- Step 7: Also update SapTransfer status (redundant but safe)
+    -- Step 7: Update SapTransfer status to Pending
     UPDATE Trn_SapTransfer_Records
     SET 
         Approval_Status = 'Pending',
@@ -127,7 +132,34 @@ BEGIN
         Modified_On = GETDATE()
     WHERE Doc_ID = @Doc_ID;
 
-    -- Step 8: Return invalid rows for feedback
+    -- Step 8: Select updated rows for feedback/output
+ SELECT 
+    r.Doc_ID,
+    p.Plant_Code,
+    '309' AS Movement_Code,
+    fm.Material_Code AS From_Material_Code,
+    r.Qty AS From_Qty,
+    s1.Storage_Code AS From_Storage_Code,
+    r.Valuation_Type AS From_Valuation_Type,
+    r.Batch AS From_Batch,
+    r.Rate_PerPart AS From_Rate_Per_Unit,
+    tm.Material_Code AS To_Material_Code,
+    r.Qty AS To_Qty,  -- Assuming same as From_Qty
+    s2.Storage_Code AS To_Storage_Code,
+     r.Valuation_Type AS To_Valuation_Type, -- Replace if stored
+     r.Batch AS To_Batch, -- Replace if stored
+    r.To_Rate_309 AS To_Rate_Per_Unit,
+    ISNULL(r.Rate_PerPart, 0) - ISNULL(r.To_Rate_309, 0) AS Net_Different_Price,
+    r.Remarks AS Remark
+FROM Trn_SapTransfer_Records r
+LEFT JOIN Mst_Plant p ON p.Plant_ID = r.Plant_ID
+LEFT JOIN Mst_Material fm ON fm.Material_ID = r.Material_ID
+LEFT JOIN Mst_Material tm ON tm.Material_ID = r.To_Material_ID
+LEFT JOIN Mst_Storage_Location s1 ON s1.SLoc_ID = r.SLoc_ID
+LEFT JOIN Mst_Storage_Location s2 ON s2.SLoc_ID = r.To_SLoc_ID
+WHERE r.Doc_ID = @Doc_ID;
+
+    -- Step 9: Output invalid records with reasons for feedback
     SELECT t.*,
            'Error_Records' AS Status
     FROM #t1 t
@@ -143,6 +175,6 @@ BEGIN
        OR Movement_Val = 'Invalid'
        OR User_Plant_Val = 'Invalid';
 
-    -- Cleanup
+    -- Cleanup temp tables
     DROP TABLE IF EXISTS #t1, #ValidRows, #transation;
 END;
