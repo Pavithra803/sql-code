@@ -1,5 +1,4 @@
 
-
 ALTER PROCEDURE [dbo].[ReUploadTrn201SapTransferRecord]
     @Doc_ID INT,
     @Created_By INT
@@ -104,22 +103,32 @@ BEGIN
       AND RowNum = 1;
 
     -- Step 3: Update existing Trn_SapTransfer_Records for @Doc_ID only for valid rows
+       -- Step 3: Update all fields in Trn_SapTransfer_Records
     UPDATE tsr
     SET 
-        tsr.Qty = v.Quantity,
-        tsr.Remarks = v.Reason_For_Movt,
-        tsr.Valuation_Type = v.Valuation_Type,
-        tsr.Batch = v.Batch,
-        tsr.Rate_PerPart = v.Rate_Per_Unit,
-        tsr.Modified_By = @Created_By,
-        tsr.Modified_On = GETDATE()
+        tsr.Movement_ID     = v.Movement_ID,
+        tsr.Plant_ID        = v.Plant_ID,
+        tsr.SLoc_ID         = v.SLoc_ID,
+        tsr.Material_Type   = v.Material_Type,
+        tsr.Material_ID     = v.Material_ID,
+        tsr.Rate_PerPart    = v.Rate_Per_Unit,
+        tsr.Qty             = v.Quantity,
+        tsr.Remarks         = v.Reason_For_Movt,
+        tsr.CostCenter_ID   = v.CostCenter_ID,
+        tsr.Valuation_Type  = v.Valuation_Type,
+        tsr.Batch           = v.Batch,
+        tsr.Approval_Status = 'Pending',
+        tsr.Modified_By     = @Created_By,
+        tsr.Modified_On     = GETDATE()
     FROM Trn_SapTransfer_Records tsr
-    INNER JOIN #ValidRows v ON tsr.Doc_ID = @Doc_ID
-        AND tsr.Plant_ID = v.Plant_ID
-        AND tsr.Material_ID = v.Material_ID
-        AND tsr.SLoc_ID = v.SLoc_ID
-        AND tsr.CostCenter_ID = v.CostCenter_ID
-        AND tsr.Movement_ID = v.Movement_ID;
+    INNER JOIN #ValidRows v 
+        ON tsr.Doc_ID         = @Doc_ID
+       AND tsr.Plant_ID       = v.Plant_ID
+       AND tsr.Material_ID    = v.Material_ID
+       AND tsr.SLoc_ID        = v.SLoc_ID
+       AND tsr.CostCenter_ID  = v.CostCenter_ID
+       AND tsr.Movement_ID    = v.Movement_ID;
+
 
     -- Step 4: Get MovementID and PlantID from one valid record for status updates
     SELECT TOP 1 @MovementID = Movement_ID, @PlantID = Plant_ID FROM #ValidRows;
