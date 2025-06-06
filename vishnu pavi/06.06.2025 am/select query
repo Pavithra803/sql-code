@@ -1,3 +1,28 @@
+-- -----Temp Table Creation
+--CREATE TABLE #transation (
+-- Trn_Sap_ID VARCHAR(100) NOT NULL,
+--    Plant_Code VARCHAR(100) NOT NULL,
+--    Movement_Code VARCHAR(10) NOT NULL,
+--    From_Material_Code VARCHAR(100) NOT NULL,
+--    From_Qty VARCHAR(100) NOT NULL,
+--    From_Storage_Code VARCHAR(100) NOT NULL,
+--    From_Valuation_Type VARCHAR(100) NOT NULL,
+--    From_Batch VARCHAR(100) NOT NULL,
+--    From_Rate_Per_Unit VARCHAR(100) NOT NULL,
+--    To_Material_Code VARCHAR(100) NOT NULL,
+--    To_Qty VARCHAR(100) NOT NULL,
+--    To_Storage_Code VARCHAR(100) NOT NULL,
+--    To_Valuation_Type VARCHAR(100) NOT NULL,
+--    To_Batch VARCHAR(100) NOT NULL,
+--    To_Rate_Per_Unit VARCHAR(100) NOT NULL,
+--    Remark VARCHAR(100) NOT NULL
+--);
 
-
-select  
+---- Sample Data Insert
+--INSERT INTO #transation VALUES
+--(1,'1210','309','MAT022','200','1150','SUBCONTRACT','b1','200','MAT019','300','1150','SUBCONTRACT','b2','460','test1'),
+--(2,'1210','309','MAT020','400','1150','DOMESTIC','b2','200','MAT022','400','1150','DOMESTIC','b3','460','test2'),
+--(3,'1210','309','MAT021','350','1150','INHOUSE','b3','200','MAT020','380','1150','INHOUSE','b4','460','test3'),
+--(4,'1210','309','MAT024','280','1150','SUBCONTRACT','b4','200','MAT021','100','1150','SUBCONTRACT','b5','460','test4'),
+--(5,'1210','309','MAT023','800','1150','DOMESTIC','b5','200','MAT024','300','1150','INHOUSE','b6','460','test5'),
+--(6,'1210','309','MAT019','300','1150','INHOUSE','b6','200','MAT023','700','1150','DOMESTIC','b7','460','test6');
