@@ -60,7 +60,7 @@ BEGIN
             ORDER BY t.Plant_Code
         ) AS RowNum
     INTO #t1
-    FROM #trn20 AS t
+    FROM #trn201 AS t
     LEFT JOIN Mst_Plant p ON p.Plant_Code = t.Plant_Code
     LEFT JOIN Mst_Material m ON m.Material_Code = t.Material_Code AND m.Plant_ID = p.Plant_ID
     LEFT JOIN Mst_Storage_Location s ON s.Storage_Code = t.SLoc_Code AND s.Plant_ID = p.Plant_ID
