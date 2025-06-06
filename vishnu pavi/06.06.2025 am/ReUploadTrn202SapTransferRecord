@@ -1,10 +1,3 @@
-USE [Sap_Approval]
-GO
-/****** Object:  StoredProcedure [dbo].[ReUploadTrn201SapTransferRecord]    Script Date: 06-06-2025 16:15:46 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 
 ALTER PROCEDURE [dbo].[ReUploadTrn202SapTransferRecord]
     @Doc_ID INT,
