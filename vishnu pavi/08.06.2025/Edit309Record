@@ -1,0 +1,37 @@
+CREATE PROCEDURE Edit309Record
+  @DocID VARCHAR(50),
+  @FromMatCode INT,
+  @ToMatCode INT,
+  @FromQty INT,
+  @ToQty INT,
+  @FromSLocID INT,
+  @ToSLocID INT,
+  @FromPrice DECIMAL(18, 2),
+  @ToPrice DECIMAL(18, 2),
+  @FromValuationType VARCHAR(50),
+  @ToValuationType VARCHAR(50),
+  @FromBatch VARCHAR(50),
+  @ToBatch VARCHAR(50),
+  @ModifiedBy INT -- Optional if tracking who made the change
+AS
+BEGIN
+  SET NOCOUNT ON;
+
+  UPDATE Trn_Sap_ID
+  SET 
+    Material_ID = @FromMatCode,
+    To_Material_ID = @ToMatCode,
+    Qty = @FromQty,
+    To_Qty = @ToQty,
+    SLoc_ID = @FromSLocID,
+    To_SLoc_ID = @ToSLocID,
+    Rate_PerPart = @FromPrice,
+    To_Rate_309 = @ToPrice,
+    Valuation_Type = @FromValuationType,
+    To_Valuation_Type = @ToValuationType,
+    Batch = @FromBatch,
+    To_Batch = @ToBatch,
+    Modified_By = @ModifiedBy,
+    Modified_On = GETDATE()
+  WHERE Doc_ID = @DocID;
+END;
