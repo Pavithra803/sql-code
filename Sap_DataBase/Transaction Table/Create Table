@@ -76,7 +76,7 @@ CREATE TABLE Trn_Approvall_History (
     Modified_On DATETIME
 );
 ---4
-CREATE TABLE Trn_Inward_Invoice (
+CREATE TABLE Trn_Inward_Old_Invoice (
     Inward_ID INT IDENTITY(1,1) PRIMARY KEY,
     Vendor_ID INT,
     Invoice_Date DATE ,
