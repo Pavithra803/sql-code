@@ -79,13 +79,19 @@ CREATE TABLE Trn_Approvall_History (
 CREATE TABLE Trn_Inward_Invoice (
     Inward_ID INT IDENTITY(1,1) PRIMARY KEY,
     Vendor_ID INT,
-    Purchase_Order VARCHAR(50) ,
+    Invoice_Date DATE ,
     Invoice_No VARCHAR(50),
-    Part_No VARCHAR(50) ,
     Invoice_Qty INT,
+    Invoice_Value INT,
+    Purchase_Order VARCHAR(50) ,
+    Material_ID INT ,
     Monthly_Scheduled_Qty INT,
     Current_Stock INT ,
-    Invoice_Date DATE ,
-    Invoice_Value DECIMAL(18, 2),
-    Reason_For_Delay VARCHAR(255)
+    Reason_For_Delay VARCHAR(255),
+    Inward_Type varchar(50),
+    Status NVARCHAR(50),
+    Created_By     VARCHAR(50),
+    Created_On     DATETIME,
+    Modified_By    VARCHAR(50),
+    Modified_On    DATETIME
 );
