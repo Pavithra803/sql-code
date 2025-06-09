@@ -1,0 +1,76 @@
+
+ALTER PROCEDURE [dbo].[Edit309Record]
+  @DocID VARCHAR(50),
+  @TrnSapID INT,
+  @FromMatCode VARCHAR(50),
+  @ToMatCode VARCHAR(50),
+  @FromQty INT,
+  @ToQty INT,
+  @FromSLocCode VARCHAR(50),
+  @ToSLocCode VARCHAR(50),
+  @FromPrice DECIMAL(18,2),
+  @ToPrice DECIMAL(18,2),
+  @FromValuationType VARCHAR(50),
+  @ToValuationType VARCHAR(50),
+  @FromBatch VARCHAR(50),
+  @ToBatch VARCHAR(50),
+  @ModifiedBy INT
+AS
+BEGIN
+  SET NOCOUNT ON;
+
+  DECLARE @FromMaterialID INT, @ToMaterialID INT;
+  DECLARE @FromSLocID INT, @ToSLocID INT;
+
+  -- Resolve Material IDs
+  SELECT @FromMaterialID = Material_ID FROM Mst_Material WHERE Material_Code = @FromMatCode;
+  SELECT @ToMaterialID = Material_ID FROM Mst_Material WHERE Material_Code = @ToMatCode;
+
+  -- Resolve Storage Location IDs
+  SELECT @FromSLocID = SLoc_ID FROM Mst_Storage_Location WHERE Storage_Code = @FromSLocCode;
+  SELECT @ToSLocID = SLoc_ID FROM Mst_Storage_Location WHERE Storage_Code = @ToSLocCode;
+
+  -- Optional: add validations for NULLs
+  IF @FromMaterialID IS NULL
+  BEGIN
+    RAISERROR('Invalid From Material Code', 16, 1);
+    RETURN;
+  END
+
+  IF @ToMaterialID IS NULL
+  BEGIN
+    RAISERROR('Invalid To Material Code', 16, 1);
+    RETURN;
+  END
+
+  IF @FromSLocID IS NULL
+  BEGIN
+    RAISERROR('Invalid From Storage Location Code', 16, 1);
+    RETURN;
+  END
+
+  IF @ToSLocID IS NULL
+  BEGIN
+    RAISERROR('Invalid To Storage Location Code', 16, 1);
+    RETURN;
+  END
+
+  -- Perform the update
+  UPDATE Trn_SapTransfer_Records
+  SET 
+    Material_ID = @FromMaterialID,
+    To_Material_ID = @ToMaterialID,
+    Qty = @FromQty,
+  --  To_Qty = @ToQty,
+    SLoc_ID = @FromSLocID,
+    To_SLoc_ID = @ToSLocID,
+    Rate_PerPart = @FromPrice,
+    To_Rate_309 = @ToPrice,
+    Valuation_Type = @FromValuationType,
+    --To_Valuation_Type = @ToValuationType,
+    Batch = @FromBatch,
+   -- To_Batch = @ToBatch,
+    Modified_By = @ModifiedBy,
+    Modified_On = GETDATE()
+  WHERE Doc_ID = @DocID AND Trn_Sap_ID = @TrnSapID;
+END;
