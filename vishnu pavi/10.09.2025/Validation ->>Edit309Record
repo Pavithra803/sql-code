@@ -1,0 +1,135 @@
+ALTER PROCEDURE [dbo].[Edit309Record]
+  @DocID VARCHAR(50),
+  @TrnSapID INT,
+  @FromMatCode VARCHAR(50),
+  @ToMatCode VARCHAR(50),
+  @FromQty INT,
+  @ToQty INT,
+  @FromSLocCode VARCHAR(50),
+  @ToSLocCode VARCHAR(50),
+  @FromPrice DECIMAL(18,2),
+  @ToPrice DECIMAL(18,2),
+  @FromValuationType VARCHAR(50),
+  @ToValuationType VARCHAR(50),
+  @FromBatch VARCHAR(50),
+  @ToBatch VARCHAR(50),
+  @ModifiedBy INT
+AS
+BEGIN
+  SET NOCOUNT ON;
+
+  DECLARE @FromMaterialID INT, @ToMaterialID INT;
+  DECLARE @FromSLocID INT, @ToSLocID INT;
+  DECLARE @PlantID INT;
+
+  -- Get Plant ID from the transaction
+  SELECT @PlantID = Plant_ID 
+  FROM Trn_SapTransfer_Records 
+  WHERE Doc_ID = @DocID AND Trn_Sap_ID = @TrnSapID;
+
+  -- Resolve Material IDs
+  SELECT @FromMaterialID = Material_ID 
+  FROM Mst_Material 
+  WHERE Material_Code = @FromMatCode;
+
+  SELECT @ToMaterialID = Material_ID 
+  FROM Mst_Material 
+  WHERE Material_Code = @ToMatCode;
+
+  -- Resolve Storage Location IDs using Storage_Code + Plant_ID (to avoid wrong matches)
+  SELECT @FromSLocID = SLoc_ID 
+  FROM Mst_Storage_Location 
+  WHERE Storage_Code = @FromSLocCode AND Plant_ID = @PlantID;
+
+  SELECT @ToSLocID = SLoc_ID 
+  FROM Mst_Storage_Location 
+  WHERE Storage_Code = @ToSLocCode AND Plant_ID = @PlantID;
+
+  -- Validation: Material should belong to the same plant
+  IF EXISTS (
+    SELECT 1 FROM Mst_Material 
+    WHERE Material_ID = @FromMaterialID AND Plant_ID != @PlantID
+  )
+  BEGIN
+    RAISERROR('From Material does not belong to the plant.', 16, 1);
+    RETURN;
+  END
+
+  IF EXISTS (
+    SELECT 1 FROM Mst_Material 
+    WHERE Material_ID = @ToMaterialID AND Plant_ID != @PlantID
+  )
+  BEGIN
+    RAISERROR('To Material does not belong to the plant.', 16, 1);
+    RETURN;
+  END
+
+  -- Validation: Storage Location must exist for that plant
+  IF @FromSLocID IS NULL
+  BEGIN
+    RAISERROR('From Storage Location not found for the given plant.', 16, 1);
+    RETURN;
+  END
+
+  IF @ToSLocID IS NULL
+  BEGIN
+    RAISERROR('To Storage Location not found for the given plant.', 16, 1);
+    RETURN;
+  END
+
+  -- Check for duplicate material in document
+  IF EXISTS (
+    SELECT 1 FROM Trn_SapTransfer_Records
+    WHERE Doc_ID = @DocID AND Trn_Sap_ID != @TrnSapID AND Material_ID = @FromMaterialID
+  )
+  BEGIN
+    RAISERROR('From Material Code already exists in this document.', 16, 1);
+    RETURN;
+  END
+
+  -- Perform the update
+  UPDATE Trn_SapTransfer_Records
+  SET 
+    Material_ID = @FromMaterialID,
+    To_Material_ID = @ToMaterialID,
+    Qty = @FromQty,
+    SLoc_ID = @FromSLocID,
+    To_SLoc_ID = @ToSLocID,
+    Rate_PerPart = @FromPrice,
+    To_Rate_309 = @ToPrice,
+    Valuation_Type = @FromValuationType,
+    Batch = @FromBatch,
+    Modified_By = @ModifiedBy,
+    Modified_On = GETDATE()
+  WHERE Doc_ID = @DocID AND Trn_Sap_ID = @TrnSapID;
+
+  -- If any record exists in approval history, reset approval status
+  IF EXISTS (
+    SELECT 1 FROM Trn_Approval_History WHERE Doc_ID = @DocID
+  )
+  BEGIN
+    -- Reset status in main record
+    UPDATE Trn_SapTransfer_Records
+    SET 
+      Approval_Status = 'Pending',
+      Modified_By = @ModifiedBy,
+      Modified_On = GETDATE()
+    WHERE Doc_ID = @DocID AND (Approval_Status = 'Rejected' OR Approval_Status = 'Under Query');
+
+    -- Reset status in document table
+    UPDATE trn_document
+    SET 
+      Approval_Status = 'Pending',
+      Modified_By = @ModifiedBy,
+      Modified_On = GETDATE()
+    WHERE Doc_ID = @DocID AND (Approval_Status = 'Rejected' OR Approval_Status = 'Under Query');
+
+    -- Reset status in approval history
+    UPDATE Trn_Approval_History
+    SET 
+      Approver_Status = 'Pending',
+      Modified_By = @ModifiedBy,
+      Modified_On = GETDATE()
+    WHERE Doc_ID = @DocID AND (Approver_Status = 'Rejected' OR Approver_Status = 'Under Query');
+  END
+END;
