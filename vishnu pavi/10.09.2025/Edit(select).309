@@ -1,0 +1,236 @@
+  {/*Row edit modal*/}
+      <Modal open={openRowEditModal} onClose={() => setOpenRowEditModal(false)}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, 1fr)",
+            width: 500,
+            height: 700,
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 4,
+            margin: "auto",
+            marginTop: "5%",
+            gap: "15px",
+          }}
+        >
+          <h3
+            style={{
+              gridColumn: "span 2",
+              textAlign: "center",
+              color: "#2e59d9",
+              textDecoration: "underline",
+              textDecorationColor: "#88c57a",
+              textDecorationThickness: "3px",
+            }}
+          >
+            Edit 309 Record
+          </h3>
+
+          {/* Plant Code - Read Only */}
+          <TextField
+            label="Plant"
+            value={PlantCode}
+            fullWidth
+            InputProps={{ readOnly: true }}
+          />
+
+
+          {/* DocID - Read Only */}
+          <TextField
+            label="DocID"
+            value={DocID}
+            fullWidth
+            InputProps={{ readOnly: true }}
+          />
+
+
+          {/* Trn_Sap_ID - Read Only */}
+          <TextField
+            label="Trn_Sap_ID"
+            value={TrnSapID}
+            fullWidth
+            InputProps={{ readOnly: true }}
+          />
+
+  {/* NetDifferentPrice- Read Only */}
+          <TextField
+            label="Net_Difference_Price"
+            value={NetDifferentPrice}
+            fullWidth
+            InputProps={{ readOnly: true }}
+          />
+
+          {/* Material Code */}
+           {/* From Material Code */}
+    <FormControl fullWidth>
+      <InputLabel>From Material Code</InputLabel>
+      <Select
+        label="From Material Code"
+        value={FromMatCode}
+        onChange={(e) => setFromMatCode(e.target.value)}
+        required
+      >
+        {MaterialTable.map((item, index) => (
+          <MenuItem key={index} value={item.Material_ID}>
+            {item.Material_Code}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+
+    {/* To Material Code */}
+    <FormControl fullWidth>
+      <InputLabel>To Material Code</InputLabel>
+      <Select
+  label="Material Code"
+  value={ToMatCode}
+  onChange={(e) => setToMatCode(e.target.value)}
+  required
+>
+  {MaterialTable.map((item) => (
+    <MenuItem key={item.Material_ID} value={item.Material_Code}>
+      {item.Material_Code}
+    </MenuItem>
+  ))}
+</Select>
+
+    </FormControl>
+
+
+          {/* Quantity */}
+          <TextField
+            label="From Quantity"
+            type="number"
+            value={FromQty}
+            onChange={(e) => setFromQty(Number(e.target.value))}
+            fullWidth
+          />
+          <TextField
+            label="To Quantity"
+            type="number"
+            value={ToQty}
+            onChange={(e) => setToQty(Number(e.target.value))}
+            fullWidth
+          />
+
+          {/* SLoc ID */}
+         <FormControl fullWidth>
+  <InputLabel>From SLoc ID</InputLabel>
+  <Select
+    label="From SLoc ID"
+    value={FromSLocID}
+    onChange={(e) => setFromSLocID(e.target.value)}
+    required
+  >
+    {SLocTable.map((item, index) => (
+      <MenuItem key={index} value={item.SLoc_ID}>
+        {item.SLoc_Name}
+      </MenuItem>
+    ))}
+  </Select>
+</FormControl>
+
+<FormControl fullWidth>
+  <InputLabel>To SLoc ID</InputLabel>
+  <Select
+    label="To SLoc ID"
+    value={ToSLocID}
+    onChange={(e) => setToSLocID(e.target.value)}
+    required
+  >
+    {SLocTable.map((item, index) => (
+      <MenuItem key={index} value={item.SLoc_ID}>
+        {item.SLoc_Name}
+      </MenuItem>
+    ))}
+  </Select>
+</FormControl>
+
+          {/* Price */}
+          <TextField
+            label="From Price"
+            type="number"
+            value={FromPrice}
+            onChange={(e) => setFromPrice(Number(e.target.value))}
+            fullWidth
+          />
+          <TextField
+            label="To Price"
+            type="number"
+            value={ToPrice}
+            onChange={(e) => setToPrice(Number(e.target.value))}
+            fullWidth
+          />
+
+          {/* Valuation Type */}
+              {/* From Valuation Type */}
+    <FormControl fullWidth>
+      <InputLabel>From Valuation Type</InputLabel>
+      <Select
+        label="From Valuation Type"
+        value={FromValuationType}
+        onChange={(e) => setFromValuationType(e.target.value)}
+        required
+      >
+        {ValuationTypeTable.map((item, index) => (
+          <MenuItem key={index} value={item.Valuation_Type_ID}>
+            {item.Valuation_Type_Name}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+
+    {/* To Valuation Type */}
+    <FormControl fullWidth>
+      <InputLabel>To Valuation Type</InputLabel>
+      <Select
+        label="To Valuation Type"
+        value={ToValuationType}
+        onChange={(e) => setToValuationType(e.target.value)}
+        required
+      >
+        {ValuationTypeTable.map((item, index) => (
+          <MenuItem key={index} value={item.Valuation_Type_ID}>
+            {item.Valuation_Type_Name}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+
+          {/* Batch */}
+          <TextField
+            label="From Batch"
+            value={FromBatch}
+            onChange={(e) => setFromBatch(e.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="To Batch"
+            value={ToBatch}
+            onChange={(e) => setToBatch(e.target.value)}
+            fullWidth
+          />
+
+        
+
+          {/* Buttons */}
+          <Box
+            sx={{
+              gridColumn: "span 2",
+              display: "flex",
+              justifyContent: "center",
+              gap: "10px",
+              marginTop: "15px",
+            }}
+          >
+            <Button variant="contained" color="error" onClick={handleCloseRowEditModal}>
+              Cancel
+            </Button>
+            <Button variant="contained" color="primary" onClick={handleUpdate}>
+              Update
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
