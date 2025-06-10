@@ -1,4 +1,10 @@
-
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[Edit309Record]    Script Date: 10-06-2025 13:06:18 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 
 ALTER PROCEDURE [dbo].[Edit309Record]
   @DocID VARCHAR(50),
@@ -45,17 +51,17 @@ BEGIN
   RETURN;
 END
 
--- Check if the To Material Code already exists in the document
-IF EXISTS (
-  SELECT 1 FROM Trn_SapTransfer_Records
-  WHERE Doc_ID = @DocID
-    AND Trn_Sap_ID != @TrnSapID
-    AND To_Material_ID = @ToMaterialID
-)
-BEGIN
-  RAISERROR('To Material Code already exists in this document.', 16, 1);
-  RETURN;
-END
+---- Check if the To Material Code already exists in the document
+--IF EXISTS (
+--  SELECT 1 FROM Trn_SapTransfer_Records
+--  WHERE Doc_ID = @DocID
+--    AND Trn_Sap_ID != @TrnSapID
+--    AND To_Material_ID = @ToMaterialID
+--)
+--BEGIN
+--  RAISERROR('To Material Code already exists in this document.', 16, 1);
+--  RETURN;
+--END
 
 
   -- Perform the update
