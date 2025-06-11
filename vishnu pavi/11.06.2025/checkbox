@@ -1,0 +1,72 @@
+const handleHeaderCheckboxChange = (event) => {
+  const checked = event.target.checked;
+
+  if (checked) {
+    const allIds = rows.map((row) => row.Trn_Sap_ID); // ✅ use correct ID field
+    setSelectedRowIds(allIds);
+  } else {
+    setSelectedRowIds([]);
+  }
+};
+
+{
+  field: "actions",
+  headerName: "Actions",
+  flex: 1,
+  sortable: false,
+  editable: false,
+  disableColumnMenu: true,
+ renderHeader: () => (
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      width: "100%",
+    }}
+  >
+    <span style={{ fontWeight: 600, fontSize: 14 }}>Actions</span>
+   <Checkbox
+  checked={rows.length > 0 && selectedRowIds.length === rows.length}
+  indeterminate={selectedRowIds.length > 0 && selectedRowIds.length < rows.length}
+  onChange={handleHeaderCheckboxChange}
+  inputProps={{ "aria-label": "Select all rows" }}
+  onClick={(e) => e.stopPropagation()}
+/>
+
+
+  </div>
+
+
+  ),
+// In renderCell:
+renderCell: (params) => {
+  const isChecked = selectedRowIds.includes(params.row.Trn_Sap_ID);
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedRow(params.row);
+          handleOpenViewStatusModal(params.row);
+        }}
+        title="View Details"
+        style={{ cursor: "pointer", color: "#008080" }}
+      >
+        <InfoIcon sx={{ fontSize: 24 }} />
+      </div>
+
+      <Checkbox
+        checked={isChecked}
+        onChange={(e) => {
+          e.stopPropagation();
+          handleRowCheckboxChange(params.row.Trn_Sap_ID, e.target.checked);
+        }}
+      />
+    </div>
+  );
+}
+
+
+}
