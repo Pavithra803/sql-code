@@ -1,0 +1,42 @@
+ CREATE PROCEDURE GetActiveMaterial
+AS
+BEGIN
+    SELECT 
+        Material_ID,
+		Material_Code ,
+  Description
+    FROM 
+        Mst_Material
+    WHERE 
+        Active_Status = 1;
+END;
+---------------------
+
+ CREATE PROCEDURE GetActiveStorageLocation
+AS
+BEGIN
+   SELECT
+        S.SLoc_ID,
+        S.Storage_Code,
+        P.Plant_Code
+      FROM
+        Mst_Storage_Location S
+      JOIN
+        Mst_Plant P ON S.Plant_ID = P.Plant_ID
+      WHERE
+        S.Active_Status = 1
+END;
+----------------------------
+ CREATE PROCEDURE GetActiveValuationType 
+
+AS
+BEGIN
+   SELECT
+        
+        v.Valuation_ID,
+        v.Valuation_Name
+      FROM
+        Mst_Valuation_Type v
+      
+END;
+--------------------------
