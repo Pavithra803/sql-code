@@ -1,0 +1,79 @@
+      {/* ExcelDownload Modal */}
+
+      <Modal
+        open={openExcelDownloadModal}
+        onClose={handleCloseModal}  // Use the custom handleCloseModal function
+      >
+        <Box
+          sx={{
+            width: 400,
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 4,
+            margin: 'auto',
+            marginTop: '10%',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '15px',
+          }}
+        >
+          <h3
+            style={{
+              gridColumn: 'span 2',
+              textAlign: 'center',
+              marginBottom: '15px',
+              color: 'blue',
+              textDecoration: 'underline',
+              textDecorationColor: 'limegreen',
+              textDecorationThickness: '3px',
+            }}
+          >
+            Excel Download
+          </h3>
+
+          <TextField
+            label="From Date"
+            name="FromDate"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+            required
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+          />
+          <TextField
+            label="To Date"
+            name="ToDate"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+            required
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+          />
+
+          <Box
+            sx={{
+              gridColumn: 'span 2',
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '10px',
+              marginTop: '15px',
+            }}
+          >
+            <Button variant="contained" color="error" onClick={handleCloseModal}>
+              Cancel
+            </Button>
+            <Button
+              style={{ width: '90px' }}
+              variant="contained"
+              color="primary"
+              onClick={handleDownloadExcel}
+            >
+              Download
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+
