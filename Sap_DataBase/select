@@ -1,0 +1,27 @@
+
+
+
+select * from Trn_Approval_History
+select * from Trn_Document
+select * from Trn_SapTransfer_Records
+
+
+select * from Mst_Material where Plant_ID=3
+
+select * from Mst_Plant where Plant_ID=3
+
+select * from Mst_Cost_Center where Plant_ID=3
+
+select * from Mst_Storage_Location where Plant_ID=3
+
+select * from Mst_User where Plant_ID=3
+
+select * from Mst_Role
+
+
+
+Truncate table Trn_Approval_History
+Truncate table Trn_Document
+Truncate table Trn_SapTransfer_Records
+
+update Mst_User set plant_Id=3 where User_ID=27
