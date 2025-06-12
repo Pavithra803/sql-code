@@ -1,0 +1,45 @@
+  const handleEditUploadData = async ({ docId, trnSapId }) => {
+    if (!editSelectedFile) {
+      alert("Please select a file first.");
+      return;
+    }
+
+    try {
+      const finalDocId = typeof docId === 'object' ? docId?.Doc_ID : docId;
+
+      const formData = new FormData();
+      formData.append("User_Add", editSelectedFile);  // Ensure key matches backend
+      formData.append("UserID", UserID);
+      formData.append("Doc_ID", finalDocId);
+      formData.append("Trn_Sap_ID", trnSapId);
+
+      const response = await Movement309ReUpload(formData);
+      console.log('response', response.data);
+      alert(response.data.message);
+
+      const reuploadData = response.data.ReUploadRecord || [];
+      const errorData = response.data.ErrorRecords || [];
+
+      console.log('ReUploadRecord:', reuploadData);
+      console.log('ErrorRecords:', errorData);
+
+      if (reuploadData.length > 0 || errorData.length > 0) {
+        downloadExcelReUpload(reuploadData, errorData);
+      } else {
+        console.log("No data to download.");
+      }
+
+    } catch (error) {
+      console.error('Upload failed:', error?.response?.data || error.message);
+      alert(error.response?.data?.message || 'Upload failed.');
+    }
+
+    getData();
+    setOpenEditModal(false);
+  };
+
+
+  // File input handler
+  const handleEditFileUpload = (event) => {
+    setEditSelectedFile(event.target.files[0]);
+  };
