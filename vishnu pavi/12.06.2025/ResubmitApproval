@@ -1,0 +1,48 @@
+
+ALTER PROCEDURE [dbo].[ResubmitApproval]
+    @DocId INT,
+    @UserId INT,
+    @Trn_Sap_ID INT,
+    @Action NVARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Check if there is any approval history for this document
+    IF EXISTS (
+        SELECT *
+        FROM Trn_Approval_History
+        WHERE Doc_ID = @DocId
+    )
+    BEGIN
+        -- 1. Update Trn_SapTransfer_Records: change status to 'Pending' if currently 'Rejected' or 'Under Query'
+        UPDATE Trn_SapTransfer_Records
+        SET 
+            Approval_Status = 'Pending',
+            Modified_By = @UserId,
+            Modified_On = GETDATE()
+        WHERE Doc_ID = @DocId
+          AND Trn_Sap_ID = @Trn_Sap_ID
+          AND (Approval_Status = 'Rejected' OR Approval_Status = 'Under Query');
+
+        -- 2. Update Trn_Approval_History: change status to 'Pending' if currently 'Rejected' or 'Under Query'
+        UPDATE Trn_Approval_History
+        SET
+            Approver_Status = 'Pending',
+            Modified_By = @UserId,
+            Modified_On = GETDATE()
+        WHERE Doc_ID = @DocId
+          AND (Approver_Status = 'Rejected' OR Approver_Status = 'Under Query');
+
+        -- 3. Only update trn_document if ALL related rows in both tables have status 'Pending'
+     
+            UPDATE trn_document
+            SET
+                Approval_Status = 'Pending',
+                Modified_By = @UserId,
+                Modified_On = GETDATE()
+            WHERE Doc_ID = @DocId
+              AND (Approval_Status = 'Rejected' OR Approval_Status = 'Under Query');
+    
+    END
+END
