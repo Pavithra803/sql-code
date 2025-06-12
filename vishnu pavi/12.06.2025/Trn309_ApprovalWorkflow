@@ -1,3 +1,13 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[Trn309_ApprovalWorkflow]    Script Date: 12-06-2025 13:52:52 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+
 
 
 ALTER PROCEDURE [dbo].[Trn309_ApprovalWorkflow]
