@@ -1,0 +1,155 @@
+          {/* ✅ Add Button */}
+          <IconButton
+            color="primary"
+            onClick={handleOpenAddModal}
+            style={{
+              borderRadius: "50%",
+              backgroundColor: "#0099FF",
+              color: "white",
+              width: "40px",
+              height: "40px",
+            }}
+          >
+            <AddIcon />
+          </IconButton>
+
+
+
+      {/* Add modal - now modal only not work*/}
+      <Modal open={openAddModal} onClose={() => setOpenAddModal(false)}>
+        <Box
+          sx={{
+            width: 400,
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 4,
+            margin: 'auto',
+            marginTop: '10%',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '15px',
+          }}
+        ><h3
+          style={{
+            gridColumn: 'span 2',
+            textAlign: 'center',
+            marginBottom: '15px',
+            color: 'blue',
+            textDecoration: 'underline',
+            textDecorationColor: 'limegreen',
+            textDecorationThickness: '3px',
+          }}
+        >
+            Add New Record
+          </h3>
+          <FormControl fullWidth>
+            <InputLabel>Plant Code</InputLabel>
+            <Select
+              label="Plant Code"
+              name="PlantCode"
+              value={PlantCode}
+              onChange={(e) => setPlantCode(e.target.value)}
+            >
+              {PlantTable.map((item, index) => (
+                <MenuItem key={index} value={item.Plant_Id}>{item.Plant_Code}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            label="Date"
+            name="Date"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={Date}
+            onChange={(e) => setDate(e.target.value)}
+            fullWidth
+            required
+          />
+          <FormControl fullWidth>
+            <InputLabel>FromMatCode</InputLabel> {/* Fix: Closing the InputLabel tag */}
+            <Select
+              label="FromMatCode"
+              name="FromMatCode"
+              value={FromMatCode}
+              onChange={(e) => setFromMatCode(e.target.value)}
+              required
+            >
+              {MaterialTable.map((item, index) => (
+                <MenuItem key={index} value={item.Material_ID}>{item.Material_Code}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth>
+            <InputLabel>ToMatCode</InputLabel> {/* Fix: Closing the InputLabel tag */}
+            <Select
+              label="ToMatCode"
+              name="ToMatCode"
+              value={ToMatCode}
+              onChange={(e) => setToMatCode(e.target.value)}
+              required
+            >
+              {MaterialTable.map((item, index) => (
+                <MenuItem key={index} value={item.Material_ID}>{item.Material_Code}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            label="Net Different Price"
+            name="NetDifferentPrice"
+            value={NetDifferentPrice}
+            onChange={(e) => setNetDifferentPrice(e.target.value)}
+            required
+            fullWidth
+          />
+          <FormControl fullWidth>
+            <InputLabel>Approval Status</InputLabel>
+            <Select
+              label="Approval Status"
+              name="ApprovalStatus"
+              value={ApprovalStatus}
+              onChange={(e) => setApprovalStatus(e.target.value)}
+              required
+            >
+              {/* Check if `data` is an array and has items */}
+              {Array.isArray(data) && data.length > 0 ? (
+                data.map((item) => (
+                  <MenuItem key={item.Plant_Code} value={item.Approval_Status}>
+                    {item.Approval_Status}
+                  </MenuItem>
+                ))
+              ) : (
+                <MenuItem disabled>No approval statuses available</MenuItem>
+              )}
+            </Select>
+          </FormControl>
+
+          <Box
+            sx={{
+              gridColumn: 'span 2',
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '10px',
+              marginTop: '15px',
+            }}
+          >
+            <Button variant="contained" color="error" onClick={() => setOpenAddModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              style={{ width: '90px' }}
+              variant="contained"
+              color="primary"
+              onClick={handleAdd}
+            >
+              Add
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+
