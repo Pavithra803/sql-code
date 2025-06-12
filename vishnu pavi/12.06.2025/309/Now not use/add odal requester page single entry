@@ -13,7 +13,36 @@
             <AddIcon />
           </IconButton>
 
+-------------
 
+  // ✅ Handle Add Material
+  const handleAdd = async () => {
+
+    console.log("Add button clicked")
+    if (PlantCode === '' || Date === '' || FromMatCode === '' || ToMatCode === '' || NetDifferentPrice === '' || ApprovalStatus === '') {
+      alert("Please fill in all required fields");
+      return;  // Exit the function if validation fails
+    }
+    try {
+      const data = {
+        UserID: UserID,
+        Plant_Code: PlantCode,
+        Date: Date,
+        From_Mat_Code: FromMatCode,
+        To_Mat_Code: ToMatCode,
+        Net_Different_Price: NetDifferentPrice,
+        Approval_Status: ApprovalStatus,
+      }
+      const response = await getAdd(data);
+      alert(response.data.message);
+      getData();
+      handleCloseAddModal();
+    } catch (error) {
+      console.error(error)
+    }
+  };
+
+------------------------
 
       {/* Add modal - now modal only not work*/}
       <Modal open={openAddModal} onClose={() => setOpenAddModal(false)}>
