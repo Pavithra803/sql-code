@@ -1,0 +1,12 @@
+| Plant\_Code | EmployeeID | UserName          | Department | Role               | UserLevel                     | Email                                                                           |
+| ----------- | ---------- | ----------------- | ---------- | ------------------ | ----------------------------- | ------------------------------------------------------------------------------- |
+| 1000        | 05906      | Sujatha K         | FINANCE    | CORP MRPC          | L3.FUNCTIONAL HEAD/PLANT HEAD | [ka.vishnupriya-contr@ranegroup.com](mailto:ka.vishnupriya-contr@ranegroup.com) |
+| 1150        | 13815      | Vel Ramesh C      | PRODUCTION | PLANT MRPC         | L2.DEPARTMENT HEAD            | [n.pavithra-contr@ranegroup.com](mailto:n.pavithra-contr@ranegroup.com)         |
+| 1150        | 12986      | Balaji B          | CMED       | REQUESTER          | L1.CREATOR/REQUESTOR          | [b.balaji@ranegroup.com](mailto:b.balaji@ranegroup.com)                         |
+| 1150        | 13854      | Vijay K           | FINANCE    | PLANT FINANCE HEAD | L2.DEPARTMENT HEAD            | [k.vijay@ranegroup.com](mailto:k.vijay@ranegroup.com)                           |
+| 1150        | 03867      | Bhargav S         | PRODUCTION | PLANT HEAD         | L3.FUNCTIONAL HEAD/PLANT HEAD | [s.bhargav@ranegroup.com](mailto:s.bhargav@ranegroup.com)                       |
+| 1150        | 15843      | Merlyn Jesu Raj P | FINANCE    | CORP FINANCE HEAD  | L3.FUNCTIONAL HEAD/PLANT HEAD | [p.merlynjesuraj@ranegroup.com](mailto:p.merlynjesuraj@ranegroup.com)           |
+| 1300        | 14992      | Saranraj I        | MARKETING  | PLANT MRPC         | L2.DEPARTMENT HEAD            | [ka.vishnupriya-contr@ranegroup.com](mailto:ka.vishnupriya-contr@ranegroup.com) |
+| 1300        | 15521      | Loganathan M      | FINANCE    | PLANT FINANCE HEAD | L2.DEPARTMENT HEAD            | [sm.loganathan@ranegroup.com](mailto:sm.loganathan@ranegroup.com)               |
+| 1300        | 03854      | Thiagarajan R     | QUALITY    | PLANT HEAD         | L3.FUNCTIONAL HEAD/PLANT HEAD | [r.thiagarajan@ranegroup.com](mailto:r.thiagarajan@ranegroup.com)               |
+| 1300        | 03723      | Adhavan K         | CMED       | REQUESTER          | L1.CREATOR/REQUESTOR          | [k.adhavan@ranegroup.com](mailto:k.adhavan@ranegroup.com)                       |
