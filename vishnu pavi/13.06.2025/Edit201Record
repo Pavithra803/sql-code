@@ -1,0 +1,82 @@
+
+
+alter procedure Edit201Record
+  @DocID VARCHAR(50),
+  @TrnSapID INT,
+  @MatCode VARCHAR(50),
+  @Qty INT,
+  @SLocCode VARCHAR(50),
+  @CostCenterCode VARCHAR(50),
+  @Price DECIMAL(18,2),
+  @ValuationType VARCHAR(50),
+  @Batch VARCHAR(50),
+  @ModifiedBy INT
+AS
+BEGIN
+  SET NOCOUNT ON;
+
+  DECLARE @MaterialID INT, @SLocID INT, @CostCenterID INT, @PlantID INT;
+
+  -- Fetch Plant_ID from existing transaction
+  SELECT @PlantID = Plant_ID
+  FROM Trn_SapTransfer_Records
+  WHERE Doc_ID = @DocID AND Trn_Sap_ID = @TrnSapID;
+
+  IF @PlantID IS NULL
+  BEGIN
+    RAISERROR('Plant ID not found for the given transaction.', 16, 1);
+    RETURN;
+  END
+
+  -- Resolve IDs
+  SELECT @MaterialID = Material_ID
+  FROM Mst_Material
+  WHERE Material_Code = @MatCode AND Plant_ID = @PlantID;
+
+  SELECT @SLocID = SLoc_ID
+  FROM Mst_Storage_Location
+  WHERE Storage_Code = @SLocCode AND Plant_ID = @PlantID;
+
+  SELECT @CostCenterID = CostCenter_ID
+  FROM Mst_Cost_Center
+  WHERE CostCenter_Code = @CostCenterCode AND Plant_ID = @PlantID;
+
+  -- Validation checks
+  IF @MaterialID IS NULL
+  BEGIN
+    RAISERROR('Material Code not valid for this plant.', 16, 1);
+    RETURN;
+  END
+
+  IF @SLocID IS NULL
+  BEGIN
+    RAISERROR('Storage Location not valid for this plant.', 16, 1);
+    RETURN;
+  END
+
+  IF @CostCenterID IS NULL
+  BEGIN
+    RAISERROR('Cost Center not valid for this plant.', 16, 1);
+    RETURN;
+  END
+
+  -- Perform update
+  UPDATE Trn_SapTransfer_Records
+  SET 
+      Material_ID = @MaterialID,
+      SLoc_ID = @SLocID,
+      CostCenter_ID = @CostCenterID,
+      Valuation_Type = @ValuationType,
+      Batch = @Batch,
+      Rate_PerPart = @Price,
+      Qty = @Qty,
+      Modified_By = @ModifiedBy,
+      Modified_On = GETDATE()
+  WHERE Doc_ID = @DocID AND Trn_Sap_ID = @TrnSapID;
+
+  -- Optional: Reset approval status if required
+  -- UPDATE Trn_SapTransfer_Records
+  -- SET Approval_Status = 'Pending'
+  -- WHERE Doc_ID = @DocID AND Trn_Sap_ID = @TrnSapID;
+
+END;
