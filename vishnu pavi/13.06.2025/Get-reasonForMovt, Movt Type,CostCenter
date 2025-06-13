@@ -1,0 +1,71 @@
+
+
+-------------------------------------------------
+CREATE PROCEDURE GetActiveMovementType
+AS
+BEGIN
+   SELECT
+       m.Movement_ID,
+       m.Movement_Code
+   FROM
+       Mst_Movement_Type m
+   WHERE
+       m.Active_Status = 1
+END;
+
+
+----------------------------------------------
+
+ALTER PROCEDURE GetActiveCostCentertType
+AS
+BEGIN
+
+SELECT
+   cc.CostCenter_ID,
+   cc.CostCenter_Code,
+   cc.CostCenter_Name
+FROM
+   Mst_Cost_Center cc
+   JOIN Mst_Plant P ON cc.Plant_ID = P.Plant_ID
+WHERE
+   cc.Active_Status = 1
+END;
+
+
+
+
+----------------------------------------------------------------
+ALTER PROCEDURE GetActiveReasonForMovementType
+    @ReasonForMovt NVARCHAR(255) = NULL
+AS
+BEGIN
+   SELECT
+       mli.Movt_List_ID,
+       mli.Movement_ID,
+       mli.Movement_List_Code,
+       mli.Movement_List_Name,
+       mt.Movement_Code
+   FROM
+       Mst_Movement_List_Item mli
+   INNER JOIN
+       Mst_Movement_Type mt ON mli.Movement_ID = mt.Movement_ID
+   WHERE
+       mli.Active_Status = 1
+       AND mt.Active_Status = 1
+       AND mli.Movement_ID = 2 -- Only reasons for Movement_ID = 2 (201)
+       AND (
+            @ReasonForMovt IS NULL OR
+            REPLACE(LTRIM(RTRIM(mli.Movement_List_Code)) + '-' + LTRIM(RTRIM(mli.Movement_List_Name)), ' ', '') 
+                = REPLACE(LTRIM(RTRIM(@ReasonForMovt)), ' ', '')
+       )
+END;
+
+
+---------------------------------------------------------------
+
+select * from Mst_Movement_Type
+select * from Mst_Cost_Center
+select * from Mst_Movement_List_Item
+
+
+ResubmitApproval201
