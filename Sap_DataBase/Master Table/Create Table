@@ -93,7 +93,7 @@ CREATE TABLE Mst_Storage_Location (
     Modified_On DATETIME
 );
 ALTER TABLE Mst_Storage_Location
-ADD Str_ID INT;
+ADD Supv_ID INT;
 
 --T 7 Mst Cost Center
 
