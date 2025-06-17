@@ -1,0 +1,62 @@
+
+
+ALTER PROCEDURE [dbo].[Resubmit201Approval] 
+    @DocId INT,
+    @UserId INT,
+    @Trn_Sap_ID INT,
+    @Action NVARCHAR(20)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Get Movement_ID for the selected Trn_Sap_ID
+    DECLARE @Movement_ID INT;
+
+    SELECT @Movement_ID = Movement_ID
+    FROM Trn_SapTransfer_Records
+    WHERE Trn_Sap_ID = @Trn_Sap_ID
+      AND Doc_ID = @DocId;
+
+    IF @Movement_ID IS NULL
+    BEGIN
+        RAISERROR('Invalid Trn_Sap_ID or Doc_ID', 16, 1);
+        RETURN;
+    END
+
+    -- 1. Update the specific transfer record row
+    UPDATE Trn_SapTransfer_Records
+    SET 
+        Approval_Status = 'Pending',
+        Modified_By = @UserId,
+        Modified_On = GETDATE()
+    WHERE Doc_ID = @DocId
+      AND Trn_Sap_ID = @Trn_Sap_ID
+      AND Approval_Status = 'Under Query';
+
+    -- 2. Update related approval history rows for this Doc_ID and Movement_ID
+    UPDATE Trn_Approval_History
+    SET
+        Approver_Status = 'Pending',
+        Modified_By = @UserId,
+        Modified_On = GETDATE()
+    WHERE Doc_ID = @DocId
+      AND Movement_ID = @Movement_ID
+      AND Approver_Status = 'Under Query';
+
+    -- 3. Update the document approval status only if ALL rows for this Doc_ID are 'Pending'
+    IF NOT EXISTS (
+        SELECT 1
+        FROM Trn_SapTransfer_Records
+        WHERE Doc_ID = @DocId
+          AND Approval_Status <> 'Pending'
+    )
+    BEGIN
+        UPDATE trn_document
+        SET
+            Approval_Status = 'Pending',
+            Modified_By = @UserId,
+            Modified_On = GETDATE()
+        WHERE Doc_ID = @DocId
+          AND Approval_Status = 'Under Query';
+    END
+END;
