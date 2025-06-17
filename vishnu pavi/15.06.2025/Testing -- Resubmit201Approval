@@ -60,3 +60,52 @@ BEGIN
           AND Approval_Status = 'Under Query';
     END
 END;
+
+
+----------------
+
+
+
+
+
+
+
+select * from Trn_Approval_History where Doc_ID=7
+
+select * from Trn_Document where Doc_ID=7
+
+select * from Trn_SapTransfer_Records where Doc_ID=7
+
+select * from Trn_Inward_Old_Invoice
+
+------------------------------------------
+select * from Mst_Material where Plant_ID=3
+
+select * from Mst_Plant where Plant_ID=3
+
+select * from Mst_Cost_Center where Plant_ID=3
+
+select * from Mst_Storage_Location where Plant_ID=3
+
+select * from Mst_User where Plant_ID=3
+
+select * from Mst_Role
+
+SELECT * FROM Mst_Cost_Center WHERE CostCenter_ID = 14 AND Plant_ID = 3 AND Active_Status = 1;
+
+
+
+
+
+
+
+------------------------------------
+Truncate table Trn_Approval_History
+Truncate table Trn_Document
+Truncate table Trn_SapTransfer_Records
+
+update Trn_Approval_History set Approver_Status='Under Query' where Doc_ID=7
+
+update Trn_Document set Approval_Status='Under Query' where Doc_ID=7
+
+update Trn_SapTransfer_Records set Approval_Status='Under Query' where Doc_ID=7 and Approval_Status= 'Rejected'
