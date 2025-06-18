@@ -1,0 +1,102 @@
+
+
+
+select * from Trn_Approval_History 
+select * from Trn_Document  
+select * from Trn_SapTransfer_Records  
+
+select * from Trn_Approval_History  where Doc_ID=7
+select * from Trn_Document  where Doc_ID=7
+select * from Trn_SapTransfer_Records  where Doc_ID=3
+
+
+select * from Mst_Material where Plant_ID=5
+
+select * from Mst_Plant where Plant_ID=5
+
+select * from Mst_Cost_Center where Plant_ID=5
+
+select * from Mst_Storage_Location where Plant_ID=5
+
+select * from Mst_User where Plant_ID=5  -- 202 5 plant  
+
+select * from Mst_Role
+
+select  * from Mst_Screen
+
+select  * from Mst_Access
+
+
+-- role id - user level id = r1 u1 | r2-u2 | r3- u2| r4-u2 | r5-u3 | r6-u3 | r7-u3 | r8-u4 | r9-u3
+
+
+
+UPDATE Mst_User SET User_Level_ID=3 WHERE User_ID=53
+
+
+Truncate table Trn_Approval_History
+Truncate table Trn_Document
+Truncate table Trn_SapTransfer_Records
+
+update Trn_Approval_History set Approver_Status='Under Query' where Doc_ID=7
+
+update Trn_Document set Approval_Status='Under Query' where Doc_ID=7
+
+update Trn_SapTransfer_Records set Approval_Status='Under Query' where Doc_ID=7
+
+update Mst_Screen set Screen_Name='Approval_551', Screen_Code='Approval_551' where Screen_ID=26
+
+INSERT INTO Mst_Screen (Screen_Name, Screen_Code, Screen_Type, Active_Status, Created_By, Created_On)
+VALUES 
+
+('Approval_511', 'Approval_511', 'Approval', '1', '1', GETDATE()),
+('Approval_311', 'Approval_311', 'Approval', '1', '1', GETDATE())
+;
+
+ALTER TABLE Trn_SapTransfer_Records
+DROP COLUMN Provision_Qty;
+DROP TABLE Trn_SapTransfer_Records;
+
+
+
+
+CREATE TABLE Trn_SapTransfer_Records (
+    Trn_Sap_ID INT IDENTITY(1,1) PRIMARY KEY,
+
+    Doc_ID INT,
+    Movement_ID INT,
+
+    Plant_ID INT,
+    SLoc_ID INT,
+    To_SLoc_ID INT,
+
+    Material_Type NVARCHAR(4),  -- No FK / keeping type same as in Mst_Material
+    Material_ID INT,
+    To_Material_ID INT,
+
+    Rate_PerPart DECIMAL(6,2),
+    To_Rate_309 DECIMAL(6,2),
+
+    Qty INT,
+    Provision_Qty INT,          
+	
+    Provision_Value DECIMAL(18,2),  
+    Value DECIMAL(18,2),  -- Value = Qty * Rate
+
+    Movt_List_ID INT,
+
+    Remarks NVARCHAR(255),
+
+    CostCenter_ID INT,
+    Valuation_Type NVARCHAR(50),
+    Batch NVARCHAR(50),
+
+    Approval_Status NVARCHAR(50),
+    SAP_Process_Status NVARCHAR(50),
+
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
+
