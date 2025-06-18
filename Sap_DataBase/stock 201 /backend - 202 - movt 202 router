@@ -1,0 +1,647 @@
+'use strict';
+const express = require('express');
+const morgan = require('morgan');
+const cors = require('cors');
+const db = require('../db');
+require('dotenv').config();
+const path = require('path');
+
+
+const xlsx = require('xlsx');
+const sql = require('mssql');
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload_1 = multer({ storage });
+
+// const sql = db.sqlDb;
+const bodyParser = require('body-parser');
+const Movement202 = express.Router();
+
+Movement202.use(cors()); // Enable CORS
+Movement202.use(morgan('short')); // Log requests
+Movement202.use(express.json()); // Middleware for parsing JSON request bodies
+
+const corsOptions = {
+  origin: true,
+  credentials: true
+}
+Movement202.options('*', cors(corsOptions));
+Movement202.use(bodyParser.urlencoded({ extended: false }));
+Movement202.use(bodyParser.json());
+
+
+
+
+// POST route to handle file uploads for Trn_202_Movement
+
+
+// At the top of your file or before usage:
+
+function isValidDecimal(value) {
+  return !isNaN(value) && parseFloat(value) > 0;
+}
+
+function sanitize(value) {
+  if (value === undefined || value === null) return '';
+  return String(value).trim();
+}
+
+Movement202.post('/File', upload_1.single('User_Add'), async (req, res) => {
+  console.log('Uploaded File:', req.file);
+  console.log('dsfvd', req.body);
+
+  try {
+
+
+    const pool = await db.poolPromise;
+
+    // Step 2: Validate file upload
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded. Please upload a file.' });
+    }
+
+    // Step 4: Process the file
+    const workbook = xlsx.read(req.file.buffer, { type: 'array' });
+
+    // Step 5: Validate that the uploaded file has sheets
+    if (workbook.SheetNames.length === 0) {
+      return res.status(400).json({ error: 'No sheets in the uploaded file.' });
+    }
+
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    // Step 6: Validate that the sheet is not empty
+    if (!sheet) {
+      return res.status(400).json({ error: 'The sheet is empty or missing data.' });
+    }
+
+    // Step 7: Convert the sheet data to JSON for further processing
+    const data = xlsx.utils.sheet_to_json(sheet, { defval: '' });
+
+    if (data.length === 0) {
+      return res.status(400).json({ error: 'No data found in the sheet.' });
+    }
+
+    // Step 8: Validate expected columns
+    const expectedColumns = [
+      'Plant_Code', 'Material_Code', 'Quantity', 'SLoc_Code', 'Reason_For_Movt',
+      'CostCenter_Code', 'Movement_Code', 'Valuation_Type', 'Batch', 'Rate_Per_Unit'
+    ];
+
+    // Qty, Batch, Rate_Per_Unit
+    const actualColumns = Object.keys(data[0] || {});
+
+    const mismatchedColumns = expectedColumns.filter(col => !actualColumns.includes(col));
+
+    if (mismatchedColumns.length > 0) {
+      return res.status(400).json({
+        message: `Invalid column names: ${mismatchedColumns.join(', ')}`
+      });
+    }
+
+    // Step 9: Validate data integrity
+    const emptyData = [];
+    const validData = [];
+    const invalidQuantity = [];
+    const invalidRate = [];
+     const NullBatch = [];
+     const NullQty = [];
+     //const invalidPlant = [];
+     const invalidMovt = [];
+
+
+
+    // ✅ Function to validate decimal(18,2)
+    function isValidDecimal(value) {
+      const decimalPattern = /^\d{1,18}(\.\d{1,2})?$/;
+      return decimalPattern.test(value) && Number(value) > 0;
+    }
+
+    data.forEach(entry => {
+      if (entry.Plant_Code === '' ||
+        entry.Material_Code === '' ||
+        entry.Quantity === '' ||
+        entry.SLoc_Code === '' ||
+        entry.Valuation_Type === '' ||
+        entry.Batch === '' ||
+        entry.Rate_Per_Unit === '' ||
+        entry.Reason_For_Movt === ''
+ ) {
+        emptyData.push(entry)
+      }
+      
+    //     else if (entry.Plant_Code != 1250) {
+    //     invalidPlant.push(entry);
+    //  }
+
+        else if (entry.Movement_Code != 202) {
+        invalidMovt.push(entry);
+     }
+
+      else if (entry.Quantity === 0) {
+        invalidQuantity.push(entry);
+      }
+
+      else if (entry.Quantity === 'Null' ||
+        entry.Quantity === 'null' ) {
+        NullQty.push(entry)
+      }
+
+      else if (entry.Batch === 'Null' ||
+        entry.Batch === 'null') {
+        NullBatch.push(entry)
+      }
+
+      else if (!isValidDecimal(entry.Rate_Per_Unit)) {
+        invalidRate.push(entry);
+      } 
+      
+      
+      
+      
+      else {
+        validData.push(entry);
+      }
+    });
+
+    if (emptyData.length > 0) {
+      return res.status(400).json({
+        message: 'Uploaded file contains blank columns.'
+      });
+    } else if (invalidQuantity.length > 0) {
+      return res.status(400).json({
+        message: 'Uploaded file contains 0 value for Quantity.'
+      });
+    } else if (invalidRate.length > 0) {
+      return res.status(400).json({
+        message: 'Uploaded file contains invalid rate (should be a decimal(18,2)).'
+      });
+    } else {
+
+      console.log('valud data :', validData)
+      
+      console.log('valud data length :', validData.length)
+      const request = pool.request();
+      const table = new sql.Table("#trn202");
+      table.create = true;
+
+      table.columns.add('Plant_Code', sql.Int, { nullable: false });
+      table.columns.add('Material_Code', sql.NVarChar(50), { nullable: false });
+      table.columns.add('Quantity', sql.Decimal(18, 2), { nullable: false });
+      table.columns.add('SLoc_Code', sql.NVarChar(50), { nullable: false });
+      table.columns.add('Reason_For_Movt', sql.NVarChar(sql.MAX), { nullable: true });
+      table.columns.add('CostCenter_Code', sql.NVarChar(50), { nullable: false });
+      table.columns.add('Movement_Code', sql.NVarChar(50), { nullable: false });
+      table.columns.add('Valuation_Type', sql.NVarChar(50), { nullable: true });
+      table.columns.add('Batch', sql.NVarChar(50), { nullable: true });
+      table.columns.add('Rate_Per_Unit', sql.Decimal(18, 2), { nullable: false });
+
+
+      //Invalid column names: Quantity, CostCenter_Code, Movement_Code, Batch, Rate_Unit, Remark, User_ID, Approval_Status, SAP_Transaction_Status
+
+      // Insert valid data into the table
+      validData.forEach((item) => {
+
+        // console.log(`Inserting row ${index + 2}:`, item);
+        const PlantID = String(item.Plant_Code);
+        const MaterialID = item.Material_Code;
+        //  const Quantity = item.Qty;
+        const SLocID = item.SLoc_Code;
+        // const ReasonForMovt = item.Reason_for_Movt;
+        const CostCenterID = item.CostCenter_Code;
+        const MovementID = item.Movement_Code;
+        const ValuationType = item.Valuation_Type;
+        const Batch = item.Batch;
+        const RateUnit = parseFloat(item.Rate_Per_Unit);
+        //const RateUnit = item.Rate_Per_Unit;
+        const Quantity = item.Quantity;              // Correct key from your Excel
+        const ReasonForMovt = item.Reason_For_Movt;          // Correct key from your Excel
+
+
+        table.rows.add(
+
+          `${PlantID}`,
+          `${MaterialID}`,
+          `${Quantity}`,
+          `${SLocID}`,
+          `${ReasonForMovt}`,
+          `${CostCenterID}`,
+          `${MovementID}`,
+          `${ValuationType}`,
+          `${Batch}`,
+          //`${RateUnit}`,
+
+          RateUnit // This should be a number for Decimal
+  
+
+        );
+      });
+
+
+      console.log('table', table);
+      await request.bulk(table);
+      // const{Movement_Code}=req.body; 
+      const UserID = req.body.UserID;  // Get value properly
+      request.input('Created_By', UserID);
+     
+      const insertData = await request
+
+        .execute('UploadTrn202SapTransferRecord');
+      console.log('insert data', insertData);
+     // res.status(200).json({
+        //message: 'Data uploaded successfully',
+       // result: insertData.recordsets});
+
+   res.status(200).json({
+     message: 'File uploaded and validated successfully!',
+     NewRecord: insertData.recordsets[1] || [],    // Newly inserted
+     DuplicateRecords: insertData.recordsets[2] || [],   //  Duplicate
+     ErrorRecords: insertData.recordsets[0] || [],  // Invalids
+
+      });
+ 
+    }
+    
+  } catch (error) {
+    console.error('Error while processing the file:', error);
+    res.status(500).send('Error while processing the file.');
+  }
+});
+
+
+
+
+
+
+Movement202.post('/FileReupload', upload_1.single('User_Add'), async (req, res) => {
+  console.log('Uploaded File:', req.file);
+  console.log('Received body:', req.body);
+
+  try {
+    const rawDocId = req.body.Doc_ID;
+     const Trn_Sap_ID= req.body.trnSapId;
+    const Doc_ID = parseInt(rawDocId, 10);
+
+    if (isNaN(Doc_ID)) {
+      return res.status(400).json({ message: `Invalid Doc_ID: ${rawDocId}` });
+    }
+
+    const pool = await db.poolPromise;
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded. Please upload a file.' });
+    }
+
+    const workbook = xlsx.read(req.file.buffer, { type: 'array' });
+
+    if (workbook.SheetNames.length === 0) {
+      return res.status(400).json({ error: 'No sheets in the uploaded file.' });
+    }
+
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    if (!sheet) {
+      return res.status(400).json({ error: 'The sheet is empty or missing data.' });
+    }
+
+    const data = xlsx.utils.sheet_to_json(sheet, { defval: '' });
+
+    if (data.length === 0) {
+      return res.status(400).json({ error: 'No data found in the sheet.' });
+    }
+
+    const expectedColumns = [
+      'Trn_Sap_ID','Doc_ID', 'Plant_Code', 'Material_Code', 'Quantity', 'SLoc_Code',
+      'Reason_For_Movt', 'CostCenter_Code', 'Movement_Code',
+      'Valuation_Type', 'Batch', 'Rate_Per_Unit'
+    ];
+
+    const actualColumns = Object.keys(data[0] || {});
+    const mismatchedColumns = expectedColumns.filter(col => !actualColumns.includes(col));
+
+    if (mismatchedColumns.length > 0) {
+      return res.status(400).json({
+        message: `Invalid column names: ${mismatchedColumns.join(', ')}`
+      });
+    }
+
+    const emptyData = [];
+    const validData = [];
+    const invalidQuantity = [];
+    const invalidRate = [];
+    const NullBatch = [];
+    const NullQty = [];
+    const invalidMovt = [];
+
+    const isValidDecimal = (value) => {
+      const decimalPattern = /^\d{1,18}(\.\d{1,2})?$/;
+      return decimalPattern.test(value) && Number(value) > 0;
+    };
+
+    data.forEach(entry => {
+      if (
+         entry.Trn_Sap_ID === '' ||
+        entry.Doc_ID === '' ||
+        entry.Plant_Code === '' ||
+        entry.Material_Code === '' ||
+        entry.Quantity === '' ||
+        entry.SLoc_Code === '' ||
+        entry.Valuation_Type === '' ||
+        entry.Batch === '' ||
+        entry.Rate_Per_Unit === '' ||
+        entry.Reason_For_Movt === ''
+      ) {
+        emptyData.push(entry);
+      } else if (entry.Movement_Code != 202) {
+        invalidMovt.push(entry);
+      } else if (entry.Quantity === 0) {
+        invalidQuantity.push(entry);
+      } else if (entry.Quantity.toLowerCase?.() === 'null') {
+        NullQty.push(entry);
+      } else if (entry.Batch.toLowerCase?.() === 'null') {
+        NullBatch.push(entry);
+      } else if (!isValidDecimal(entry.Rate_Per_Unit)) {
+        invalidRate.push(entry);
+      } else {
+        validData.push(entry);
+      }
+    });
+
+    if (emptyData.length > 0) {
+      return res.status(400).json({ message: 'Uploaded file contains blank columns.' });
+    } else if (invalidQuantity.length > 0) {
+      return res.status(400).json({ message: 'Uploaded file contains 0 value for Quantity.' });
+    } else if (invalidRate.length > 0) {
+      return res.status(400).json({ message: 'Uploaded file contains invalid rate (should be a decimal(18,2)).' });
+    } else {
+      console.log('Valid data length:', validData.length);
+      const request = pool.request();
+
+      const table = new sql.Table("#trn202");
+      table.create = true;
+      table.columns.add('Doc_ID', sql.Int, { nullable: false });
+        table.columns.add('Trn_Sap_ID', sql.Int, { nullable: false });
+      table.columns.add('Plant_Code', sql.Int, { nullable: false });
+      table.columns.add('Material_Code', sql.NVarChar(50), { nullable: false });
+      table.columns.add('Quantity', sql.Decimal(18, 2), { nullable: false });
+      table.columns.add('SLoc_Code', sql.NVarChar(50), { nullable: false });
+      table.columns.add('Reason_For_Movt', sql.NVarChar(sql.MAX), { nullable: true });
+      table.columns.add('CostCenter_Code', sql.NVarChar(50), { nullable: false });
+      table.columns.add('Movement_Code', sql.NVarChar(50), { nullable: false });
+      table.columns.add('Valuation_Type', sql.NVarChar(50), { nullable: true });
+      table.columns.add('Batch', sql.NVarChar(50), { nullable: true });
+      table.columns.add('Rate_Per_Unit', sql.Decimal(18, 2), { nullable: false });
+
+      validData.forEach((item) => {
+         const Trn_Sap_ID = String(item.Trn_Sap_ID);
+         // console.log(`Inserting row ${index + 2}:`, item);
+          const Doc_ID = String(item.Doc_ID);
+        const PlantID = String(item.Plant_Code);
+        const MaterialID = item.Material_Code;
+        //  const Quantity = item.Qty;
+        const SLocID = item.SLoc_Code;
+        // const ReasonForMovt = item.Reason_for_Movt;
+        const CostCenterID = item.CostCenter_Code;
+        const MovementID = item.Movement_Code;
+        const ValuationType = item.Valuation_Type;
+        const Batch = item.Batch;
+        const RateUnit = parseFloat(item.Rate_Per_Unit);
+        //const RateUnit = item.Rate_Per_Unit;
+        const Quantity = item.Quantity;              // Correct key from your Excel
+        const ReasonForMovt = item.Reason_For_Movt;          // Correct key from your Excel
+
+        table.rows.add(
+           `${Trn_Sap_ID}`,
+           `${Doc_ID}`,
+          `${PlantID}`,
+          `${MaterialID}`,
+          `${Quantity}`,
+          `${SLocID}`,
+          `${ReasonForMovt}`,
+          `${CostCenterID}`,
+          `${MovementID}`,
+          `${ValuationType}`,
+          `${Batch}`,
+          //`${RateUnit}`,
+
+          RateUnit // This should be a number for Decimal
+  
+        );
+      });
+
+      await request.bulk(table);
+
+      request.input('Created_By', req.body.UserID);
+      request.input('Doc_ID', sql.Int, Doc_ID);
+      request.input('Trn_Sap_ID', sql.Int, Trn_Sap_ID); 
+      
+      const insertdata = await request.execute('ReUploadTrn202SapTransferRecord');
+
+      res.status(200).json({
+        message: 'File uploaded and validated successfully!',
+        ReUploadRecord: insertdata.recordsets[0] || [],  
+        ErrorRecords: insertdata.recordsets[1] || [],  
+
+      });
+    }
+
+  } catch (error) {
+    console.error('Error while processing the file:', error);
+    res.status(500).send('Error while processing the file.');
+  }
+});
+
+
+
+
+// GET route to fetch movement data for Trn_202_Movement
+Movement202.get('/get_details', async (req, res) => {
+  console.log('req query', req.query);
+  try {
+    const pool = await db.poolPromise;
+    //console.log('Pool initialized:', pool);
+    const user = req.query.userid;
+    if (!pool || !pool.request) {
+      console.error('Database pool not initialized or request method is not available.');
+      return res.status(500).json({ success: false, message: 'Internal Server Error: Pool not initialized' });
+    }
+
+    // Execute a stored procedure or query to fetch the movement details
+    const result = await pool.request()
+      .input('Created', user)
+      .execute('GetTrnSap202Movt'); // Replace with the actual stored procedure name
+
+
+
+    res.json(result.recordset); // Send the data as a response
+  } catch (error) {
+    console.error('❌ Error fetching movement details:', error.message, error.stack);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+});
+// // POST route for adding material movement to Trn_202Movement
+// Movement202.post('/Get_Add', async (req, res) => {
+//   console.log(req.body);
+
+//   try {
+//     // Extract values from the request body
+//     const {
+//       Doc_ID,
+//       Plant_ID,
+//       Material_ID,
+//       Quantity,
+//       SLoc_ID,
+//       CostCenter_ID,
+//       Movement_ID,
+//       Valuation_Type,
+//       Batch,
+//       Rate_Unit,
+//       Reason_For_Movt,
+//       User_ID,
+//       Approval_Status,
+//       SAP_Transaction_Status
+//     } = req.body;
+
+//     const pool = await db.poolPromise;
+
+//     const result = await pool.request()
+//       .input('Doc_ID', sql.Int, Doc_ID)
+//       .input('Plant_ID', sql.Int, Plant_ID)
+//       .input('Material_ID', sql.Int, Material_ID)
+//       .input('Quantity', sql.Int, Quantity)
+//       .input('SLoc_ID', sql.Int, SLoc_ID)
+//       .input('CostCenter_ID', sql.Int, CostCenter_ID)
+//       .input('Movement_ID', sql.Int, Movement_ID)
+//       .input('Valuation_Type', sql.NVarChar(50), Valuation_Type)
+//       .input('Batch', sql.NVarChar(50), Batch)
+//       .input('Rate_Unit', sql.Decimal(6, 2), Rate_Unit)
+//       .input('Reason_For_Movt', sql.NVarChar(255), Reason_For_Movt)
+//       .input('User_ID', sql.Int, User_ID)
+//       .input('Approval_Status', sql.NVarChar(50), Approval_Status)
+//       .input('SAP_Transaction_Status', sql.NVarChar(50), SAP_Transaction_Status)
+//       .execute('InsertTrn2022Movt'); // Replace with your actual stored procedure name
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Record successfully added',
+//       result: result.recordset || []
+//     });
+
+//   } catch (error) {
+//     console.error('❌ Error in /Get_Add for Trn_202:', error);
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Internal Server Error',
+//       error: error.message
+//     });
+//   }
+// });
+// // Download data for Trn_202_Movement from FromDate to ToDate
+Movement202.get('/getTransactionData', async (req, res) => {
+  console.log('📥 download_data for Trn202Movement:', req.query);
+
+  try {
+    const { From, to } = req.query;
+
+    const pool = await db.poolPromise;
+
+    // Validate dates
+    const invalidFromDate = [];
+    const invalidToDate = [];
+    const invalidDateRange = [];
+
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+
+    const fromDate = new Date(From);
+    const toDate = new Date(to);
+
+    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+      return res.status(400).json({ message: 'Invalid date format' });
+    }
+
+    fromDate.setHours(0, 0, 0, 0);
+    toDate.setHours(0, 0, 0, 0);
+
+    if (fromDate > currentDate) {
+      invalidFromDate.push({ FromDate: From, message: 'FromDate cannot be in the future' });
+    } 
+    if (toDate > currentDate) {
+      invalidToDate.push({ ToDate: to, message: 'ToDate cannot be in the future' });
+    } 
+    if (fromDate > toDate) {
+      invalidDateRange.push({ FromDate: From, ToDate: to, message: 'FromDate cannot be after ToDate' });
+    }
+
+    if (invalidFromDate.length > 0) {
+      return res.status(400).json({ message: 'Invalid FromDate', errors: invalidFromDate });
+    } 
+    if (invalidToDate.length > 0) {
+      return res.status(400).json({ message: 'Invalid ToDate', errors: invalidToDate });
+    } 
+    if (invalidDateRange.length > 0) {
+      return res.status(400).json({ message: 'Invalid Date Range', errors: invalidDateRange });
+    }
+
+    const result = await pool.request()
+      .input('FromDate', sql.Date, fromDate)
+      .input('ToDate', sql.Date, toDate)
+      .execute('GetExistingTrn202Movt');
+
+    console.log('✅ Query Result:', result);
+
+    res.status(200).json(result.recordset);
+
+  } catch (error) {
+    console.error("❌ Error fetching movement data:", error.message, error.stack);
+    res.status(500).json({ success: false, message: 'Error while fetching the data.' });
+  }
+});
+
+Movement202.get('/View202ApprovalStatus', async (req, res) => {
+  try {
+    const Doc_ID = parseInt(req.query.Doc_ID);
+    const pool = await db.poolPromise;
+
+    const result = await pool.request()
+      .input('Doc_ID', sql.Int, Doc_ID)
+      .execute('View_Stock202Approval_Status');
+
+          console.log('Approval result:', result.recordset); // ✅ Add this line
+          
+    res.status(200).json(result.recordset);
+  } catch (err) {
+    console.error("Error executing View202ApprovalStatus:", err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+// Download Data with DocID details for all rows excel
+Movement202.get('/download_data', async (req, res) => {
+  try {
+    
+    const { Doc_ID } = req.query;
+    console.log("query",req.query)
+   
+ console.log("Doc_ID",Doc_ID)
+    const pool = await db.poolPromise;
+    const result = await pool.request()
+      .input('Doc_ID', Doc_ID)
+      .execute('[GetExistingDocIDTrn202Movt]');
+
+    console.log('DB result:', result.recordset);
+
+    if (!result.recordset || result.recordset.length === 0) {
+      return res.status(404).json({ message: 'No data found for the given document ID.' });
+    }
+
+    res.status(200).json(result.recordset);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    res.status(500).json({ message: 'Internal server error.' });
+  }
+});
+
+module.exports = Movement202;
