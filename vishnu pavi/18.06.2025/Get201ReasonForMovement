@@ -1,0 +1,24 @@
+ALTER PROCEDURE [dbo].[Get201ReasonForMovement]
+    @ReasonForMovt NVARCHAR(255) = NULL
+AS
+BEGIN
+   SELECT
+       mli.Movt_List_ID,
+       mli.Movement_ID,
+       mli.Movement_List_Code,
+       mli.Movement_List_Name,
+       mt.Movement_Code
+   FROM
+       Mst_Movement_List_Item mli
+   INNER JOIN
+       Mst_Movement_Type mt ON mli.Movement_ID = mt.Movement_ID
+   WHERE
+       mli.Active_Status = 1
+       AND mt.Active_Status = 1
+       AND mli.Movement_ID = 3 -- Only reasons for Movement_ID = 2 (201)
+       AND (
+            @ReasonForMovt IS NULL OR
+            REPLACE(LTRIM(RTRIM(mli.Movement_List_Code)) + '-' + LTRIM(RTRIM(mli.Movement_List_Name)), ' ', '') 
+                = REPLACE(LTRIM(RTRIM(@ReasonForMovt)), ' ', '')
+       )
+END;
