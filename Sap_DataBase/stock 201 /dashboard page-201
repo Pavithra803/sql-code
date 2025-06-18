@@ -1,0 +1,1577 @@
+import React, { useState, useEffect } from "react";
+import {
+  TextField,
+  Button,
+  Modal,
+  Box,
+  Divider,
+  IconButton, LinearProgress,
+  Typography,
+  InputLabel,
+
+  FromControl
+} from "@mui/material";
+import { FaDownload } from "react-icons/fa";
+import { deepPurple } from '@mui/material/colors';
+import { FormControl, Select, MenuItem } from '@mui/material';
+
+import {
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import { decryptSessionData } from "../controller/StorageUtils"
+import EditIcon from '@mui/icons-material/Edit';
+import {
+  DataGrid,
+  GridToolbarContainer,
+  GridToolbarColumnsButton,
+  GridToolbarFilterButton,
+  GridToolbarExport,
+} from "@mui/x-data-grid";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import SearchIcon from "@mui/icons-material/Search";
+import AddIcon from "@mui/icons-material/Add";
+import { FaFileExcel } from "react-icons/fa";
+import * as XLSX from 'sheetjs-style';
+import { Movement202, getdetails, get202ApprovalView, Movement202ReUpload } from "../controller/Movement202apiservice";
+import { getresubmit, getCancel, DownloadAllExcel, getTransactionData } from '../controller/Movement202apiservice';
+
+
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
+import { api } from "../controller/constants";
+const Stock202 = () => {
+
+  const [searchText, setSearchText] = useState("");
+  const [rows, setRows] = useState([]); // ✅ Initial empty rows
+  const [originalRows, setOriginalRows] = useState([]);
+  const [openAddModal, setOpenAddModal] = useState(false);
+  const [openUploadModal, setOpenUploadModal] = useState(false);
+  const [openViewModal, setOpenViewModal] = useState(false);
+  const [openExcelDownloadModal, setOpenExcelDownloadModal] = useState(false);
+  const UserID = localStorage.getItem('UserID');
+
+  const [User_Level, setUser_Level] = useState("");
+
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState(""); // Track upload status
+  const [uploadedFileData, setUploadedFileData] = useState(null);
+  const [data, setData] = useState([]);
+
+
+
+  const [openModal, setOpenModal] = useState(false);
+
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [openResubmitModal, setOpenResubmitModal] = useState(false);
+  const [openCancelModal, setOpenCancelModal] = useState(false);
+  const [openViewStatusModal, setOpenViewStatusModal] = useState(false);
+  const [viewStatusData, setViewStatusData] = useState([]);
+
+  const [editSelectedFile, setEditSelectedFile] = React.useState(null);
+  const [editUploadStatus, setEditUploadStatus] = React.useState("");
+  const [editIsUploading, setEditIsUploading] = React.useState(false);
+  const [editUploadProgress, setEditUploadProgress] = React.useState(0);
+
+
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+
+  const [isEditable, setIsEditable] = useState(false);
+
+  const handleDownload = (row) => {
+    // Example logic - customize as needed
+    console.log("Downloading row data:", row);
+
+    // Example: Trigger file download or call API
+    // You might fetch a file or generate CSV/Excel from row data
+    const blob = new Blob([JSON.stringify(row, null, 2)], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `record-${row.Doc_ID}.json`; // Use unique filename
+    link.click();
+  };
+
+
+  const handleCloseAddModal = () => setOpenAddModal(false);
+  const getData = async () => {
+    try {
+      const response = await getdetails(UserID);
+      console.log(response);  // Check the structure of response
+      setData(response);  // Ensure that this is correctly setting the data
+      setOriginalRows(response); // for reference during search
+      setRows(response);
+    } catch (error) {
+      console.error(error);
+      setData([]);  // Handle error by setting empty data
+      setOriginalRows([]); // handle error case
+      setRows([]);
+    }
+  };
+
+  useEffect(() => {
+    getData();
+    const encryptedData = sessionStorage.getItem('userData');
+    if (encryptedData) {
+      const decryptedData = decryptSessionData(encryptedData);
+
+
+      setUser_Level(decryptedData.UserLevelName)
+      console.log("userlevel", decryptedData.UserLevelName)
+    }
+  }, []);
+
+
+  const handleCloseUploadModal = () => {
+    setOpenUploadModal(false);
+    setUploadStatus("");
+    setUploadedFile(null);
+    setUploadProgress(0);
+    setUploadedFileData(null);
+    setIsUploading(false);
+  };
+
+  const handleFileUpload = (event) => {
+    setUploadedFile(event.target.files[0]);
+  };
+
+  const handleUploadData = async () => {
+    if (!uploadedFile) {
+      alert("Please select a file first.");
+      return;
+    }
+
+    else {
+      try {
+        const formData = new FormData();
+        console.log('file', uploadedFile)
+        formData.append("User_Add", uploadedFile);
+        formData.append("UserID", UserID);
+        const response = await Movement202(formData)
+        console.log('response', response.data)
+        alert(response.data.message)
+        if (response.data.NewRecord.length > 0 || response.data.DuplicateRecords.length > 0 || response.data.ErrorRecords.length > 0) {
+          downloadExcel(response.data.NewRecord, response.data.DuplicateRecords, response.data.ErrorRecords);
+        }
+      } catch (error) {
+        if (error.response && error.response.status === 400) {
+          alert(error.response.data.message)
+        }
+      }
+    }
+    getData();
+    handleCloseUploadModal();
+  }
+
+
+  const downloadExcel = (newRecord, DuplicateRecord, errRecord) => {
+    const wb = XLSX.utils.book_new();
+
+    // Column headers for Error Records
+    const ErrorColumns = ['Plant_Code', 'Material_Code', 'Quantity', 'SLoc_Code', 'CostCenter_Code',
+      'Movement_Code', 'Valuation_Type', 'Batch', 'Rate_Unit', 'Remark',
+
+    ];
+
+    // Column headers for New Records (based on your columns array)
+    const newRecordsColumns = ['Plant_Code', 'Material_Code', 'Quantity', 'SLoc_Code', 'CostCenter_Code',
+      'Movement_Code', 'Valuation_Type', 'Batch', 'Rate_Unit', 'Remark',];
+
+
+    // Column headers for Duplicate Records
+    const DuplicateColumns = ['Plant_Code', 'Material_Code', 'Quantity', 'SLoc_Code', 'CostCenter_Code',
+      'Movement_Code', 'Valuation_Type', 'Batch', 'Rate_Unit', 'Remark',
+    ];
+
+
+    // Filter and map the data for Error Records
+    const filteredError = errRecord.map(item => ({
+      //Doc_ID: item.Doc_ID || '',
+      Plant_Code: item.Plant_Code || '',
+      Material_Code: item.Material_Code || '',
+      Quantity: item.Quantity || '',
+      SLoc_Code: item.SLoc_Code || '',
+      CostCenter_Code: item.CostCenter_Code || '',
+      Movement_Code: item.Movement_Code || '',
+      Valuation_Type: item.Valuation_Type || '',
+      Batch: item.Batch || '',
+      Rate_Unit: item.Rate_Per_Unit || '',
+      Remark: item.Reason_For_Movt || '',
+      //User_Code: item.User_ID || '',
+      // Approval_Status: item.Approval_Status || '',
+      // SAP_Transaction_Status: item.SAP_Transaction_Status || '',
+
+      Plant_Code_Validation: item.Plant_Val,
+      Plant_Material_Code_Validation: item.Material_Val,
+      SLoc_Code_Validation: item.SLoc_Val,
+      CostCenter_Code_Validation: item.CostCenter_Val,
+
+      Plant_SLoc_Val_Validation: item.Plant_SLoc_Val,
+      Plant_CostCenter_Val_Validation: item.Plant_CostCenter_Val,
+      Movt_Validation: item.Reason_Val,
+      Mst_Valuation_Val: item.Valuation_Val,
+      User_Plant_Val: item.User_Plant_Val,
+
+    }));
+    // Filter and map the data for New Records
+    const filteredNewData = newRecord.map(item => ({
+      // Doc_ID: selectedRow.Doc_ID || '',
+      Plant_Code: item.Plant_Code || '',
+      Material_Code: item.Material_Code || '',
+      Quantity: item.Quantity || '',
+      SLoc_Code: item.SLoc_Code || '',
+      CostCenter_Code: item.CostCenter_Code || '',
+      Movement_Code: item.Movement_Code || '',
+      Valuation_Type: item.Valuation_Type || '',
+      Batch: item.Batch || '',
+      Rate_Unit: item.Rate_Per_Unit || '',
+      Remark: item.Reason_For_Movt || '',
+      //User_Code: selectedRow.User_Code || '',
+      //Approval_Status: selectedRow.Approval_Status || '',
+      //  SAP_Transaction_Status: selectedRow.SAP_Transaction_Status || '',
+
+    }));
+
+
+
+    // Filter and map the data for Duplicate Record
+    const filteredUpdate = DuplicateRecord.map(item => ({
+
+      //Doc_ID: selectedRow.Doc_ID || '',
+      Plant_Code: item.Plant_Code || '',
+      Material_Code: item.Material_Code || '',
+      Quantity: item.Quantity || '',
+      SLoc_Code: item.SLoc_Code || '',
+      CostCenter_Code: item.CostCenter_Code || '',
+      Movement_Code: item.Movement_Code || '',
+      Valuation_Type: item.Valuation_Type || '',
+      Batch: item.Batch || '',
+      Rate_Unit: item.Rate_Per_Unit || '',
+      Remark: item.Reason_For_Movt || '',
+      //User_Code: selectedRow.User_Code || '',
+      //Approval_Status: selectedRow.Approval_Status || '',
+      //SAP_Transaction_Status: selectedRow.SAP_Transaction_Status || '',
+
+
+      Plant_Code_Duplicate: item.Plant_Code,
+      Material_Code_Duplicate: item.Material_Code,
+      CostCenter_Code_Duplicate: item.CostCenter_Code,
+      //Duplicate: item.Qty,
+    }));
+
+
+    // 🔹 Helper to style header cells
+    const styleHeaders = (worksheet, columns) => {
+      columns.forEach((_, index) => {
+        const cellAddress = XLSX.utils.encode_cell({ c: index, r: 0 });
+        if (worksheet[cellAddress]) {
+          worksheet[cellAddress].s = {
+            font: { bold: true, color: { rgb: '000000' } },
+            fill: { fgColor: { rgb: 'FFFF00' } }, // Yellow background
+            alignment: { horizontal: 'center' },
+          };
+        }
+      });
+    };
+
+
+    // 🔴 Style red text for validation columns only
+    const styleValidationColumns = (worksheet, columns, dataLength) => {
+      const validationCols = ['Plant_Val', 'Material_Val',
+        'SLoc_Val', 'CostCenter_Val', 'Plant_SLoc_Val',
+        'Plant_CostCenter_Val', 'Reason_Val',
+        'Valuation_Val', 'User_Plant_Val',]
+
+      for (let row = 1; row <= dataLength; row++) {
+        validationCols.forEach(colName => {
+          const colIdx = columns.indexOf(colName);
+          if (colIdx === -1) return;
+
+          const cellAddress = XLSX.utils.encode_cell({ c: colIdx, r: row });
+          const cell = worksheet[cellAddress];
+
+          if (cell && typeof cell.v === 'string') {
+            const value = cell.v.trim().toLowerCase();
+
+            // Apply green if value is "valid", otherwise red
+            cell.s = {
+              font: {
+                color: { rgb: value === 'valid' ? '2e7d32' : 'FF0000' } // green or red
+              }
+            };
+          }
+        });
+      }
+    };
+
+
+
+    // ✅ Style only specific duplicate columns in gray
+    const styleDuplicateRecords = (worksheet, columns, dataLength) => {
+      const duplicateCols = ['Plant_Code', 'Material_Code', 'SLoc_Code', 'Material_Code', 'CostCenter_Code']; // 👈 update with actual duplicate column names
+
+      for (let row = 1; row <= dataLength; row++) {
+        duplicateCols.forEach(colName => {
+          const colIdx = columns.indexOf(colName);
+          if (colIdx === -1) return; // skip if not found
+
+          const cellAddress = XLSX.utils.encode_cell({ c: colIdx, r: row });
+          const cell = worksheet[cellAddress];
+
+          if (cell) {
+            cell.s = {
+              font: { color: { rgb: '808080' } }, // Gray text
+              // fill: { fgColor: { rgb: 'E0E0E0' } } // optional background
+            };
+          }
+        });
+      }
+    };
+
+
+
+    // Add New Records sheet even if empty data is available
+    if (filteredNewData.length === 0) filteredNewData.push({});
+    const wsNewRecords = XLSX.utils.json_to_sheet(filteredNewData, { header: newRecordsColumns });
+    styleHeaders(wsNewRecords, newRecordsColumns);
+    XLSX.utils.book_append_sheet(wb, wsNewRecords, 'New Records');
+
+
+    // Add Error Records sheet  even if empty data is available
+    if (filteredError.length === 0) filteredError.push({});
+    const wsError = XLSX.utils.json_to_sheet(filteredError, { header: ErrorColumns });
+    styleHeaders(wsError, ErrorColumns);
+    styleValidationColumns(wsError, ErrorColumns, filteredError.length);
+    XLSX.utils.book_append_sheet(wb, wsError, 'Error Records');
+
+    // Add     Duplicate Records sheet even if empty data is available
+    if (filteredUpdate.length === 0) filteredUpdate.push({});
+    const wsUpdated = XLSX.utils.json_to_sheet(filteredUpdate, { header: DuplicateColumns });
+    styleDuplicateRecords(wsUpdated, DuplicateColumns, filteredUpdate.length);
+    XLSX.utils.book_append_sheet(wb, wsUpdated, 'DuplicateRecords');
+
+
+    const fileName = 'Trn202Movt Data UploadLog.xlsx';
+    XLSX.writeFile(wb, fileName);
+
+
+
+  }
+
+  // const downloadExcel = () => {
+  //   // Logic to download Excel file
+  // };
+  // excel download
+  const handleDownloadExcel = (selectedRow) => {
+    if (!selectedRow) {
+      alert("No row selected.");
+      return;
+    }
+
+    // Define new data columns
+    const DataColumns = [
+      'Doc_ID', 'Plant_ID', 'Material_ID', 'Quantity', 'SLoc_ID', 'CostCenter_ID',
+      'Movement_ID', 'Valuation_Type', 'Batch', 'Rate_Unit', 'User_ID',
+      'Approval_Status', 'SAP_Transaction_Status', 'Created_By'
+    ];
+
+    // Prepare the filtered data for the selected row
+    const filteredData = [{
+      Doc_ID: selectedRow.Doc_ID || '',
+      Plant_ID: selectedRow.Plant_ID || '',
+      Material_ID: selectedRow.Material_ID || '',
+      Quantity: selectedRow.Quantity || '',
+      SLoc_ID: selectedRow.SLoc_ID || '',
+      CostCenter_ID: selectedRow.CostCenter_ID || '',
+      Movement_ID: selectedRow.Movement_ID || '',
+      Valuation_Type: selectedRow.Valuation_Type || '',
+      Batch: selectedRow.Batch || '',
+      Rate_Unit: selectedRow.Rate_Unit || '',
+
+      User_ID: selectedRow.User_ID || '',
+      Approval_Status: selectedRow.Approval_Status || '',
+      SAP_Transaction_Status: selectedRow.SAP_Transaction_Status || '',
+      Created_By: selectedRow.Created_By || ''
+    }];
+
+    const worksheet = XLSX.utils.json_to_sheet(filteredData, { header: DataColumns });
+
+    // Style header row
+    DataColumns.forEach((_, index) => {
+      const cellAddress = XLSX.utils.encode_cell({ c: index, r: 0 });
+      if (!worksheet[cellAddress]) return;
+      worksheet[cellAddress].s = {
+        font: {
+          bold: true,
+          color: { rgb: "000000" },
+        },
+        fill: {
+          fgColor: { rgb: "FFFF00" },
+        },
+        alignment: {
+          horizontal: "center",
+        },
+      };
+    });
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Materials");
+    XLSX.writeFile(workbook, "Material_Data.xlsx");
+  };
+
+
+
+  // Upload handler
+  const handleEditUploadData = async (docId, trnSapId) => {
+    if (!editSelectedFile) {
+      alert("Please select a file first.");
+      return;
+    }
+
+    try {
+      const finalDocId = typeof docId === 'object' ? docId?.Doc_ID : docId;
+
+      const formData = new FormData();
+      formData.append("User_Add", editSelectedFile);  // Ensure key matches backend
+      formData.append("UserID", UserID);
+      formData.append("Doc_ID", finalDocId); // Must be a primitive value (number or string of number)
+      formData.append("Trn_Sap_ID", trnSapId);
+      const response = await Movement202ReUpload(formData); // Don't pass docId again if your function wraps it
+      console.log('response', response.data);
+      alert(response.data.message);
+
+      const reuploadData = response.data.ReUploadRecord || [];
+      const errorData = response.data.ErrorRecords || [];
+
+      console.log('ReUploadRecord:', reuploadData);
+      console.log('ErrorRecords:', errorData);
+
+      if (reuploadData.length > 0 || errorData.length > 0) {
+        downloadExcelReUpload(reuploadData, errorData);
+      } else {
+        console.log("No data to download.");
+      }
+
+    } catch (error) {
+      console.error('Upload failed:', error?.response?.data || error.message);
+      alert(error.response?.data?.message || 'Upload failed.');
+    }
+
+    getData();
+    setOpenEditModal(false);
+  };
+
+  // File input handler
+  const handleEditFileUpload = (event) => {
+    setEditSelectedFile(event.target.files[0]);
+  };
+
+
+  const downloadExcelReUpload = (updateRecord, errRecord) => {
+    const wb = XLSX.utils.book_new();
+    // Column headers for Error Records
+    const ErrorColumns = ['Doc_ID', 'Plant_Code', 'Material_Code', 'Quantity', 'SLoc_Code', 'CostCenter_Code',
+      'Movement_Code', 'Valuation_Type', 'Batch', 'Rate_Unit', 'Remark',
+
+    ];
+
+
+
+    // Column headers for Duplicate Records
+    const ReUploadColumns = ['Doc_ID', 'Plant_Code', 'Material_Code', 'Quantity', 'SLoc_Code', 'CostCenter_Code',
+      'Movement_Code', 'Valuation_Type', 'Batch', 'Rate_Unit', 'Remark',
+    ];
+
+
+    // Filter and map the data for Error Records
+    const filteredError = errRecord.map(item => ({
+      Doc_ID: item.Doc_ID || '',
+      Plant_Code: item.Plant_Code || '',
+      Material_Code: item.Material_Code || '',
+      Quantity: item.Quantity || '',
+      SLoc_Code: item.SLoc_Code || '',
+      CostCenter_Code: item.CostCenter_Code || '',
+      Movement_Code: item.Movement_Code || '',
+      Valuation_Type: item.Valuation_Type || '',
+      Batch: item.Batch || '',
+      Rate_Unit: item.Rate_Per_Unit || '',
+      Remark: item.Reason_For_Movt || '',
+      //User_Code: item.User_ID || '',
+      // Approval_Status: item.Approval_Status || '',
+      // SAP_Transaction_Status: item.SAP_Transaction_Status || '',
+
+      Plant_Code_Validation: item.Plant_Val,
+      Plant_Material_Code_Validation: item.Material_Val,
+      SLoc_Code_Validation: item.SLoc_Val,
+      CostCenter_Code_Validation: item.CostCenter_Val,
+
+      Plant_SLoc_Val_Validation: item.Plant_SLoc_Val,
+      Plant_CostCenter_Val_Validation: item.Plant_CostCenter_Val,
+      Movt_Validation: item.Reason_Val,
+      Mst_Valuation_Val: item.Valuation_Val,
+      User_Plant_Val: item.User_Plant_Val,
+
+    }));
+
+
+
+    // Filter and map the data for New Records
+    const filteredUpdate = updateRecord.map(item => ({
+      Doc_ID: item.Doc_ID || '',
+      Plant_Code: item.Plant_Code || '',
+      Material_Code: item.Material_Code || '',
+      Quantity: item.Quantity || '',
+      SLoc_Code: item.SLoc_Code || '',
+      CostCenter_Code: item.CostCenter_Code || '',
+      Movement_Code: item.Movement_Code || '',
+      Valuation_Type: item.Valuation_Type || '',
+      Batch: item.Batch || '',
+      Rate_Unit: item.Rate_Per_Unit || '',
+      Remark: item.Reason_For_Movt || '',
+      //User_Code: selectedRow.User_Code || '',
+      //Approval_Status: selectedRow.Approval_Status || '',
+      //  SAP_Transaction_Status: selectedRow.SAP_Transaction_Status || '',
+
+    }));
+
+
+
+
+
+
+    // 🔹 Helper to style header cells
+    const styleHeaders = (worksheet, columns) => {
+      columns.forEach((_, index) => {
+        const cellAddress = XLSX.utils.encode_cell({ c: index, r: 0 });
+        if (worksheet[cellAddress]) {
+          worksheet[cellAddress].s = {
+            font: { bold: true, color: { rgb: '000000' } },
+            fill: { fgColor: { rgb: 'FFFF00' } }, // Yellow background
+            alignment: { horizontal: 'center' },
+          };
+        }
+      });
+    };
+
+
+    // 🔴 Style red text for validation columns only
+    const styleValidationColumns = (worksheet, columns, dataLength) => {
+      const validationCols = ['Plant_Val', 'Material_Val',
+        'SLoc_Val', 'CostCenter_Val', 'Plant_SLoc_Val',
+        'Plant_CostCenter_Val', 'Reason_Val',
+        'Valuation_Val', 'User_Plant_Val',]
+
+      for (let row = 1; row <= dataLength; row++) {
+        validationCols.forEach(colName => {
+          const colIdx = columns.indexOf(colName);
+          if (colIdx === -1) return;
+
+          const cellAddress = XLSX.utils.encode_cell({ c: colIdx, r: row });
+          const cell = worksheet[cellAddress];
+
+          if (cell && typeof cell.v === 'string') {
+            const value = cell.v.trim().toLowerCase();
+
+            // Apply green if value is "valid", otherwise red
+            cell.s = {
+              font: {
+                color: { rgb: value === 'valid' ? '2e7d32' : 'FF0000' } // green or red
+              }
+            };
+          }
+        });
+      }
+    };
+
+
+
+    // Always add at least one row so the file is not empty
+    const wsError = XLSX.utils.json_to_sheet(filteredError.length ? filteredError : [{}], { header: ErrorColumns });
+    styleHeaders(wsError, ErrorColumns);
+    styleValidationColumns(wsError, ErrorColumns, filteredError.length);
+    XLSX.utils.book_append_sheet(wb, wsError, 'Error Records');
+
+    const wsUpdated = XLSX.utils.json_to_sheet(filteredUpdate.length ? filteredUpdate : [{}], { header: ReUploadColumns });
+    styleHeaders(wsUpdated, ReUploadColumns);
+    styleValidationColumns(wsUpdated, ReUploadColumns, filteredUpdate.length);
+    XLSX.utils.book_append_sheet(wb, wsUpdated, 'Updated Records');
+
+    const fileName = 'Trn202Movt ReuploadData Upload Log.xlsx';
+    console.log("Writing Excel file...");
+    XLSX.writeFile(wb, fileName);
+  };
+
+
+  //view detail for Particular DocID Details ... downloa
+
+  const handleDownloadByDocId = async (docId) => {
+    try {
+      if (!docId) {
+        alert("Doc_ID is missing.");
+        return;
+      }
+
+      const response = await DownloadAllExcel(docId);
+      const data = response.data;
+
+      if (!data || data.length === 0) {
+        alert("No data found for this Doc_ID.");
+        return;
+      }
+
+      const ws = XLSX.utils.json_to_sheet(data);
+
+      // Style headers
+      const headers = Object.keys(data[0]);
+      headers.forEach((_, colIdx) => {
+        const cellAddress = XLSX.utils.encode_cell({ c: colIdx, r: 0 });
+        if (ws[cellAddress]) {
+          ws[cellAddress].s = {
+            font: { bold: true, color: { rgb: "000000" } },
+            fill: { fgColor: { rgb: "FFFF00" } },
+            alignment: { horizontal: "center" },
+          };
+        }
+      });
+
+      const wb = { Sheets: { data: ws }, SheetNames: ["data"] };
+      const excelBuffer = XLSX.write(wb, {
+        bookType: "xlsx",
+        type: "array",
+        cellStyles: true,
+      });
+
+      const fileType =
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8";
+      const blob = new Blob([excelBuffer], { type: fileType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Trn202_DocID_${docId}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      alert(`Downloaded data for Doc_ID: ${docId}`);
+    } catch (error) {
+      console.error("Download failed:", error);
+      alert("Error downloading file. See console for details.");
+    }
+  };
+
+
+  // Download the data from the trn sap table to particular date
+  const handleDownloadReportExcel = async () => {
+    if (!fromDate) {
+      alert('Select From Date');
+      return;
+    }
+    if (!toDate) {
+      alert('Select To Date');
+      return;
+    }
+
+    try {
+      // Call backend API with fromDate and toDate as query params
+      const response = await getTransactionData(fromDate, toDate);
+
+      if (response.status === 400) {
+        alert(`Error: ${response.data.message || 'Invalid input or date range.'}`);
+        return;
+      }
+
+      const fileType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8";
+      const fileExtension = ".xlsx";
+      const fileName = "Trn_202_Movement_List";
+
+      // Convert JSON response to worksheet
+      const ws = XLSX.utils.json_to_sheet(response.data);
+
+      // Style header row (row 0)
+      const headers = Object.keys(response.data[0] || {});
+      headers.forEach((_, colIdx) => {
+        const cellAddress = XLSX.utils.encode_cell({ c: colIdx, r: 0 });
+        if (ws[cellAddress]) {
+          ws[cellAddress].s = {
+            font: { bold: true, color: { rgb: "000000" } },
+            fill: { fgColor: { rgb: "FFFF00" } }, // Yellow background
+            alignment: { horizontal: "center" },
+          };
+        }
+      });
+
+      // Create workbook
+      const wb = { Sheets: { data: ws }, SheetNames: ["data"] };
+
+      // Write workbook to binary array
+      const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
+      // Create Blob and trigger download
+      const data = new Blob([excelBuffer], { type: fileType });
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", fileName + fileExtension);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      alert("File downloaded successfully!");
+    } catch (error) {
+      console.error("Download failed:", error);
+      if (error.response) {
+        alert(error.response.data.message || "Unknown error from backend");
+      } else if (error.request) {
+        alert("No response from server. Please try again later.");
+      } else {
+        alert(`Error: ${error.message}`);
+      }
+    }
+  };
+
+
+
+  // const handleDownloadAllRowsExcel = () => {
+  //   if (!data || data.length === 0) {
+  //     alert("No data to download");
+  //     return;
+  //   }
+
+  //   const ws = XLSX.utils.json_to_sheet(data);
+  //   const headers = Object.keys(data[0] || {});
+  //   headers.forEach((_, colIdx) => {
+  //     const cellAddress = XLSX.utils.encode_cell({ c: colIdx, r: 0 });
+  //     if (ws[cellAddress]) {
+  //       ws[cellAddress].s = {
+  //         font: { bold: true, color: { rgb: "000000" } },
+  //         fill: { fgColor: { rgb: "FFFF00" } },
+  //         alignment: { horizontal: "center" }
+  //       };
+  //     }
+  //   });
+
+  //   const wb = { Sheets: { data: ws }, SheetNames: ["data"] };
+  //   const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  //   const fileType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8";
+  //   const fileExtension = ".xlsx";
+  //   const fileName = "Trn202_All_Documents" + fileExtension;
+
+  //   const blob = new Blob([excelBuffer], { type: fileType });
+  //   const url = window.URL.createObjectURL(blob);
+  //   const link = document.createElement("a");
+  //   link.href = url;
+  //   link.setAttribute("download", fileName);
+  //   document.body.appendChild(link);
+  //   link.click();
+  //   link.remove();
+  //   window.URL.revokeObjectURL(url);
+
+  //   alert("Downloaded all rows as Excel.");
+  // };
+
+
+  //✅ DataGrid Columns with Edit & Delete Buttons
+
+  const columns = [
+    { field: "Plant_Code", headerName: "Plant Code", flex: 1 },
+    { field: "Doc_ID", headerName: "Doc ID", flex: 1 },
+    { field: "Date", headerName: "Date", flex: 1 },
+    { field: "Material_Code", headerName: "Material Code", flex: 1 },
+    { field: "Qty", headerName: "Qty", flex: 1 },
+    { field: "Movement_Code", headerName: "Movement Type", flex: 1 },
+    { field: "Approval_Status", headerName: "Approval Status", flex: 1 },
+
+    {
+      field: "actions",
+      headerName: "Actions",
+      flex: 1,
+      sortable: false,
+      renderCell: (params) => {
+        const status = (params.row?.Approval_Status || "").toLowerCase().trim();
+        const isEditable = status === "rejected" || status === "under query";
+
+        return (
+          <div style={{ display: "flex", gap: "10px" }}>
+            {/* View Button - always shown */}
+            <IconButton
+              size="small"
+              color="primary"
+              onClick={() => handleOpenViewStatusModal(params.row)}
+            >
+              <VisibilityIcon fontSize="small" />
+            </IconButton>
+
+            {/* Conditionally show Edit and Download only if editable */}
+            {isEditable && (
+              <>
+                <IconButton
+                  size="small"
+                  sx={{
+                    color: "#6a0dad",
+                    "&:hover": {
+                      color: "#4b0082",
+                    },
+                  }}
+                  onClick={() => handleEdit(params.row)}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+
+                {/* <IconButton
+              size="small"
+              color="success"
+              onClick={() => handleDownloadByDocId(params.row.Doc_ID)}
+            >
+              <CloudDownloadIcon fontSize="small" />
+            </IconButton> */}
+              </>
+            )}
+          </div>
+        );
+      },
+    }
+
+  ];
+
+
+  // ✅ Open Add Modal
+  const handleOpenAddModal = (item) => {
+    setOpenAddModal(true);
+  };
+
+  const handleOpenViewModal = (item) => {
+    setOpenViewModal(true);
+
+  }
+
+
+  const handleOpenModal = () => {
+    setOpenExcelDownloadModal(true);
+    setFromDate(''); // Reset From Date
+    setToDate(''); // Reset To Date
+  };
+  const handleCloseModal = () => {
+    setOpenExcelDownloadModal(false);
+
+  };
+
+  // ✅ Search Functionality
+  const handleSearch = () => {
+    const text = searchText.trim().toLowerCase();
+
+    if (!text) {
+      setRows(originalRows);
+    } else {
+      const filteredRows = originalRows.filter((row) =>
+        ['Plant_Code', 'Doc_ID', 'Date', 'Qty', 'Movement_Type ', 'Approval_Status'].some((key) => {
+          const value = row[key];
+          return value && String(value).toLowerCase().includes(text);
+        })
+      );
+      setRows(filteredRows);
+    }
+  };
+
+
+  const handleEdit = (rowData) => {
+    setSelectedRow(rowData);        // Set the selected document
+    setOpenEditModal(true);         // Open the Edit Modal
+  };
+
+
+  const renderActionButtons = (rowData) => {
+    const status = (rowData?.Approval_Status || "").toLowerCase().trim();
+    const isEditable = status === "rejected" || status === "under query";
+
+    return (
+      <>
+        <IconButton
+          size="small"
+          color="primary"
+          onClick={() => handleOpenViewStatusModal(rowData)}
+        >
+          <VisibilityIcon fontSize="small" />
+        </IconButton>
+
+        {isEditable && (
+          <>
+            <IconButton
+              size="small"
+              sx={{
+                color: "#6a0dad",
+                "&:hover": {
+                  color: "#4b0082",
+                },
+              }}
+              onClick={() => handleEdit(rowData)}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+
+            <IconButton
+              size="small"
+              color="success"
+              onClick={() => handleDownloadByDocId(rowData.Doc_ID)}
+            >
+              <CloudDownloadIcon fontSize="small" />
+            </IconButton>
+          </>
+        )}
+      </>
+    );
+  };
+
+
+  const handleOpenViewStatusModal = async (rowData) => {
+    const docId = rowData?.Doc_ID;
+    setSelectedRow(rowData); // sets selected row for conditional UI logic
+    setOpenViewStatusModal(true); // opens the modal
+    console.log("Selected Doc ID:", docId);
+
+    try {
+      const response = await get202ApprovalView(docId);
+      console.log("Approval View Response:", response); // fetches status history
+      setViewStatusData(response);
+
+    } catch (error) {
+      console.error("Error fetching approval status:", error);
+      setViewStatusData([]); // fallback to empty state
+    }
+  };
+
+  //[View_Stock202Approval_Status]
+  const handleViewStatus = async (docId) => {
+    console.log("Fetching approval status for Doc_ID:", docId);
+    try {
+      const response = await get202ApprovalView(docId);  // Make sure get309ApprovalView is set up properly
+      console.log("API Response:", response);
+      setViewStatusData(response);  // Update your state with the fetched data
+    } catch (error) {
+      console.error("❌ Error fetching grouped records:", error);
+      setViewStatusData([]);  // Handle errors and reset data
+    }
+  };
+  ;
+
+
+  // ✅ Custom Toolbar
+  const CustomToolbar = () => (
+    <GridToolbarContainer>
+      <GridToolbarColumnsButton />
+      <GridToolbarFilterButton />
+      <GridToolbarExport />
+    </GridToolbarContainer>
+  );
+  return (
+    <div
+      style={{
+        padding: 20,
+        backgroundColor: "#F5F5F5",
+        marginTop: "50px",
+        display: "flex",
+        flexDirection: "column",
+        maxHeight: "100%", // Limit the max height
+        overflowY: "auto", // Enable vertical scroll if needed
+      }}
+    >
+
+      {/* Header Section */}
+      <div
+        style={{
+          marginBottom: 20,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <h2
+          style={{
+            margin: 0,
+            color: "#2e59d9",
+            textDecoration: "underline",
+            textDecorationColor: "limegreen",
+            marginBottom: -7,
+            textDecorationThickness: '3px'
+          }}
+        >
+          202 Movement Transaction
+        </h2>
+      </div>
+
+      {/* Search and Icons Section */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 10,
+        }}
+      >
+        {/* Search Box */}
+        <div style={{ display: "flex", gap: "10px" }}>
+          <TextField
+            size="small"
+            variant="outlined"
+            placeholder="Type here..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            onKeyUp={handleSearch}
+            style={{ width: "400px" }}
+          />
+          <Button
+            onClick={handleSearch}
+            style={{
+              borderRadius: "25px",
+              border: "2px solid skyblue",
+              color: "skyblue",
+              fontWeight: "bold",
+              textTransform: "none",
+            }}
+          >
+            <SearchIcon style={{ marginRight: "5px" }} />
+            Search
+          </Button>
+        </div>
+
+        {/* Icons Section */}
+        <div style={{ display: "flex", gap: "10px" }}>
+          {/* Upload Button */}
+          <IconButton
+            component="span"
+            onClick={() => setOpenUploadModal(true)}
+            style={{
+              borderRadius: "50%",
+              backgroundColor: "#FF6699",
+              color: "white",
+              width: "40px",
+              height: "40px",
+            }}
+          >
+            <CloudUploadIcon />
+          </IconButton>
+
+          {/* ✅ Download Template */}
+          <IconButton
+            onClick={handleOpenModal}
+            style={{
+              borderRadius: "50%",
+              backgroundColor: "#339900",
+              color: "white",
+              width: "40px",
+              height: "40px",
+            }}
+          >
+            <FaFileExcel size={18} />
+          </IconButton>
+
+          {/* ✅ Add Button */}
+          <IconButton
+            color="primary"
+            onClick={handleOpenAddModal}
+            style={{
+              borderRadius: "50%",
+              backgroundColor: "#0099FF",
+              color: "white",
+              width: "40px",
+              height: "40px",
+            }}
+          >
+            <AddIcon />
+          </IconButton>
+        </div>
+      </div>
+      {/* ✅ DataGrid */}
+      <div
+        style={{
+          flexGrow: 1,  // Ensures it grows to fill the remaining space
+          backgroundColor: "#fff",
+          borderRadius: 8,
+          boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+          height: "500px"
+        }}
+      >
+
+        <DataGrid
+          rows={rows}
+          columns={columns}
+          pageSize={5}
+          getRowId={(row) => row.Trn_Sap_ID} // Ensure Trn_309_ID is unique and exists
+          rowsPerPageOptions={[5]}
+          disableSelectionOnClick
+          slots={{ toolbar: CustomToolbar }}
+          sx={{
+            // Header Style
+            "& .MuiDataGrid-columnHeader": {
+              backgroundColor: "#bdbdbd",
+              color: "black",
+              fontWeight: "bold",
+            },
+            "& .MuiDataGrid-columnHeaderTitle": {
+              fontSize: "16px",
+              //fontWeight: "bold",
+            },
+            "& .MuiDataGrid-row": {
+              backgroundColor: "#f5f5f5", // Default row background
+              "&:hover": {
+                backgroundColor: "#f5f5f5",
+              },
+            },
+            // ✅ Remove Selected Row Background
+            "& .MuiDataGrid-row.Mui-selected": {
+              backgroundColor: "inherit", // No background on selection
+            },
+
+            "& .MuiDataGrid-cell": {
+              color: "#333",
+              fontSize: "14px",
+            },
+          }}
+        />
+      </div>
+      {/* upload modal */}
+      <Modal open={openUploadModal} onClose={handleCloseUploadModal}>
+        <Box
+          sx={{
+            width: 400,
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 4,
+            margin: "auto",
+            marginTop: "10%",
+            textAlign: "center",
+          }}
+        >
+          <h3 style={{ textAlign: "center", marginBottom: "20px", color: "#2e59d9", textDecoration: "underline", textDecorationColor: "#88c57a", textDecorationThickness: "3px" }}>
+            Upload Excel File
+          </h3>
+
+          <Button
+            variant="contained"
+            style={{ marginBottom: '10px', backgroundColor: deepPurple[500], color: 'white' }}
+          >
+            <a
+              style={{ textDecoration: "none", color: "white" }}
+              href={`${api}/transaction/Template/Trn202Movt.xlsx`}
+            >
+              {" "}
+              <FaDownload className="icon" /> &nbsp;&nbsp;Download Template
+            </a>{" "}
+          </Button>
+
+
+          <input
+            type="file"
+            accept=".xlsx, .xls"
+            onChange={handleFileUpload}
+            style={{
+              padding: "8px",
+              backgroundColor: "white", // ✅ Blue background
+              color: "black",
+              border: "1px solid black",
+              borderRadius: "5px",
+              cursor: "pointer",
+              width: "240px",
+              marginTop: "10px",
+
+
+            }}
+          />
+          {uploadStatus && (
+            <p
+              style={{
+                textAlign: "center",
+                color: uploadStatus.includes("success") ? "green" : "red",
+              }}
+            >
+              {uploadStatus}
+            </p>
+          )}
+
+          {/* ✅ Upload Progress Bar */}
+          {isUploading && (
+            <Box
+              sx={{
+                width: "100%",
+                bgcolor: "#f5f5f5",
+                borderRadius: 2,
+                height: "8px",
+                marginTop: "10px",
+              }}
+            >
+              <Box
+                sx={{
+                  width: `${uploadProgress}%`,
+                  bgcolor: uploadProgress === 100 ? "#4caf50" : "#2196f3",
+                  height: "100%",
+                  borderRadius: 2,
+                  transition: "width 0.4s ease-in-out",
+                }}
+              />
+            </Box>
+          )}
+
+          <Box
+            sx={{
+              gridColumn: "span 2",
+              display: "flex",
+              justifyContent: "center",
+              gap: "10px",
+              marginTop: "15px",
+            }}
+          >
+            {/* ✅ Close Button */}
+            <Button
+              variant="contained"
+              color="error"
+              onClick={handleCloseUploadModal}
+              style={{ marginTop: "10px", width: "25%" }}
+            >
+              Close
+            </Button>
+            {/* ✅ Upload Button */}
+            <Button
+              variant="contained"
+              onClick={handleUploadData}
+              disabled={isUploading}
+              style={{ marginTop: "10px", width: "25%", color: "white", backgroundColor: "blue" }}
+            >
+              {/* {isUploading ? "Uploading..." : "Upload "} */}
+              Upload
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+
+
+      {/* ✅ Modal with Resubmit and Cancel */}
+
+      {/*🟩 Edit Modal*/}
+
+      <Modal open={openEditModal} onClose={() => setOpenEditModal(false)}>
+        <Box
+          sx={{
+            width: 400,
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 4,
+            margin: "auto",
+            marginTop: "10%",
+            textAlign: "center",
+          }}
+        >
+          <h3
+            style={{
+              textAlign: "center",
+              marginBottom: "20px",
+              color: "#2e59d9",
+              textDecoration: "underline",
+              textDecorationColor: "#88c57a",
+              textDecorationThickness: "3px",
+              textUnderlineOffset: "6px"
+            }}
+          >
+            Upload Excel File to Edit Document
+          </h3>
+
+          <Button
+            variant="contained"
+            sx={{
+              mb: 2,
+              backgroundColor: deepPurple[400],
+              color: 'white',
+              '&:hover': {
+                backgroundColor: deepPurple[600],  // darker purple on hover
+              },
+              '&:active': {
+                backgroundColor: deepPurple[900],  // even darker when clicked
+              },
+            }}
+          >
+            <a
+              style={{ textDecoration: "none", color: "white" }}
+              href={`${api}/transaction/Template/ReUpload202Movt.xlsx`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <FaDownload className="icon" /> &nbsp;&nbsp;Download Template
+            </a>
+          </Button>
+
+          <input
+            type="file"
+            accept=".xlsx, .xls"
+            onChange={handleEditFileUpload}
+            style={{
+              padding: "8px",
+              backgroundColor: "white",
+              //color: "black",
+              border: "1px solid black",
+              borderRadius: "5px",
+              cursor: "pointer",
+              width: "240px",
+              marginTop: "10px",
+            }}
+          />
+
+          {editUploadStatus && (
+            <p
+              style={{
+                textAlign: "center",
+                color: editUploadStatus.includes("success") ? "green" : "red",
+              }}
+            >
+              {editUploadStatus}
+            </p>
+          )}
+
+          {editIsUploading && (
+            <Box
+              sx={{
+                width: "100%",
+                bgcolor: "#f5f5f5",
+                borderRadius: 2,
+                height: "8px",
+                marginTop: "10px",
+              }}
+            >
+              <Box
+                sx={{
+                  width: `${editUploadProgress}%`,
+                  bgcolor: editUploadProgress === 100 ? "#4caf50" : "#2196f3",
+                  height: "100%",
+                  borderRadius: 2,
+                  transition: "width 0.4s ease-in-out",
+                }}
+              />
+            </Box>
+          )}
+
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "10px",
+              marginTop: "15px",
+            }}
+          >
+     <Button
+               variant="contained"
+               color="error"
+               onClick={() => setOpenEditModal(false)}
+               sx={{
+                 mt: 2,
+                 width: '25%',
+                 height: '38px',
+                 color: '#fff', // Text color
+                 backgroundColor: '#d32f2f', // MUI error main color
+                 '&:hover': {
+                   backgroundColor: '#9a0007', // MUI error dark color for hover
+                 },
+                 '&:active': {
+                   backgroundColor: '#7f0005', // Darker shade for click/active
+                 },
+               }}
+             >
+               Close
+             </Button>
+
+            <Button
+              variant="contained"
+              onClick={() => handleEditUploadData(selectedRow?.Doc_ID, selectedRow?.Trn_Sap_ID)}
+              disabled={editIsUploading}
+              sx={{
+                mt: 2,
+                width: '25%',
+                height: '38px',
+                color: '#ffffff',
+                backgroundColor: '#1976d2',
+                '&:hover': {
+                  backgroundColor: '#115293',
+                },
+                '&:active': {
+                  backgroundColor: '#0d3c6a', // darker blue for active/click
+                },
+              }}
+            >
+              ReUpload
+            </Button>
+
+
+          </Box>
+        </Box>
+      </Modal>
+
+      {/* 🟨 View Status Modal */}
+      <Modal open={openViewStatusModal} onClose={() => setOpenViewStatusModal(false)}>
+        <Box sx={{
+          position: 'relative',
+          p: 4,
+          width: { xs: '90%', sm: 900 },
+          mx: 'auto',
+          mt: '5%',
+          bgcolor: 'background.paper',
+          borderRadius: 3,
+          boxShadow: 24
+        }}>
+          {/* ❌ Close Button */}
+          <IconButton
+            aria-label="close"
+            onClick={() => setOpenViewStatusModal(false)}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              color: '#f44336',
+              '&:hover': { color: '#d32f2f' },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+
+          {/* 🔷 Title */}
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography
+              variant="h6"
+              gutterBottom
+              sx={{
+                color: '#1976d2',
+                borderBottom: '2px solid limegreen',
+                display: 'inline-block',
+              }}
+            >
+              Approval Status
+            </Typography>
+          </Box>
+
+          {/* 🧾 Status Table */}
+
+          <>
+            <Table size="small" sx={{ borderCollapse: 'collapse' }}>
+              <TableHead>
+                <TableRow sx={{ bgcolor: '#bdbdbd' }}>
+                  <TableCell sx={{ border: '1px solid #555555' }}>Date</TableCell>
+                  <TableCell sx={{ border: '1px solid #555555' }}>Role</TableCell>
+                  <TableCell sx={{ border: '1px solid #555555' }}>Name</TableCell>
+                  <TableCell sx={{ border: '1px solid #555555' }}>Comment</TableCell>
+                  <TableCell sx={{ border: '1px solid #555555' }}>Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {viewStatusData.map((row, idx) => (
+                  <TableRow key={idx} sx={{ border: '1px solid #555555' }}>
+                    <TableCell sx={{ border: '1px solid #555555' }}>{row.Action_Date}</TableCell>
+                    <TableCell sx={{ border: '1px solid #555555' }}>{row.Role}</TableCell>
+                    <TableCell sx={{ border: '1px solid #555555' }}>{row.Action_By}</TableCell>
+                    <TableCell sx={{ border: '1px solid #555555' }}>{row.Approver_Comment || '—'}</TableCell>
+                    <TableCell sx={{ border: '1px solid #555555' }}>{row.Status} - {User_Level}</TableCell>
+
+
+                  </TableRow>
+                ))}
+
+              </TableBody>
+            </Table>
+
+
+          </>
+        </Box>
+      </Modal>
+
+      {/* ExcelDownload Modal */}
+
+      <Modal
+        open={openExcelDownloadModal}
+        onClose={handleCloseModal}  // Use the custom handleCloseModal function
+      >
+        <Box
+          sx={{
+            width: 400,
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 4,
+            margin: 'auto',
+            marginTop: '10%',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '15px',
+          }}
+        >
+          <h3
+            style={{
+              gridColumn: 'span 2',
+              textAlign: 'center',
+              marginBottom: '15px',
+              color: 'blue',
+              textDecoration: 'underline',
+              textDecorationColor: 'limegreen',
+              textDecorationThickness: '3px',
+            }}
+          >
+            Excel Download
+          </h3>
+
+          <TextField
+            label="From Date"
+            name="FromDate"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+            required
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+          />
+          <TextField
+            label="To Date"
+            name="ToDate"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+            required
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+          />
+
+          <Box
+            sx={{
+              gridColumn: 'span 2',
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '10px',
+              marginTop: '15px',
+            }}
+          >
+            <Button variant="contained" color="error" onClick={handleCloseModal}>
+              Cancel
+            </Button>
+            <Button
+              style={{ width: '90px' }}
+              variant="contained"
+              color="primary"
+              onClick={handleDownloadReportExcel}
+            >
+              Download
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+
+
+    </div>
+  )
+}
+
+
+export default Stock202
