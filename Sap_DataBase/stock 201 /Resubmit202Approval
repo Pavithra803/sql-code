@@ -1,0 +1,69 @@
+
+
+
+--EXEC sp_rename 'dbo.Resubmit201Approval', 'Resubmit201_202Approval';
+
+
+
+
+ALTER PROCEDURE Resubmit202Approval 
+    @DocId INT,
+    @UserId INT,
+    @Trn_Sap_ID INT,
+    @Action NVARCHAR(20)  -- Optional, currently not used
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Movement_ID INT;
+
+    -- Step 1: Get Movement_ID
+    SELECT @Movement_ID = Movement_ID
+    FROM Trn_SapTransfer_Records
+    WHERE Trn_Sap_ID = @Trn_Sap_ID
+      AND Doc_ID = @DocId;
+
+    IF @Movement_ID IS NULL
+    BEGIN
+        RAISERROR('Invalid Trn_Sap_ID or Doc_ID provided.', 16, 1);
+        RETURN;
+    END
+
+    -- Step 2: Update the specific transfer record if it's currently 'Under Query'
+    UPDATE Trn_SapTransfer_Records
+    SET 
+        Approval_Status = 'Pending',
+        Modified_By = @UserId,
+        Modified_On = GETDATE()
+    WHERE Doc_ID = @DocId
+      AND Trn_Sap_ID = @Trn_Sap_ID
+      AND Approval_Status = 'Under Query';
+
+    -- Step 3: Update the approval history linked to this Movement_ID and Doc_ID
+    UPDATE Trn_Approval_History
+    SET
+        Approver_Status = 'Pending',
+        Modified_By = @UserId,
+        Modified_On = GETDATE()
+    WHERE Doc_ID = @DocId
+      AND Movement_ID = @Movement_ID
+      AND Approver_Status = 'Under Query';
+
+    -- Step 4: If all transfer rows under this Doc_ID are now 'Pending',
+    -- update the overall document status
+    IF NOT EXISTS (
+        SELECT 1
+        FROM Trn_SapTransfer_Records
+        WHERE Doc_ID = @DocId
+          AND Approval_Status <> 'Pending'
+    )
+    BEGIN
+        UPDATE trn_document
+        SET
+            Approval_Status = 'Pending',
+            Modified_By = @UserId,
+            Modified_On = GETDATE()
+        WHERE Doc_ID = @DocId
+          AND Approval_Status = 'Under Query';
+    END
+END
