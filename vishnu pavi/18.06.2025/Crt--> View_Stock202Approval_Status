@@ -13,7 +13,7 @@ BEGIN
                 SELECT 1
                 FROM Trn_Approval_History A
                 WHERE A.Doc_ID = @Doc_ID
-                  AND A.Movement_ID = 2
+                  AND A.Movement_ID = 3
                   AND A.Approver_Status <> 'Approved'
             ) THEN 'Pending'
             ELSE 'Approved'
