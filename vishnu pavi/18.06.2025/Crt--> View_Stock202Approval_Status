@@ -1,5 +1,6 @@
-ALTER PROCEDURE [dbo].[View_Stock201Approval_Status]
-    @Doc_ID INT
+ALTER PROCEDURE [dbo].[View_Stock202Approval_Status]
+    @Doc_ID INT,
+    @Movement_ID INT = 3  -- Default 2, change if needed
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -9,13 +10,23 @@ BEGIN
         NULL AS Approver_ID,
         NULL AS Trn_Appl_His_ID,
         CASE
+            -- No approval records found for this doc and movement → Pending
+            WHEN NOT EXISTS (
+                SELECT 1
+                FROM Trn_Approval_History A
+                WHERE A.Doc_ID = @Doc_ID
+                  AND A.Movement_ID = @Movement_ID
+            ) THEN 'Pending'
+
+            -- Any approval status not approved (case insensitive, trimmed) → Pending
             WHEN EXISTS (
                 SELECT 1
                 FROM Trn_Approval_History A
                 WHERE A.Doc_ID = @Doc_ID
-                  AND A.Movement_ID = 3
-                  AND A.Approver_Status <> 'Approved'
+                  AND A.Movement_ID = @Movement_ID
+                  AND RTRIM(LTRIM(LOWER(A.Approver_Status))) <> 'approved'
             ) THEN 'Pending'
+
             ELSE 'Approved'
         END AS Status,
         NULL AS Approver_Comment,
@@ -47,7 +58,7 @@ BEGIN
     LEFT JOIN Mst_Role R ON AU.Role_ID = R.Role_ID
     WHERE 
         A.Doc_ID = @Doc_ID
-        AND A.Movement_ID = 2
+        AND A.Movement_ID = @Movement_ID
 
     ORDER BY Action_Date DESC;
 END;
