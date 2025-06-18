@@ -1,0 +1,170 @@
+{/* 🟨 View Status Modal */}
+<Modal open={openViewStatusModal} onClose={() => setOpenViewStatusModal(false)}>
+  <Box
+    sx={{
+      position: 'relative',
+      p: 4,
+      width: { xs: '90%', sm: 900 },
+      mx: 'auto',
+      mt: '5%',
+      bgcolor: 'background.paper',
+      borderRadius: 3,
+      boxShadow: 24,
+      maxHeight: '90vh',
+      overflowY: 'auto',
+    }}
+  >
+    {/* ❌ Close Button */}
+    <IconButton
+      aria-label="close"
+      onClick={() => setOpenViewStatusModal(false)}
+      sx={{
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        color: '#f44336',
+        '&:hover': { color: '#d32f2f' },
+      }}
+    >
+      <CloseIcon />
+    </IconButton>
+
+    {/* 🔷 Title */}
+    <Box sx={{ textAlign: 'center' }}>
+      <Typography
+        variant="h6"
+        gutterBottom
+        sx={{
+          color: '#1976d2',
+          borderBottom: '2px solid limegreen',
+          display: 'inline-block',
+        }}
+      >
+        Approval Status
+      </Typography>
+    </Box>
+
+    {/* 🧾 Status Table */}
+    <Table size="small" sx={{ borderCollapse: 'collapse' }}>
+      <TableHead>
+        <TableRow sx={{ bgcolor: '#bdbdbd' }}>
+          <TableCell sx={{ border: '1px solid #555555' }}>Role</TableCell>
+          <TableCell sx={{ border: '1px solid #555555' }}>Date</TableCell>
+          <TableCell sx={{ border: '1px solid #555555' }}>Name</TableCell>
+          <TableCell sx={{ border: '1px solid #555555' }}>Comment</TableCell>
+          <TableCell sx={{ border: '1px solid #555555' }}>Status</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {[
+          'Requester',
+          'Plant Finance Head',
+          'Plant MRPC',
+          'Plant Head',
+          'Corp Finance Head',
+          'Corp MRPC',
+        ].map((role, idx) => {
+          const row = viewStatusData.find(r => r.Role?.toLowerCase() === role.toLowerCase()) || {};
+
+          // Map of role to user level number
+          const roleToLevel = {
+            'Plant Finance Head': 1,
+            'Plant MRPC': 2,
+            'Plant Head': 3,
+            'Corp Finance Head': 4,
+            'Corp MRPC': 5,
+          };
+
+          let statusDisplay = '—';
+
+          if (role === 'Requester') {
+            statusDisplay = row.Status || '—';
+          } else {
+            if (row.Status) {
+              const level = roleToLevel[role] || '';
+              statusDisplay = `${row.Status} - ${level}`;
+            }
+          }
+
+          return (
+            <TableRow key={idx} sx={{ border: '1px solid #555555' }}>
+              <TableCell sx={{ border: '1px solid #555555' }}>{role}</TableCell>
+              <TableCell sx={{ border: '1px solid #555555' }}>{row.Action_Date || '—'}</TableCell>
+              <TableCell sx={{ border: '1px solid #555555' }}>{row.Action_By || '—'}</TableCell>
+              <TableCell sx={{ border: '1px solid #555555' }}>{row.Approver_Comment || '—'}</TableCell>
+              <TableCell sx={{ border: '1px solid #555555' }}>{statusDisplay}</TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+
+    {/* Close Button at Bottom */}
+    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+      <Button
+        onClick={() => setOpenViewStatusModal(false)}
+        variant="contained"
+        sx={{ textTransform: 'none' }}
+      >
+        Close
+      </Button>
+    </Box>
+  </Box>
+</Modal>
+
+
+
+---------
+
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[View_Stock202Approval_Status]    Script Date: 18-06-2025 11:56:00 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[View_Stock202Approval_Status]
+    @Doc_ID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- 1. Requester Info (Document Creator)
+    SELECT
+        NULL AS Approver_ID,
+        NULL AS Trn_Appl_His_ID,
+        'Requester' AS Status,
+        NULL AS Approver_Comment,
+        CU.User_Name AS Action_By,  -- Creator name here
+        FORMAT(D.Created_On, 'dd-MM-yyyy') + '  -  ' + FORMAT(D.Created_On, 'HH:mm:ss') AS Action_Date,
+        'Requester' AS Role
+    FROM Trn_Document D
+    INNER JOIN Mst_User CU ON D.Created_By = CU.User_ID
+    WHERE D.Doc_ID = @Doc_ID
+
+    UNION ALL
+
+    -- 2. Approval History - show Approver's name
+    SELECT 
+        A.Approver_ID,
+        A.Trn_Appl_His_ID,
+        A.Approver_Status AS Status,
+        A.Approver_Comment,
+        AU.User_Name AS Action_By,  -- Approver name here
+        CASE 
+            WHEN A.Modified_On IS NOT NULL THEN 
+                FORMAT(A.Modified_On, 'dd-MM-yyyy') + '  -  ' + FORMAT(A.Modified_On, 'HH:mm:ss')
+            ELSE 
+                FORMAT(A.Created_On, 'dd-MM-yyyy') + '  -  ' + FORMAT(A.Created_On, 'HH:mm:ss')
+        END AS Action_Date,
+        R.Role_Name AS Role
+    FROM Trn_Approval_History A
+    INNER JOIN Mst_User AU ON A.Approver_ID = AU.User_ID        -- Approver
+    LEFT JOIN Mst_Role R ON AU.Role_ID = R.Role_ID              -- Approver's role
+    WHERE 
+        A.Doc_ID = @Doc_ID
+        AND A.Movement_ID = 3
+
+    ORDER BY Action_Date DESC;
+END;
