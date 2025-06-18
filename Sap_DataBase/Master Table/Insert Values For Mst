@@ -256,6 +256,8 @@ VALUES
 (('dashboard', 'dashboard', 'Dashboard', 1, 1, GETDATE()),
 ('Approval_201', 'Approval_201', 'Approval', '1', '1', GETDATE()),
 ('Approval_202', 'Approval_202', 'Approval', '1', '1', GETDATE())
+('Approval_511', 'Approval_511', 'Approval', '1', '1', GETDATE()),
+('Approval_311', 'Approval_311', 'Approval', '1', '1', GETDATE())
 ;
 
 --T M 15
