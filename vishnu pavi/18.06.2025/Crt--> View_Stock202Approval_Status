@@ -1,12 +1,4 @@
-USE [Sap_Approval]
-GO
-
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-ALTER PROCEDURE [dbo].[View_Stock202Approval_Status]
+ALTER PROCEDURE [dbo].[View_Stock201Approval_Status]
     @Doc_ID INT
 AS
 BEGIN
@@ -16,8 +8,17 @@ BEGIN
     SELECT
         NULL AS Approver_ID,
         NULL AS Trn_Appl_His_ID,
-        'Submitted' AS Status,
-        'Initial level approval submitted' AS Approver_Comment,
+        CASE
+            WHEN EXISTS (
+                SELECT 1
+                FROM Trn_Approval_History A
+                WHERE A.Doc_ID = @Doc_ID
+                  AND A.Movement_ID = 2
+                  AND A.Approver_Status <> 'Approved'
+            ) THEN 'Pending'
+            ELSE 'Approved'
+        END AS Status,
+        NULL AS Approver_Comment,
         CU.User_Name AS Action_By,
         FORMAT(D.Created_On, 'dd-MM-yyyy') + ' - ' + FORMAT(D.Created_On, 'HH:mm:ss') AS Action_Date,
         'Requester' AS Role
@@ -31,16 +32,7 @@ BEGIN
     SELECT 
         A.Approver_ID,
         A.Trn_Appl_His_ID,
-        -- 👇 Append user level to status
-        A.Approver_Status + ' - ' + 
-            CAST(CASE 
-                WHEN R.Role_Name = 'Plant Finance Head' THEN 1
-                WHEN R.Role_Name = 'Plant MRPC' THEN 2
-                WHEN R.Role_Name = 'Plant Head' THEN 3
-                WHEN R.Role_Name = 'Corp Finance Head' THEN 4
-                WHEN R.Role_Name = 'Corp MRPC' THEN 5
-                ELSE 0
-            END AS VARCHAR) AS Status,
+        A.Approver_Status AS Status,
         A.Approver_Comment,
         AU.User_Name AS Action_By,
         CASE 
@@ -55,9 +47,7 @@ BEGIN
     LEFT JOIN Mst_Role R ON AU.Role_ID = R.Role_ID
     WHERE 
         A.Doc_ID = @Doc_ID
-        AND A.Movement_ID = 3
+        AND A.Movement_ID = 2
 
     ORDER BY Action_Date DESC;
 END;
-
- 
