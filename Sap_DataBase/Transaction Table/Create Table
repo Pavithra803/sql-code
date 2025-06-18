@@ -13,7 +13,7 @@ CREATE TABLE Trn_Document (
     Modified_On DATETIME
 );
 
---2 Trn 
+--2 Old--Trn 
 
 CREATE TABLE Trn_SapTransfer_Records (
     Trn_Sap_ID INT IDENTITY(1,1) PRIMARY KEY,
@@ -57,6 +57,48 @@ CREATE TABLE Trn_SapTransfer_Records (
     Modified_On DATETIME
 );
 
+
+
+--- ------------------------new table for the Trn_SapTransfer_Records--------------------------------
+CREATE TABLE Trn_SapTransfer_Records (
+    Trn_Sap_ID INT IDENTITY(1,1) PRIMARY KEY,
+
+    Doc_ID INT,
+    Movement_ID INT,
+
+    Plant_ID INT,
+    SLoc_ID INT,
+    To_SLoc_ID INT,
+
+    Material_Type NVARCHAR(4),  -- No FK / keeping type same as in Mst_Material
+    Material_ID INT,
+    To_Material_ID INT,
+
+    Rate_PerPart DECIMAL(6,2),
+    To_Rate_309 DECIMAL(6,2),
+
+    Qty INT,
+    Provision_Qty INT,                -- Added column after Qty
+    Provision_Value DECIMAL(18,2),   -- Added column after Provision_Qty
+
+    Value DECIMAL(18,2),  -- Value = Qty * Rate
+
+    Movt_List_ID INT,
+
+    Remarks NVARCHAR(255),
+
+    CostCenter_ID INT,
+    Valuation_Type NVARCHAR(50),
+    Batch NVARCHAR(50),
+
+    Approval_Status NVARCHAR(50),
+    SAP_Process_Status NVARCHAR(50),
+
+    Created_By INT,
+    Created_On DATETIME,
+    Modified_By INT,
+    Modified_On DATETIME
+);
 
 --3 Trn 
 
