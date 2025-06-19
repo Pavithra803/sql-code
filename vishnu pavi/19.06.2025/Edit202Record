@@ -1,0 +1,95 @@
+
+
+ALTER PROCEDURE [dbo].[Edit202Record]
+  @DocID VARCHAR(50),
+  @TrnSapID INT,
+  @MatCode VARCHAR(50),
+  @Qty INT,
+  @SLocCode VARCHAR(50),
+  @CostCenterCode VARCHAR(50),
+  @Price DECIMAL(18,2),
+  @ReasonForMovt VARCHAR(500),
+  @ValuationType VARCHAR(50),
+  @Batch VARCHAR(50),
+  @ModifiedBy INT
+AS
+BEGIN
+  SET NOCOUNT ON;
+
+  DECLARE 
+    @MaterialID INT,
+    @SLocID INT,
+    @CostCenterID INT,
+    @PlantID INT;
+
+  -- Get Plant_ID for the given transaction
+  SELECT @PlantID = Plant_ID
+  FROM Trn_SapTransfer_Records
+  WHERE Doc_ID = @DocID AND Trn_Sap_ID = @TrnSapID;
+
+  -- Resolve MaterialID for the given plant
+  SELECT @MaterialID = Material_ID
+  FROM Mst_Material
+  WHERE Material_Code = @MatCode AND Plant_ID = @PlantID;
+
+  -- Resolve SLoc_ID for the given plant
+  SELECT @SLocID = SLoc_ID
+  FROM Mst_Storage_Location
+  WHERE Storage_Code = @SLocCode AND Plant_ID = @PlantID;
+
+  -- Resolve CostCenter_ID for the given plant
+  SELECT @CostCenterID = CostCenter_ID
+  FROM Mst_Cost_Center
+  WHERE CostCenter_Code = @CostCenterCode 
+    AND Plant_ID = @PlantID 
+    AND Active_Status = 1;
+
+  -- Validation 1: Check if Material is valid
+  IF @MaterialID IS NULL
+  BEGIN
+    RAISERROR('Material does not belong to the plant.', 16, 1);
+    RETURN;
+  END
+
+  -- Validation 2: Check if SLoc is valid
+  IF @SLocID IS NULL
+  BEGIN
+    RAISERROR('Storage Location not found for the given plant.', 16, 1);
+    RETURN;
+  END
+
+  -- Validation 3: Check if Cost Center is valid
+  IF @CostCenterID IS NULL
+  BEGIN
+    RAISERROR('Cost Center is invalid for the plant.', 16, 1);
+    RETURN;
+  END
+
+  -- Validation 4: Check for duplicate material in same Doc_ID (except current TrnSapID)
+  IF EXISTS (
+    SELECT 1 
+    FROM Trn_SapTransfer_Records 
+    WHERE Doc_ID = @DocID 
+      AND Material_ID = @MaterialID 
+      AND Trn_Sap_ID <> @TrnSapID
+  )
+  BEGIN
+    RAISERROR('Material already exists in the same document.', 16, 1);
+    RETURN;
+  END
+
+  -- Perform the update
+  UPDATE Trn_SapTransfer_Records
+  SET 
+    Material_ID = @MaterialID,
+    Qty = @Qty,
+    SLoc_ID = @SLocID,
+    CostCenter_ID = @CostCenterID,
+    Rate_PerPart = @Price,
+	Reason_For_Movt = @ReasonForMovt,
+    Valuation_Type = @ValuationType,
+    Batch = @Batch,
+    Modified_By = @ModifiedBy,
+    Modified_On = GETDATE()
+  WHERE Doc_ID = @DocID AND Trn_Sap_ID = @TrnSapID;
+END
