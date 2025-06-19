@@ -3,6 +3,7 @@
 
 select * from Trn_Approval_History 
 select * from Trn_Document  
+
 select * from Trn_SapTransfer_Records  
 
 select * from Trn_Approval_History  where Doc_ID=7
@@ -10,15 +11,24 @@ select * from Trn_Document  where Doc_ID=7
 select * from Trn_SapTransfer_Records  where Doc_ID=3
 
 
-select * from Mst_Material where Plant_ID=5
+select * from Mst_Material where Plant_ID=6
 
-select * from Mst_Plant where Plant_ID=5
+select * from Mst_Plant where Plant_ID=6
 
-select * from Mst_Cost_Center where Plant_ID=5
+select * from Mst_Cost_Center where Plant_ID=6
 
-select * from Mst_Storage_Location where Plant_ID=5
+select * from Mst_Storage_Location where Plant_ID=6
 
-select * from Mst_User where Plant_ID=5  -- 202 5 plant  
+select * from Mst_User where Plant_ID=6  -- 202 5 plant  
+
+select * from Mst_Movement_List_Item where Movement_ID = 6
+
+select * from Mst_Movement_Type
+
+--__________________________________________________________________________________________
+--  ||  551 movt id 1  ||  201 m id 2  || 202 m id 3  || 309 m id 4  || 311 m id 5  ||
+--___________________________________________________________________________________________
+---      || 1  - 1200  || 2 - 1300  || 3 - 1150  || 4 - 1210  || 5 - 1250  || 6 - 1000
 
 select * from Mst_Role
 
@@ -30,13 +40,17 @@ select  * from Mst_Access
 -- role id - user level id = r1 u1 | r2-u2 | r3- u2| r4-u2 | r5-u3 | r6-u3 | r7-u3 | r8-u4 | r9-u3
 
 
+EXEC sp_rename 'dbo.Get552ReasonForMovement', 'Get551ReasonForMovement';
 
 UPDATE Mst_User SET User_Level_ID=3 WHERE User_ID=53
+
 
 
 Truncate table Trn_Approval_History
 Truncate table Trn_Document
 Truncate table Trn_SapTransfer_Records
+
+
 
 update Trn_Approval_History set Approver_Status='Under Query' where Doc_ID=7
 
@@ -44,7 +58,13 @@ update Trn_Document set Approval_Status='Under Query' where Doc_ID=7
 
 update Trn_SapTransfer_Records set Approval_Status='Under Query' where Doc_ID=7
 
+
+
+
 update Mst_Screen set Screen_Name='Approval_551', Screen_Code='Approval_551' where Screen_ID=26
+
+
+
 
 INSERT INTO Mst_Screen (Screen_Name, Screen_Code, Screen_Type, Active_Status, Created_By, Created_On)
 VALUES 
@@ -52,6 +72,8 @@ VALUES
 ('Approval_511', 'Approval_511', 'Approval', '1', '1', GETDATE()),
 ('Approval_311', 'Approval_311', 'Approval', '1', '1', GETDATE())
 ;
+
+
 
 ALTER TABLE Trn_SapTransfer_Records
 DROP COLUMN Provision_Qty;
@@ -85,8 +107,9 @@ CREATE TABLE Trn_SapTransfer_Records (
 
     Movt_List_ID INT,
 
+	Reason_For_Movt NVARCHAR(500),
     Remarks NVARCHAR(255),
-
+	
     CostCenter_ID INT,
     Valuation_Type NVARCHAR(50),
     Batch NVARCHAR(50),
@@ -100,3 +123,69 @@ CREATE TABLE Trn_SapTransfer_Records (
     Modified_On DATETIME
 );
 
+/*
+
+✅ Define the Calculation Logic
+Given:
+
+a = Rate_PerPart
+
+b = Rejection_Qty
+
+c = Provision_Qty
+
+d = Provision_Value
+
+You want to calculate:
+
+e = a * b → Value
+
+f = b - c → Difference_Qty
+
+g = d - e → Difference_Value
+
+These fields exist in the table Trn_SapTransfer_Records, so we’ll add logic to:
+
+Fetch existing values for the record,
+
+Calculate e, f, g,
+
+Update them in the table.
+
+*/
+
+
+SELECT 
+    T.Trn_Sap_ID,
+    D.Doc_ID,
+    P.Plant_Code,
+    M.Material_Code,
+    M.Description AS Material_Description,
+    M.Material_Type,
+    T.Rejection_Qty As Qty,
+    T.Provision_Qty,
+    S.Storage_Code AS SLoc_Code,
+    COALESCE(MT.Movement_Code, CAST(T.Movement_ID AS NVARCHAR(50))) AS Movement_Code,
+    T.Rate_PerPart,
+    T.Reason_For_Movt,
+    T.Remarks,
+    D.Approval_Status,
+    D.Status AS Status,
+    CONVERT(VARCHAR(10), T.Created_On, 103) AS Date,
+    MLI.Movt_List_ID,
+    MLI.Movement_List_Name
+FROM Trn_SapTransfer_Records T
+LEFT JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID
+LEFT JOIN Mst_Material M ON T.Material_ID = M.Material_ID
+LEFT JOIN Mst_Storage_Location S ON T.SLoc_ID = S.SLoc_ID
+LEFT JOIN Mst_Movement_Type MT ON T.Movement_ID = MT.Movement_ID
+LEFT JOIN Trn_Document D ON T.Doc_ID = D.Doc_ID
+LEFT JOIN Mst_Movement_List_Item MLI 
+    ON T.Movement_ID = MLI.Movement_ID
+   AND REPLACE(LTRIM(RTRIM(T.Remarks)), ' ', '') = 
+       REPLACE(LTRIM(RTRIM(MLI.Movement_List_Code + '-' + MLI.Movement_List_Name)), ' ', '')
+WHERE T.Created_By = 18
+  AND T.Movement_ID = 1
+  AND D.Approval_Status IN ('Pending', 'Under Query')
+ -- AND MLI.Active_Status = 1
+ORDER BY T.Created_On DESC;
