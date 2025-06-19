@@ -8,7 +8,7 @@ ALTER PROCEDURE [dbo].[Edit201Record]
   @SLocCode VARCHAR(50),
   @CostCenterCode VARCHAR(50),
   @Price DECIMAL(18,2),
-  @ReasonForMovt VARCHAR(500),
+  @ReasonForMovement VARCHAR(500),
   @ValuationType VARCHAR(50),
   @Batch VARCHAR(50),
   @ModifiedBy INT
@@ -86,7 +86,7 @@ BEGIN
     SLoc_ID = @SLocID,
     CostCenter_ID = @CostCenterID,
     Rate_PerPart = @Price,
-	Reason_For_Movt = @ReasonForMovt,
+	Reason_For_Movt = @ReasonForMovement,
     Valuation_Type = @ValuationType,
     Batch = @Batch,
     Modified_By = @ModifiedBy,
