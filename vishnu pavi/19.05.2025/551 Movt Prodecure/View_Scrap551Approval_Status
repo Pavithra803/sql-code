@@ -1,7 +1,7 @@
 
 
 -- ✅ PROCEDURE FOR 551 APPROVAL STATUS VIEW
-CREATE PROCEDURE [dbo].[View_551Approval_Status]
+ALTER PROCEDURE View_Scrap551Approval_Status
     @Doc_ID INT
 AS
 BEGIN
