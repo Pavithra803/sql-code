@@ -1,6 +1,6 @@
 
 
-
+------1
 
  CREATE  PROCEDURE [dbo].[Trn551ApprovalWorkflow]
     @Doc_ID INT,
@@ -95,3 +95,156 @@ BEGIN
         END
     END
 END
+-------------------------------------------------------------------------------------------------2
+
+
+ALTER PROCEDURE [dbo].[GetTrnSap551Movt]
+    @Created INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- ✅ Step 1: Update 'Value' = Qty × Rate_PerPart (only rejection qty considered)
+    UPDATE Trn_SapTransfer_Records
+    SET Value = Qty * Rate_PerPart
+    WHERE Created_By = @Created
+      AND Movement_ID = 1;
+
+    -- ✅ Step 2: Return the updated data with difference calculations
+    SELECT 
+        T.Trn_Sap_ID,
+        D.Doc_ID,
+        P.Plant_Code,
+        M.Material_Code,
+        M.Description AS Material_Description,
+        M.Material_Type,
+
+        T.Qty AS Rejection_Qty,
+        T.Provision_Qty,
+
+        -- ✅ f = b - c → Difference Qty
+        (T.Qty - T.Provision_Qty) AS Difference_Qty,
+
+        -- ✅ a = Rate_PerPart
+        T.Rate_PerPart, -- rate only for rejection 
+
+        -- ✅ e = a * b → already updated to T.Value
+        T.Value AS Rejection_Value,
+
+        -- ✅ d = Provision_Value
+        T.Provision_Value,
+
+        -- ✅ g = d - e → Difference Value
+        (T.Provision_Value - T.Value) AS Difference_Value,
+
+        S.Storage_Code AS SLoc_Code,
+        COALESCE(MT.Movement_Code, CAST(T.Movement_ID AS NVARCHAR(50))) AS Movement_Code,
+
+        T.Reason_For_Movt,
+        T.Remarks,
+        D.Approval_Status,
+        D.Status AS Status,
+        CONVERT(VARCHAR(10), T.Created_On, 103) AS Date,
+        MLI.Movt_List_ID,
+        MLI.Movement_List_Name
+
+    FROM Trn_SapTransfer_Records T
+
+    LEFT JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID
+    LEFT JOIN Mst_Material M ON T.Material_ID = M.Material_ID
+    LEFT JOIN Mst_Storage_Location S ON T.SLoc_ID = S.SLoc_ID
+    LEFT JOIN Mst_Movement_Type MT ON T.Movement_ID = MT.Movement_ID
+    LEFT JOIN Trn_Document D ON T.Doc_ID = D.Doc_ID
+    LEFT JOIN Mst_Movement_List_Item MLI 
+        ON T.Movement_ID = MLI.Movement_ID
+       AND REPLACE(LTRIM(RTRIM(T.Remarks)), ' ', '') = 
+           REPLACE(LTRIM(RTRIM(MLI.Movement_List_Code + '-' + MLI.Movement_List_Name)), ' ', '')
+
+    WHERE 
+        T.Created_By = @Created
+        AND T.Movement_ID = 1
+        AND D.Approval_Status IN ('Pending', 'Under Query')
+
+    ORDER BY T.Created_On DESC;
+END;
+---------------------------------------------------------------------------------------------- 3
+
+ALTER PROCEDURE [dbo].[GetTrnSap551Movt]
+    @Created INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- ✅ Step 1: Update 'Value' = Qty × Rate_PerPart (Rejection Value)
+    UPDATE Trn_SapTransfer_Records
+    SET Value = Qty * Rate_PerPart
+    WHERE Created_By = @Created
+      AND Movement_ID = 1;
+
+    -- ✅ Step 2: Return updated data with proper calculations
+    SELECT 
+        T.Trn_Sap_ID,
+        D.Doc_ID,
+        P.Plant_Code,
+        M.Material_Code,
+        M.Description AS Material_Description,
+        M.Material_Type,
+
+        -- ✅ Rejection & Provision
+        T.Qty AS Rejection_Qty,
+        T.Provision_Qty,
+
+        -- ✅ f = Rejection_Qty - Provision_Qty
+        (T.Qty - ISNULL(T.Provision_Qty, 0)) AS Difference_Qty,
+
+        -- ✅ a = Rate_PerPart
+        T.Rate_PerPart,
+
+        -- ✅ e = Qty * Rate_PerPart = Rejection_Value
+        T.Value AS Rejection_Value,
+
+        -- ✅ d = Provision_Value
+        ISNULL(T.Provision_Value, 0) AS Provision_Value,
+
+        -- ✅ g = Provision_Value - Rejection_Value
+        (ISNULL(T.Provision_Value, 0) - T.Value) AS Difference_Value,
+
+        -- ✅ Storage & Movement Details
+        S.Storage_Code AS SLoc_Code,
+        COALESCE(MT.Movement_Code, CAST(T.Movement_ID AS NVARCHAR(50))) AS Movement_Code,
+
+        T.Reason_For_Movt,
+        T.Remarks,
+
+        -- ✅ Document & Status Info
+        D.Approval_Status,
+        D.Status AS Status,
+        CONVERT(VARCHAR(10), T.Created_On, 103) AS Date,
+
+        -- ✅ Movement List Info (ID & Name)
+        ISNULL(MLI.Movt_List_ID, 0) AS Movt_List_ID,
+        ISNULL(MLI.Movement_List_Name, '') AS Movement_List_Name
+
+    FROM Trn_SapTransfer_Records T
+
+    -- 🔗 Joins
+    LEFT JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID
+    LEFT JOIN Mst_Material M ON T.Material_ID = M.Material_ID
+    LEFT JOIN Mst_Storage_Location S ON T.SLoc_ID = S.SLoc_ID
+    LEFT JOIN Mst_Movement_Type MT ON T.Movement_ID = MT.Movement_ID
+    LEFT JOIN Trn_Document D ON T.Doc_ID = D.Doc_ID
+
+    -- 🔗 Movement List Join based on matching code-name pattern
+    LEFT JOIN Mst_Movement_List_Item MLI 
+        ON T.Movement_ID = MLI.Movement_ID
+       AND REPLACE(LTRIM(RTRIM(T.Remarks)), ' ', '') = 
+           REPLACE(LTRIM(RTRIM(MLI.Movement_List_Code + '-' + MLI.Movement_List_Name)), ' ', '')
+
+    -- 📌 Filters
+    WHERE 
+        T.Created_By = @Created
+        AND T.Movement_ID = 1
+        AND D.Approval_Status IN ('Pending', 'Under Query')
+
+    ORDER BY T.Created_On DESC;
+END;
