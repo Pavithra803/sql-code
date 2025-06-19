@@ -1,0 +1,252 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[UploadTrn202SapTransferRecord]    Script Date: 19-06-2025 09:41:02 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[UploadTrn202SapTransferRecord]  
+    @Created_By INT  
+AS  
+BEGIN  
+    SET NOCOUNT ON;  
+
+    DECLARE @Docid INT;  
+    DECLARE @MovementCode NVARCHAR(10);
+    DECLARE @MovementID INT;
+    DECLARE @PlantID INT;
+
+    -- Step 1: Enrich and Validate Input Data into #t1  
+    SELECT   
+        t.*,  
+        p.Plant_ID,  
+        m.Material_ID,  
+        m.Material_Type,  
+        s.SLoc_ID,  
+        cc.CostCenter_ID,  
+        mt.Movement_ID,
+        -- Validations  
+        CASE WHEN t.Plant_Code IN (SELECT Plant_Code FROM Mst_Plant WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS Plant_Val,
+        CASE WHEN t.Material_Code IN (SELECT Material_Code FROM Mst_Material WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS Material_Val,
+        CASE WHEN t.SLoc_Code IN (SELECT Storage_Code FROM Mst_Storage_Location WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS SLoc_Val,
+        CASE WHEN t.CostCenter_Code IN (SELECT CostCenter_Code FROM Mst_Cost_Center WHERE Active_Status = 1) THEN 'Valid' ELSE 'Invalid' END AS CostCenter_Val,
+        -- New Validation: SLoc belongs to same Plant  
+        CASE 
+            WHEN EXISTS (
+                SELECT *
+                FROM Mst_Plant p2
+                INNER JOIN Mst_Storage_Location s2 ON p2.Plant_ID = s2.Plant_ID
+                WHERE p2.Plant_Code = t.Plant_Code 
+                  AND s2.Storage_Code = t.SLoc_Code 
+                  AND p2.Active_Status = 1 
+                  AND s2.Active_Status = 1
+            ) THEN 'Valid'
+            ELSE 'Invalid'
+        END AS Plant_SLoc_Val,
+        -- New Validation: CostCenter belongs to same Plant  
+        CASE 
+            WHEN EXISTS (
+                SELECT *
+                FROM Mst_Plant p3
+                INNER JOIN Mst_Cost_Center cc2 ON p3.Plant_ID = cc2.Plant_ID
+                WHERE p3.Plant_Code = t.Plant_Code 
+                  AND cc2.CostCenter_Code = t.CostCenter_Code 
+                  AND p3.Active_Status = 1 
+                  AND cc2.Active_Status = 1
+            ) THEN 'Valid'
+            ELSE 'Invalid'
+        END AS Plant_CostCenter_Val,
+        -- New Validation: Reason for Movement related to Movement Code  
+        CASE
+            WHEN EXISTS (
+                SELECT * FROM Mst_Movement_List_Item
+                WHERE Movement_ID = mt.Movement_ID
+                  AND REPLACE(LTRIM(RTRIM(Movement_List_Code)) + '-' + LTRIM(RTRIM(Movement_List_Name)), ' ', '') 
+                      = REPLACE(LTRIM(RTRIM(t.Reason_For_Movt)), ' ', '')
+            ) THEN 'Valid'
+            ELSE 'Invalid'
+        END AS Reason_Val,
+        -- New Validation: User belongs to same Plant
+        CASE 
+            WHEN EXISTS (
+                SELECT 1 
+                FROM Mst_User up
+                INNER JOIN Mst_User u ON u.User_ID = up.User_ID
+                INNER JOIN Mst_Plant p ON up.Plant_ID = p.Plant_ID
+                WHERE u.User_ID = @Created_By
+                  AND p.Plant_Code = t.Plant_Code
+            ) THEN 'Valid'
+            ELSE 'Invalid'
+        END AS User_Plant_Val,
+        ROW_NUMBER() OVER (  
+            PARTITION BY t.Plant_Code, t.Material_Code, t.SLoc_Code, t.Movement_Code  
+            ORDER BY t.Plant_Code  
+        ) AS RowNum
+    INTO #t1  
+    FROM #trn202 AS t  
+    LEFT JOIN Mst_Plant p ON p.Plant_Code = t.Plant_Code  
+    LEFT JOIN Mst_Material m ON m.Material_Code = t.Material_Code   AND m.Plant_ID = p.Plant_ID
+    LEFT JOIN Mst_Storage_Location s ON s.Storage_Code = t.SLoc_Code  AND s.Plant_ID = p.Plant_ID
+    LEFT JOIN Mst_Cost_Center cc ON cc.CostCenter_Code = t.CostCenter_Code AND cc.Plant_ID = p.Plant_ID
+    LEFT JOIN Mst_Movement_Type mt ON mt.Movement_Code = t.Movement_Code AND mt.Active_Status = 1;  
+
+
+    -- Step 2: Filter only valid rows (including all validations)  
+    SELECT * INTO #t2  
+    FROM #t1  
+    WHERE Plant_Val = 'Valid'  
+      AND Material_Val = 'Valid'  
+      AND SLoc_Val = 'Valid'  
+      AND CostCenter_Val = 'Valid'  
+      AND Plant_SLoc_Val = 'Valid'
+      AND Plant_CostCenter_Val = 'Valid'
+      AND Reason_Val = 'Valid'
+      AND User_Plant_Val = 'Valid' 
+      AND RowNum = 1;  
+
+-- Step 3: Detect Duplicates Based on Quantity and Date (excluding SLoc and CostCenter)
+SELECT * INTO #dup
+FROM #t2 t
+WHERE EXISTS (
+    SELECT 1
+    FROM Trn_SapTransfer_Records r
+    WHERE r.Plant_ID = t.Plant_ID
+      AND r.Material_ID = t.Material_ID
+      AND r.Qty = t.Quantity
+      --AND r.Movement_ID = t.Movement_ID
+      AND CAST(r.Created_On AS DATE) = CAST(GETDATE() AS DATE)
+      AND r.Approval_Status NOT IN ('Approved', 'Cancelled')
+);
+
+
+-- Step 4: Identify new records using same logic as Step 3
+SELECT * INTO #InsertedRecords  
+FROM #t2 AS source  
+WHERE NOT EXISTS (  
+    SELECT *   
+    FROM Trn_SapTransfer_Records r  
+    WHERE r.Plant_ID = source.Plant_ID  
+      AND r.Material_ID = source.Material_ID  
+      AND r.Qty = source.Quantity  
+      --AND r.Movement_ID = source.Movement_ID  
+      AND CAST(r.Created_On AS DATE) = CAST(GETDATE() AS DATE)  
+      AND r.Approval_Status NOT IN ('Approved', 'Cancelled')
+);
+
+
+    -- Step 5: Insert document and transfer records for new valid records  
+    IF EXISTS (SELECT * FROM #InsertedRecords)
+    BEGIN
+        -- Get MovementCode and PlantID from first inserted record (assuming batch insert with same Movement and Plant)
+        SELECT 
+            @MovementCode = CAST(Movement_ID AS NVARCHAR(10)),
+            @MovementID = Movement_ID,
+            @PlantID = Plant_ID
+        FROM #InsertedRecords;
+
+        INSERT INTO Trn_Document (
+            Plant_ID,
+            Movement_ID,
+            Movement_Name,
+            Status,
+            Created_By,
+            Created_On,
+            Approval_Status
+        )
+        VALUES (
+            @PlantID,
+            @MovementID,
+            'Movement type ' + @MovementCode,
+            'Active',
+            @Created_By,
+            GETDATE(),
+            'Pending'
+        );
+
+        SET @Docid = SCOPE_IDENTITY();
+
+        INSERT INTO Trn_SapTransfer_Records (
+            Doc_ID,
+            Movement_ID,
+            Plant_ID,
+            SLoc_ID,
+            Material_Type,
+            Material_ID,
+            Rate_PerPart,
+            Qty,
+            Reason_For_Movt,
+            CostCenter_ID,
+            Valuation_Type,
+            Batch,
+            Approval_Status,
+            Created_By,
+            Created_On
+        )
+        SELECT
+            @Docid,
+            Movement_ID,
+            Plant_ID,
+            SLoc_ID,
+            Material_Type,
+            Material_ID,
+            Rate_Per_Unit,
+            Quantity,
+            Reason_For_Movt,
+            CostCenter_ID,
+            Valuation_Type,
+            Batch,
+            'Pending',
+            @Created_By,
+            GETDATE()
+        FROM #InsertedRecords;
+
+        INSERT INTO Trn_Approval_History (
+            Doc_ID,
+            Plant_ID,
+            Movement_ID,
+            Approver_ID,
+            Approver_Comment,
+            Approver_Status,
+            Approval_level,
+            Created_By,
+            Created_On
+        )
+        VALUES (
+            @Docid,
+            @PlantID,
+            @MovementID,
+            @Created_By,
+            'Initial approval',
+            'Pending',
+            3,
+            @Created_By,
+            GETDATE()
+        );
+    END
+
+    -- Step 6: Output Error Records with Reason Columns and expected valid reasons for Movement  
+    SELECT t.*, 
+           (SELECT STRING_AGG(Movement_List_Code + ' - ' + Movement_List_Name, ', ')
+            FROM Mst_Movement_List_Item
+            WHERE Movement_ID = t.Movement_ID) AS Expected_Reasons,
+           'Error_Records' AS Status
+    FROM #t1 AS t  
+    WHERE Plant_Val = 'Invalid'  
+       OR Material_Val = 'Invalid'  
+       OR SLoc_Val = 'Invalid'  
+       OR CostCenter_Val = 'Invalid'
+       OR Plant_SLoc_Val = 'Invalid'
+       OR Plant_CostCenter_Val = 'Invalid'
+       OR Reason_Val = 'Invalid'
+       OR User_Plant_Val = 'Invalid';
+
+    -- Step 7: Output New Records  
+    SELECT *, 'New_Records' AS Status FROM #InsertedRecords;
+
+    -- Step 8: Output Duplicates  
+    SELECT *, 'Duplicate_Records' AS Status FROM #dup;
+
+    -- Step 9: Cleanup  
+    DROP TABLE IF EXISTS #t1, #t2, #dup, #InsertedRecords;
+END
