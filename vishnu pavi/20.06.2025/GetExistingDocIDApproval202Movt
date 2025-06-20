@@ -12,7 +12,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT 
+   SELECT 
         T.Trn_Sap_ID,
         P.Plant_Code,
         T.Doc_ID,
@@ -54,12 +54,12 @@ BEGIN
             CONVERT(VARCHAR(20), AH.Modified_On, 120) AS Approver_Date
         FROM Trn_Approval_History AH
         LEFT JOIN Mst_User U ON AH.Approver_ID = U.User_ID
-        WHERE AH.Doc_ID = @Doc_ID
+        WHERE AH.Doc_ID = 1
          
         ORDER BY AH.Modified_On DESC
     ) AH ON T.Doc_ID = AH.Doc_ID
 
-    WHERE MT.Movement_ID = 3
-     
+    WHERE MT.Movement_ID = 2
+      AND T.Doc_ID = 1
     ORDER BY T.Created_On DESC;
 END;
