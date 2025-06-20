@@ -1,0 +1,50 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[GetTrnSap201Movt]    Script Date: 20-06-2025 15:38:16 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[GetTrnSap201Movt]
+    @Created INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        T.Trn_Sap_ID,
+        D.Doc_ID,
+        P.Plant_Code,
+        M.Material_Code,
+        M.Description AS Material_Description,
+        T.Qty,
+        S.Storage_Code AS SLoc_Code,
+        COALESCE(MT.Movement_Code, CAST(T.Movement_ID AS NVARCHAR(50))) AS Movement_Code,
+        CC.CostCenter_Code,
+        T.Valuation_Type,
+        T.Batch,
+        T.Rate_PerPart,
+		T.Reason_For_Movt,
+        T.Remarks,
+        D.Approval_Status,
+        D.Status AS Status,
+        CONVERT(VARCHAR(10), T.Created_On, 103) AS Date,
+        MLI.Movt_List_ID,
+        MLI.Movement_List_Name
+    FROM Trn_SapTransfer_Records T
+    LEFT JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID
+    LEFT JOIN Mst_Material M ON T.Material_ID = M.Material_ID
+    LEFT JOIN Mst_Storage_Location S ON T.SLoc_ID = S.SLoc_ID
+    LEFT JOIN Mst_Movement_Type MT ON T.Movement_ID = MT.Movement_ID
+    LEFT JOIN Mst_Cost_Center CC ON T.CostCenter_ID = CC.CostCenter_ID
+    LEFT JOIN Trn_Document D ON T.Doc_ID = D.Doc_ID
+    LEFT JOIN Mst_Movement_List_Item MLI 
+        ON T.Movement_ID = MLI.Movement_ID
+       AND REPLACE(LTRIM(RTRIM(T.Remarks)), ' ', '') = 
+           REPLACE(LTRIM(RTRIM(MLI.Movement_List_Code + '-' + MLI.Movement_List_Name)), ' ', '')
+    WHERE T.Created_By = @Created
+      AND T.Movement_ID = 2
+      AND D.Approval_Status IN ('Pending','Under Query')
+     -- AND MLI.Active_Status = 1
+	      ORDER BY T.Created_On DESC
+END;
