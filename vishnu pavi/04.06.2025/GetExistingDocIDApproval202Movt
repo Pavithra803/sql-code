@@ -60,7 +60,6 @@ BEGIN
     ) AH ON T.Doc_ID = AH.Doc_ID
 
     WHERE MT.Movement_ID = 3
-      AND T.Doc_ID = @Doc_ID
-
+     
     ORDER BY T.Created_On DESC;
 END;
