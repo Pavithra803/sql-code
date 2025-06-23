@@ -1,0 +1,53 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[GetTrnSap311Movt]    Script Date: 23-06-2025 18:22:02 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[GetTrnSap311Movt]
+    @Role_ID INT,
+    @Plant_ID INT  -- keep it if you want to filter plant-wise; adjust usage accordingly
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        p.Plant_Code,
+        FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date,
+        mt.Movement_Code AS Movement_Type,
+        u.User_Name AS Request_By,
+        ah.Doc_ID,
+        ah.Movement_ID,
+        ah.Approver_ID,
+        ah.Approval_Level,
+        ah.Approver_Status
+    FROM Trn_Document d
+    INNER JOIN Trn_Appl_His ah 
+        ON ah.Doc_ID = d.Doc_ID 
+        AND ah.Movement_ID = d.Movement_ID
+    LEFT JOIN Mst_Movement_Type mt ON mt.Movement_ID = d.Movement_ID
+    LEFT JOIN Mst_Plant p ON p.Plant_ID = d.Plant_ID
+    LEFT JOIN Mst_User u ON u.User_ID = d.Created_By
+    WHERE
+    (
+        d.Plant_ID = @Plant_ID
+        AND d.Movement_ID = 3           -- use 3 based on your data for Movement 311
+        AND ah.Approval_Level = @Role_ID
+        AND ah.Approver_Status = 'Pending'
+        AND NOT EXISTS (
+            SELECT 1
+            FROM Trn_SapTransfer_Records sr
+            WHERE sr.Doc_ID = d.Doc_ID
+              AND sr.Movement_ID = 3
+              AND sr.Approval_Status <> 'Pending'
+        )
+    )
+    OR
+    (
+        d.Plant_ID = @Plant_ID
+        AND d.Movement_ID = 3
+        AND ah.Approver_Status IN ('Rejected', 'Under Query')
+        AND ah.Approval_Level = @Role_ID
+    );
+END
