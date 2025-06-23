@@ -1,0 +1,122 @@
+ALTER PROCEDURE [dbo].[UploadTrn311SapTransferRecord]
+    @Created_By INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Docid INT, @MovementCode VARCHAR(10), @MovementID INT, @PlantID INT;
+
+    -- Step 1: Enrich + validate incoming data
+    SELECT 
+        t.*,
+        p.Plant_ID,
+        m.Material_ID,
+        fs.SLoc_ID AS From_SLoc_ID,
+        ts.SLoc_ID AS To_SLoc_ID,
+        mt.Movement_ID,
+        
+        -- Validations
+        CASE WHEN p.Active_Status = 1 THEN 'Valid' ELSE 'Invalid' END AS Plant_Val,
+        CASE WHEN m.Active_Status = 1 THEN 'Valid' ELSE 'Invalid' END AS Material_Val,
+        CASE WHEN fs.Active_Status = 1 THEN 'Valid' ELSE 'Invalid' END AS From_SLoc_Val,
+        CASE WHEN ts.Active_Status = 1 THEN 'Valid' ELSE 'Invalid' END AS To_SLoc_Val,
+        CASE WHEN fs.Plant_ID = p.Plant_ID THEN 'Valid' ELSE 'Invalid' END AS From_SLoc_Plant_Val,
+        CASE WHEN ts.Plant_ID = p.Plant_ID THEN 'Valid' ELSE 'Invalid' END AS To_SLoc_Plant_Val,
+        CASE WHEN m.Plant_ID = p.Plant_ID THEN 'Valid' ELSE 'Invalid' END AS Material_Plant_Val,
+        CASE WHEN mt.Movement_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS Movement_Val,
+        CASE 
+            WHEN EXISTS (
+                SELECT 1
+                FROM Mst_User u
+                INNER JOIN Mst_Plant up ON u.Plant_ID = up.Plant_ID
+                WHERE u.User_ID = @Created_By AND up.Plant_Code = t.Plant_Code
+            ) THEN 'Valid'
+            ELSE 'Invalid'
+        END AS User_Plant_Val,
+
+        ROW_NUMBER() OVER (
+            PARTITION BY t.Plant_Code, t.Material_Code, t.From_SLoc_Code, t.To_SLoc_Code, t.Movement_Code
+            ORDER BY t.Plant_Code
+        ) AS RowNum
+
+    INTO #t1
+    FROM #transation t
+    LEFT JOIN Mst_Plant p ON p.Plant_Code = t.Plant_Code
+    LEFT JOIN Mst_Material m ON m.Material_Code = t.Material_Code AND m.Plant_ID = p.Plant_ID
+    LEFT JOIN Mst_Storage_Location fs ON fs.Storage_Code = t.From_SLoc_Code AND fs.Plant_ID = p.Plant_ID
+    LEFT JOIN Mst_Storage_Location ts ON ts.Storage_Code = t.To_SLoc_Code AND ts.Plant_ID = p.Plant_ID
+    LEFT JOIN Mst_Movement_Type mt ON mt.Movement_Code = t.Movement_Code AND mt.Active_Status = 1;
+
+    -- Step 2: Filter only valid rows
+    SELECT * INTO #InsertedRecords
+    FROM #t1
+    WHERE Plant_Val = 'Valid'
+      AND Material_Val = 'Valid'
+      AND From_SLoc_Val = 'Valid'
+      AND To_SLoc_Val = 'Valid'
+      AND From_SLoc_Plant_Val = 'Valid'
+      AND To_SLoc_Plant_Val = 'Valid'
+      AND Material_Plant_Val = 'Valid'
+      AND Movement_Val = 'Valid'
+      AND User_Plant_Val = 'Valid'
+      AND RowNum = 1;
+
+    -- Step 3: Insert document and records
+    IF EXISTS (SELECT 1 FROM #InsertedRecords)
+    BEGIN
+        SELECT TOP 1 
+            @MovementCode = Movement_Code,
+            @MovementID = Movement_ID,
+            @PlantID = Plant_ID
+        FROM #InsertedRecords;
+
+        INSERT INTO Trn_Document (
+            Plant_ID, Movement_ID, Movement_Name, Status, Created_By, Created_On, Approval_Status
+        )
+        VALUES (
+            @PlantID, @MovementID, 'Movement ' + @MovementCode, 'Active', @Created_By, GETDATE(), 'Pending'
+        );
+
+        SET @Docid = SCOPE_IDENTITY();
+
+        INSERT INTO Trn_SapTransfer_Records (
+            Doc_ID, Movement_ID, Plant_ID, SLoc_ID,
+            Material_ID, Rate_PerPart, Qty, 
+            Remarks, Valuation_Type, Batch, To_SLoc_ID,
+            Approval_Status, Created_By, Created_On
+        )
+        SELECT 
+            @Docid, Movement_ID, Plant_ID, From_SLoc_ID,
+            Material_ID, NULL, Qty,
+            Remark, Valuation_Type, Batch, To_SLoc_ID,
+            'Pending', @Created_By, GETDATE()
+        FROM #InsertedRecords;
+
+        INSERT INTO Trn_Approval_History (
+            Doc_ID, Plant_ID, Movement_ID, Approver_ID, Approver_Comment,
+            Approver_Status, Approval_level, Created_By, Created_On
+        )
+        VALUES (
+            @Docid, @PlantID, @MovementID, @Created_By,
+            'Initial approval', 'Pending', 3, @Created_By, GETDATE()
+        );
+    END;
+
+    -- Step 4: Return error records
+    SELECT *, 'Error_Records' AS Status FROM #t1
+    WHERE Plant_Val = 'Invalid'
+       OR Material_Val = 'Invalid'
+       OR From_SLoc_Val = 'Invalid'
+       OR To_SLoc_Val = 'Invalid'
+       OR From_SLoc_Plant_Val = 'Invalid'
+       OR To_SLoc_Plant_Val = 'Invalid'
+       OR Material_Plant_Val = 'Invalid'
+       OR Movement_Val = 'Invalid'
+       OR User_Plant_Val = 'Invalid';
+
+    -- Step 5: Return new records
+    SELECT *, 'New_Records' AS Status FROM #InsertedRecords;
+
+    -- Step 6: Cleanup
+    DROP TABLE IF EXISTS #t1, #InsertedRecords;
+END;
