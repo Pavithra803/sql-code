@@ -1,0 +1,33 @@
+create PROCEDURE [dbo].[View311Approval_Status]
+    @Doc_ID INT
+AS
+BEGIN
+    SELECT 
+        A.Trn_Appl_His_ID,
+        A.Approver_Status AS Status,
+        A.Approver_Comment,
+        A.Approver_ID,
+        -- Show "Created By" if Modified_On is null, else show "Modified By"
+        CASE 
+            WHEN A.Modified_On IS NULL THEN CU.User_Name
+            ELSE MU.User_Name
+        END AS Modified_By,
+        -- Show Date depending on Modified_On or Created_On
+        FORMAT(
+            ISNULL(A.Modified_On, A.Created_On), 
+            'dd-MM-yyyy'
+        ) + '  -  ' + FORMAT(
+            ISNULL(A.Modified_On, A.Created_On), 
+            'HH:mm:ss'
+        ) AS Date,
+        R.Role_Name AS Role
+    FROM Trn_Approval_History A
+    LEFT JOIN Mst_User MU ON A.Approver_ID = MU.User_ID          -- Modified By
+    LEFT JOIN Mst_User CU ON A.Created_By = CU.User_ID           -- Created By
+    LEFT JOIN Mst_Role R ON MU.Role_ID = R.Role_ID
+    INNER JOIN Trn_Document D ON A.Doc_ID = D.Doc_ID
+    WHERE 
+        A.Doc_ID = @Doc_ID
+        AND D.Movement_ID = 5  -- Specific to Movement 311
+    ORDER BY ISNULL(A.Modified_On, A.Created_On) DESC
+END
