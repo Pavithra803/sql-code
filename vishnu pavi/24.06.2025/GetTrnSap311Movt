@@ -1,6 +1,4 @@
 
-
-
 ALTER PROCEDURE [dbo].[GetTrnSap311Movt]
     @Created INT
 AS
@@ -19,7 +17,9 @@ BEGIN
         S2.Storage_Code AS To_SLoc_Code,
         T.Qty,
         T.Valuation_Type,
-        T.Approval_Status
+        T.Approval_Status,
+		T.Batch,
+		T.Reason_For_Movt
 
     FROM Trn_SapTransfer_Records T
 
