@@ -1,4 +1,10 @@
-
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[UploadTrn311SapTransferRecord]    Script Date: 24-06-2025 12:24:12 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 ALTER PROCEDURE [dbo].[UploadTrn311SapTransferRecord]
     @Created_By INT,
     @Movement_Code NVARCHAR(50) = '311'  -- Can accept comma-separated codes like '311,3101'
@@ -104,7 +110,7 @@ BEGIN
         )
         VALUES (
             (SELECT TOP 1 Plant_ID FROM #InsertedRecords),
-            1,
+             5,
             @Movement_Code,
             'Active',
             @Created_By,
@@ -131,7 +137,7 @@ BEGIN
         )
         SELECT 
             @Docid,
-			1,
+			 5,
 			Plant_ID, 
 			From_Material_ID,
 			Qty,
@@ -159,7 +165,7 @@ BEGIN
         VALUES (
             @Docid,
             (SELECT TOP 1 Plant_ID FROM #InsertedRecords),
-            1,
+             5,
             @Created_By,
             'Initial approval',
             'Pending',
