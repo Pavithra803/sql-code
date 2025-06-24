@@ -1,0 +1,97 @@
+
+
+ALTER PROCEDURE [dbo].[Edit311Record]
+  @DocID VARCHAR(50),
+  @TrnSapID INT,
+  @MatCode VARCHAR(50),
+  @Qty DECIMAL(18,2),
+  @ValuationType VARCHAR(50),
+  @Batch VARCHAR(50),
+  @FromSLocCode VARCHAR(50),
+  @ToSLocCode VARCHAR(50),
+  @ReasonForMovement VARCHAR(255),
+  @ModifiedBy INT
+AS
+BEGIN
+  SET NOCOUNT ON;
+
+  DECLARE 
+    @MaterialID INT,
+    @FromSLocID INT,
+    @ToSLocID INT,
+    @PlantID INT;
+
+  -- Get Plant_ID for the given transaction
+  SELECT @PlantID = Plant_ID
+  FROM Trn_SapTransfer_Records
+  WHERE Doc_ID = @DocID AND Trn_Sap_ID = @TrnSapID;
+
+  -- Validate Plant exists
+  IF @PlantID IS NULL
+  BEGIN
+    RAISERROR('Transaction not found or invalid DocID/TrnSapID.', 16, 1);
+    RETURN;
+  END
+
+  -- Resolve MaterialID for the given plant
+  SELECT @MaterialID = Material_ID
+  FROM Mst_Material
+  WHERE Material_Code = @MatCode AND Plant_ID = @PlantID;
+
+  IF @MaterialID IS NULL
+  BEGIN
+    RAISERROR('Material does not belong to the plant.', 16, 1);
+    RETURN;
+  END
+
+  -- Resolve From Storage Location ID for the given plant
+  SELECT @FromSLocID = SLoc_ID
+  FROM Mst_Storage_Location
+  WHERE Storage_Code = @FromSLocCode AND Plant_ID = @PlantID;
+
+  IF @FromSLocID IS NULL
+  BEGIN
+    RAISERROR('From Storage Location not found for the given plant.', 16, 1);
+    RETURN;
+  END
+
+  -- Resolve To Storage Location ID for the given plant
+  SELECT @ToSLocID = SLoc_ID
+  FROM Mst_Storage_Location
+  WHERE Storage_Code = @ToSLocCode AND Plant_ID = @PlantID;
+
+  IF @ToSLocID IS NULL
+  BEGIN
+    RAISERROR('To Storage Location not found for the given plant.', 16, 1);
+    RETURN;
+  END
+
+  -- Optional: Check duplicate Material in same Doc_ID (excluding current TrnSapID)
+  IF EXISTS (
+    SELECT 1 
+    FROM Trn_SapTransfer_Records
+    WHERE Doc_ID = @DocID
+      AND Material_ID = @MaterialID
+      AND Trn_Sap_ID <> @TrnSapID
+  )
+  BEGIN
+    RAISERROR('Material already exists in the same document.', 16, 1);
+    RETURN;
+  END
+
+  -- Perform the update
+  UPDATE Trn_SapTransfer_Records
+  SET 
+    Material_ID = @MaterialID,
+    Qty = ISNULL(@Qty, Qty),
+    Valuation_Type = ISNULL(@ValuationType, Valuation_Type),
+    Batch = ISNULL(@Batch, Batch),
+    SLoc_ID = @FromSLocID,
+    To_SLoc_ID = @ToSLocID,
+    Reason_For_Movt = @ReasonForMovement,
+    Modified_By = @ModifiedBy,
+    Modified_On = GETDATE()
+  WHERE Doc_ID = @DocID AND Trn_Sap_ID = @TrnSapID;
+
+END
+GO
