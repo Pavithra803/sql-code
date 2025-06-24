@@ -1,0 +1,38 @@
+
+
+ALTER PROCEDURE [dbo].[GetTrnSap311Movt]
+    @Created INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        -- Required fields for frontend
+		T. Trn_Sap_ID,
+        P.Plant_Code,
+        T.Doc_ID,
+        CONVERT(VARCHAR(10), T.Created_On, 103) AS Date,
+        D.Movement_Name AS Movement_Code,
+        M.Material_Code,
+        S.Storage_Code AS SLoc_Code,
+        S2.Storage_Code AS To_SLoc_Code,
+        T.Qty,
+        T.Valuation_Type,
+        T.Approval_Status
+
+    FROM Trn_SapTransfer_Records T
+
+    -- Join to get human-readable data
+    INNER JOIN Mst_Material M ON T.Material_ID = M.Material_ID
+    INNER JOIN Mst_Storage_Location S ON T.SLoc_ID = S.SLoc_ID
+    INNER JOIN Mst_Storage_Location S2 ON T.To_SLoc_ID = S2.SLoc_ID
+    INNER JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID
+    INNER JOIN Trn_Document D ON T.Doc_ID = D.Doc_ID
+
+    WHERE 
+        T.Created_By = @Created
+        AND D.Movement_Id = '1'
+        AND T.Approval_Status IN ('Pending', 'Under Query')
+
+    ORDER BY T.Created_On DESC;
+END;
