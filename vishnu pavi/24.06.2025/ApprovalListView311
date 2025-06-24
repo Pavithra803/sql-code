@@ -1,6 +1,3 @@
-USE [Sap_Approval]
-GO
-
 ALTER PROCEDURE [dbo].[ApprovalListView311]
     @Role_ID INT,
     @Plant_ID INT,
@@ -12,6 +9,7 @@ BEGIN
     SELECT 
         d.Doc_ID,
         d.Movement_ID,
+        mt.Movement_Code,            -- Added Movement_Code here
         d.Movement_Name,
         FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date,
         d.Approval_Status AS Document_Status,
@@ -27,6 +25,7 @@ BEGIN
         AND ah.Movement_ID = d.Movement_ID
     LEFT JOIN Mst_Plant p ON p.Plant_ID = d.Plant_ID
     LEFT JOIN Mst_User u ON u.User_ID = d.Created_By
+    LEFT JOIN Mst_Movement_Type mt ON mt.Movement_ID = d.Movement_ID    -- Join to get Movement_Code
 
     WHERE 
         d.Movement_ID = 5 AND 
