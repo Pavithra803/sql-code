@@ -1,5 +1,6 @@
 
 
+
 ALTER PROCEDURE [dbo].[GetTrnSap311Movt]
     @Created INT
 AS
@@ -31,7 +32,7 @@ BEGIN
 
     WHERE 
         T.Created_By = @Created
-        AND D.Movement_Id = '1'
+        AND D.Movement_Id = '5'
         AND T.Approval_Status IN ('Pending', 'Under Query')
 
     ORDER BY T.Created_On DESC;
