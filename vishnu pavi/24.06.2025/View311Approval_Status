@@ -1,0 +1,44 @@
+
+ALTER PROCEDURE [dbo].[View311Approval_Status]
+    @Doc_ID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        A.Trn_Appl_His_ID,
+        A.Approver_Status AS Status,
+        A.Approver_Comment,
+        A.Approver_ID,
+
+        -- 👤 Action_By: Show who performed the action
+        ISNULL(MU.User_Name, CU.User_Name) AS Action_By,
+
+        -- 📅 Date: Show Modified_On if present, else Created_On
+        FORMAT(
+            ISNULL(A.Modified_On, A.Created_On), 
+            'dd-MM-yyyy'
+        ) + '  -  ' + FORMAT(
+            ISNULL(A.Modified_On, A.Created_On), 
+            'HH:mm:ss'
+        ) AS Action_Date,
+
+        -- 🎭 Role: Prefer Modified_By's role, fallback to Approver's
+        ISNULL(MR.Role_Name, R.Role_Name) AS Role
+    FROM Trn_Approval_History A
+    -- User who last modified the row (if any)
+    LEFT JOIN Mst_User MU ON A.Modified_By = MU.User_ID
+    LEFT JOIN Mst_Role MR ON MU.Role_ID = MR.Role_ID
+
+    -- Approver user
+    INNER JOIN Mst_User CU ON A.Approver_ID = CU.User_ID
+    LEFT JOIN Mst_Role R ON CU.Role_ID = R.Role_ID
+
+    INNER JOIN Trn_Document D ON A.Doc_ID = D.Doc_ID
+
+    WHERE 
+        A.Doc_ID = @Doc_ID
+        AND D.Movement_ID = 5  -- Movement Type 311
+
+    ORDER BY ISNULL(A.Modified_On, A.Created_On) DESC
+END
