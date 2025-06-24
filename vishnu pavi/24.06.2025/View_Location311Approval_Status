@@ -1,0 +1,79 @@
+
+ALTER PROCEDURE [dbo].[View_Location311Approval_Status]
+    @Doc_ID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Movement_ID INT = 1; -- Movement Type 311
+
+    -- Find Movement_ID from the doc itself (optional, for validation)
+    DECLARE @MovementID INT;
+    SELECT @MovementID = Movement_ID FROM Trn_Document WHERE Doc_ID = @Doc_ID;
+
+    -- Determine the requester status (pending or approved) by checking all docs with same Movement_ID
+    DECLARE @RequesterStatus VARCHAR(20);
+
+    IF EXISTS (
+        SELECT 1 FROM Trn_Document d
+        WHERE d.Movement_ID = @Movement_ID
+          AND d.Doc_ID IN (
+              SELECT Doc_ID FROM Trn_Approval_History ah
+              WHERE ah.Doc_ID = d.Doc_ID
+                AND ah.Approver_Status <> 'Approved'
+          )
+    )
+    BEGIN
+        SET @RequesterStatus = 'Pending';
+    END
+    ELSE
+    BEGIN
+        SET @RequesterStatus = 'Approved';
+    END
+
+    -- 1. Requester Info (Document Creator)
+    SELECT
+        NULL AS Approver_ID,
+        NULL AS Trn_Appl_His_ID,
+        @RequesterStatus AS Status,
+        'Initial level approval submitted' AS Approver_Comment,
+        CU.User_Name AS Action_By,
+        FORMAT(D.Created_On, 'dd-MM-yyyy') + ' - ' + FORMAT(D.Created_On, 'HH:mm:ss') AS Action_Date,
+        'Requester' AS Role,
+        D.Plant_ID,          -- Added related column for 311 location
+        P.Plant_Code        -- Join to get Plant Code for location info
+    FROM Trn_Document D
+    INNER JOIN Mst_User CU ON D.Created_By = CU.User_ID
+    LEFT JOIN Mst_Plant P ON D.Plant_ID = P.Plant_ID
+    WHERE D.Doc_ID = @Doc_ID
+
+    UNION ALL
+
+    -- 2. Approval History
+    SELECT 
+        A.Approver_ID,
+        A.Trn_Appl_His_ID,
+        A.Approver_Status AS Status,
+        A.Approver_Comment,
+        ISNULL(MU.User_Name, AU.User_Name) AS Action_By,
+        FORMAT(
+            ISNULL(A.Modified_On, A.Created_On), 
+            'dd-MM-yyyy') + ' - ' + FORMAT(
+            ISNULL(A.Modified_On, A.Created_On), 
+            'HH:mm:ss') AS Action_Date,
+        ISNULL(MR.Role_Name, R.Role_Name) AS Role,
+        D.Plant_ID,           -- Related column
+        P.Plant_Code          -- Location info
+    FROM Trn_Approval_History A
+    LEFT JOIN Mst_User MU ON A.Modified_By = MU.User_ID
+    LEFT JOIN Mst_Role MR ON MU.Role_ID = MR.Role_ID
+    INNER JOIN Mst_User AU ON A.Approver_ID = AU.User_ID
+    LEFT JOIN Mst_Role R ON AU.Role_ID = R.Role_ID
+    INNER JOIN Trn_Document D ON A.Doc_ID = D.Doc_ID
+    LEFT JOIN Mst_Plant P ON D.Plant_ID = P.Plant_ID
+    WHERE 
+        A.Doc_ID = @Doc_ID
+        AND A.Movement_ID = @Movement_ID
+
+    ORDER BY Action_Date DESC;
+END;
