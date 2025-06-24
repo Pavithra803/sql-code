@@ -130,6 +130,7 @@ BEGIN
             Valuation_Type,
 			Batch,  
             To_SLoc_ID,
+			Reason_For_Movt,
 			Remarks,
 			Approval_Status, 
             Created_By, 
@@ -145,6 +146,7 @@ BEGIN
             Valuation_Type,
 			Batch,
 			To_SLoc_ID, 
+			Reason_For_Movt,
 			Remark,
             'Pending',
 			@Created_By,
@@ -169,7 +171,7 @@ BEGIN
             @Created_By,
             'Initial approval',
             'Pending',
-            3,
+            4,
             @Created_By,
             GETDATE()
         );
