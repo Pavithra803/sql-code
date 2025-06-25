@@ -257,7 +257,15 @@ VALUES
 ('Approval_201', 'Approval_201', 'Approval', '1', '1', GETDATE()),
 ('Approval_202', 'Approval_202', 'Approval', '1', '1', GETDATE())
 ('Approval_511', 'Approval_511', 'Approval', '1', '1', GETDATE()),
-('Approval_311', 'Approval_311', 'Approval', '1', '1', GETDATE())
+('Approval_311', 'Approval_311', 'Approval', '1', '1', GETDATE()),
+('ApprovalRs1', 'ApprovalRs1', 'Approval', '1', '1', GETDATE()),
+('Report3', 'Report3', 'Approval', '1', '1', GETDATE()),
+('Report4', 'Report4', 'Approval', '1', '1', GETDATE()),
+('Report5', 'Report5', 'Approval', '1', '1', GETDATE()),
+('Report6', 'Report6', 'Approval', '1', '1', GETDATE()),
+('Report6', 'Report7', 'Approval', '1', '1', GETDATE()),
+('Report8', 'Report8', 'Approval', '1', '1', GETDATE())
+;
 ;
 
 --T M 15
