@@ -1,0 +1,110 @@
+
+
+CREATE PROCEDURE [dbo].[TrnConversionRs1_ApprovalWorkflow]
+    @Doc_ID INT,
+    @Action NVARCHAR(50),
+    @Comment NVARCHAR(255),
+    @Approval_Level INT,
+    @UserID NVARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Created_By INT;
+    DECLARE @Plant_ID INT, @Movement_ID INT;
+
+    -- Define approval flow mapping
+    DECLARE @NextApprovalLevel INT = @Approval_Level + 1;
+    DECLARE @NextRoleID INT;
+
+    -- Temp table to map levels to Role IDs
+    DECLARE @RoleSequence TABLE (Approval_Level INT, Role_ID INT);
+    INSERT INTO @RoleSequence (Approval_Level, Role_ID)
+    VALUES (1, 3), (2, 5), (3, 6), (4, 8), (5, 7);
+
+    IF EXISTS (SELECT 1 FROM Trn_Document WHERE Doc_ID = @Doc_ID)
+    BEGIN
+        SELECT 
+            @Plant_ID = Plant_ID, 
+            @Movement_ID = Movement_ID,
+            @Created_By = Created_By
+        FROM Trn_Document
+        WHERE Doc_ID = @Doc_ID;
+
+        IF EXISTS (
+            SELECT 1
+            FROM Trn_Approval_History
+            WHERE Doc_ID = @Doc_ID AND Approver_Status = 'Pending'
+        )
+        BEGIN
+            IF @Action IN ('Approved', 'Rejected', 'Under Query')
+            BEGIN
+                UPDATE Trn_Approval_History
+                SET Approver_Status = @Action,
+                    Approver_Comment = @Comment,
+                    Approver_ID = @UserID,
+                    Modified_By = @UserID,
+                    Modified_On = GETDATE()
+                WHERE Doc_ID = @Doc_ID
+                  AND Approver_Status = 'Pending';
+            END
+
+            IF @Action = 'Approved'
+            BEGIN
+                -- Get max level from the sequence
+                DECLARE @Max_Level INT;
+                SELECT @Max_Level = MAX(Approval_Level) FROM @RoleSequence;
+
+                IF @Approval_Level < @Max_Level
+                BEGIN
+                    -- Get next Role_ID based on the level
+                    SELECT @NextRoleID = Role_ID FROM @RoleSequence WHERE Approval_Level = @NextApprovalLevel;
+
+                    -- TODO: Fetch actual Approver_ID based on Role_ID and Plant_ID
+                    -- Example:
+                    -- DECLARE @NextApproverID NVARCHAR(255);
+                    -- SELECT @NextApproverID = UserID FROM UserMaster WHERE Role_ID = @NextRoleID AND Plant_ID = @Plant_ID;
+
+                    -- Insert next approval step
+                    INSERT INTO Trn_Approval_History (
+                        Doc_ID, Plant_ID, Movement_ID, Approver_Status, Approval_Level,
+                        Created_By, Created_On
+                    )
+                    VALUES (
+                        @Doc_ID, @Plant_ID, @Movement_ID, 'Pending', @NextApprovalLevel,
+                        @Created_By, GETDATE()
+                    );
+                END
+                ELSE
+                BEGIN
+                    -- Final approval
+                    UPDATE Trn_Document
+                    SET Approval_Status = 'Closed'
+                    WHERE Doc_ID = @Doc_ID;
+
+                    UPDATE Trn_Approval_History
+                    SET Approver_Status = 'Closed'
+                    WHERE Doc_ID = @Doc_ID;
+
+                    UPDATE Trn_SapTransfer_Records
+                    SET Approval_Status = 'Closed',
+                        Modified_By = @UserID,
+                        Modified_On = GETDATE()
+                    WHERE Doc_ID = @Doc_ID;
+                END
+            END
+            ELSE IF @Action IN ('Rejected', 'Under Query')
+            BEGIN
+                UPDATE Trn_Document
+                SET Approval_Status = @Action
+                WHERE Doc_ID = @Doc_ID;
+
+                UPDATE Trn_SapTransfer_Records
+                SET Approval_Status = @Action,
+                    Modified_By = @UserID,
+                    Modified_On = GETDATE()
+                WHERE Doc_ID = @Doc_ID;
+            END
+        END
+    END
+END
