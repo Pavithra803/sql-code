@@ -1,0 +1,131 @@
+ALTER PROCEDURE [dbo].[UploadConversionRs1Record]
+  @Created_By INT
+AS
+BEGIN
+  SET NOCOUNT ON;
+
+  BEGIN TRY
+    DECLARE @DocID INT,
+            @MovementID INT,
+            @PlantID INT;
+
+    -- STEP 1: TEMP LOAD + VALIDATION
+    SELECT
+      t.*,
+      p.Plant_ID,
+      m.Material_ID,
+      mt.Movement_ID,
+
+      CASE WHEN p.Plant_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS Plant_Val,
+      CASE WHEN m.Material_ID IS NOT NULL THEN 'Valid' ELSE 'Invalid' END AS Material_Val,
+      CASE
+        WHEN EXISTS (
+          SELECT 1
+          FROM Mst_User_Plant up
+          WHERE up.User_ID = @Created_By
+            AND up.Plant_ID = p.Plant_ID
+        ) THEN 'Valid' ELSE 'Invalid'
+      END AS User_Plant_Val,
+
+      ROW_NUMBER() OVER (
+        PARTITION BY t.Plant_Code, t.Material_Code
+        ORDER BY t.Plant_Code
+      ) AS RowNum
+
+    INTO #Rs1Temp
+    FROM #ConversionRs1Temp t
+    LEFT JOIN Mst_Plant p
+      ON p.Plant_Code = t.Plant_Code AND p.Active_Status = 1
+    LEFT JOIN Mst_Material m
+      ON m.Material_Code = t.Material_Code
+     AND m.Plant_ID = p.Plant_ID
+     AND m.Active_Status = 1
+    LEFT JOIN Mst_Movement_Type mt
+      ON mt.Movement_Name = 'Conversion Rs1'
+     AND mt.Active_Status = 1;
+
+    -- STEP 2: FILTER VALID ROWS
+    SELECT *
+    INTO #ValidRs1
+    FROM #Rs1Temp
+    WHERE Plant_Val = 'Valid'
+      AND Material_Val = 'Valid'
+      AND User_Plant_Val = 'Valid'
+      AND RowNum = 1;
+
+    -- STEP 3: INSERT DOCUMENT + TRANSFER + HISTORY
+    IF EXISTS (SELECT 1 FROM #ValidRs1)
+    BEGIN
+      SELECT TOP 1
+        @MovementID = Movement_ID,
+        @PlantID = Plant_ID
+      FROM #ValidRs1;
+
+      -- 3.1 Insert document header
+      INSERT INTO Trn_Document (
+        Plant_ID, Movement_ID, Movement_Name,
+        Status, Created_By, Created_On, Approval_Status
+      )
+      VALUES (
+        @PlantID, @MovementID, 'Conversion Rs1',
+        'Active', @Created_By, GETDATE(), 'Pending'
+      );
+
+      SET @DocID = SCOPE_IDENTITY();
+
+      -- 3.2 Insert transfer records
+      INSERT INTO Trn_SapTransfer_Records (
+        Doc_ID, Movement_ID, Plant_ID,
+        Material_ID, Rate_PerPart, Qty, Provision_Qty,
+        Provision_Value,
+        Approval_Status, Created_By, Created_On, Remarks
+      )
+      SELECT
+        @DocID,
+        Movement_ID,
+        Plant_ID,
+        Material_ID,
+        Rate,
+        Qty,
+        Provision_Qty,
+        Provision_Value,
+        'Pending',
+        @Created_By,
+        GETDATE(),
+        Remark
+      FROM #ValidRs1;
+
+      -- 3.3 Insert approval history
+      INSERT INTO Trn_Approval_History (
+        Doc_ID, Plant_ID, Movement_ID,
+        Approver_ID, Approver_Comment,
+        Approver_Status, Approval_Level,
+        Created_By, Created_On
+      )
+      VALUES (
+        @DocID, @PlantID, @MovementID,
+        @Created_By, 'Initial Approval - Rs1',
+        'Pending', 3,
+        @Created_By, GETDATE()
+      );
+    END;
+
+    -- STEP 4: Return Error & Valid Records
+    SELECT *, 'Error_Records' AS Status
+    FROM #Rs1Temp
+    WHERE Plant_Val = 'Invalid'
+       OR Material_Val = 'Invalid'
+       OR User_Plant_Val = 'Invalid';
+
+    SELECT *, 'New_Records' AS Status
+    FROM #ValidRs1;
+
+  END TRY
+  BEGIN CATCH
+    DECLARE @ErrMsg NVARCHAR(4000) = ERROR_MESSAGE();
+    RAISERROR('UploadConversionRs1Record failed: %s', 16, 1, @ErrMsg);
+  END CATCH;
+
+  -- STEP 5: CLEANUP
+  DROP TABLE IF EXISTS #Rs1Temp, #ValidRs1;
+END;
