@@ -22,7 +22,7 @@ BEGIN
     LEFT JOIN Mst_Role R ON U.Role_ID = R.Role_ID
     INNER JOIN Trn_Document D ON A.Doc_ID = D.Doc_ID
     WHERE 
-        A.Doc_ID = 1
+        A.Doc_ID =  @Doc_ID
         AND D.Movement_ID = 7  -- Conversion Rs1
     ORDER BY 
         A.Modified_On DESC;
