@@ -1,3 +1,10 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[UploadConversionRs1Record]    Script Date: 27-06-2025 09:27:56 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 ALTER PROCEDURE [dbo].[UploadConversionRs1Record]
   @Created_By INT
 AS
@@ -21,7 +28,7 @@ BEGIN
       CASE
         WHEN EXISTS (
           SELECT 1
-          FROM Mst_User_Plant up
+          FROM Mst_User up
           WHERE up.User_ID = @Created_By
             AND up.Plant_ID = p.Plant_ID
         ) THEN 'Valid' ELSE 'Invalid'
