@@ -1,0 +1,79 @@
+
+
+
+
+-- Stored procedure to edit Rs1 Movement record
+CREATE PROCEDURE [dbo].[EditRs1MovementRs1Record]
+  @DocID VARCHAR(50),
+  @TrnSapID INT,
+  @MatCode VARCHAR(50),
+  @Qty DECIMAL(18,2),
+  @ProvisionQty DECIMAL(18,2),
+  @ProvisionValue DECIMAL(18,2),
+  @Price DECIMAL(18,2),
+  @ModifiedBy INT
+AS
+BEGIN
+  SET NOCOUNT ON;
+
+  DECLARE @MaterialID INT, @PlantID INT;
+
+  -- 1. Get Plant ID from the transaction
+  SELECT @PlantID = Plant_ID
+  FROM Trn_SapTransfer_Records
+  WHERE Doc_ID = @DocID AND Trn_Sap_ID = @TrnSapID;
+
+  IF @PlantID IS NULL
+  BEGIN
+    RAISERROR('Transaction not found or invalid DocID/TrnSapID.', 16, 1);
+    RETURN;
+  END
+
+  -- 2. Resolve Material ID
+  SELECT @MaterialID = Material_ID
+  FROM Mst_Material
+  WHERE Material_Code = @MatCode;
+
+  IF @MaterialID IS NULL
+  BEGIN
+    RAISERROR('Material not found.', 16, 1);
+    RETURN;
+  END
+
+  -- 3. Validate: Material must belong to the same plant
+  IF EXISTS (
+    SELECT 1 FROM Mst_Material
+    WHERE Material_ID = @MaterialID AND Plant_ID != @PlantID
+  )
+  BEGIN
+    RAISERROR('Material does not belong to the plant.', 16, 1);
+    RETURN;
+  END
+
+  -- 4. Check for duplicate material in the same document (excluding current row)
+  IF EXISTS (
+    SELECT 1
+    FROM Trn_SapTransfer_Records
+    WHERE Doc_ID = @DocID
+      AND Trn_Sap_ID != @TrnSapID
+      AND Material_ID = @MaterialID
+  )
+  BEGIN
+    RAISERROR('Material already exists in the same document.', 16, 1);
+    RETURN;
+  END
+
+  -- 5. Update the record
+  UPDATE Trn_SapTransfer_Records
+  SET
+    Material_ID = @MaterialID,
+    Qty = @Qty,
+    Provision_Qty = @ProvisionQty,
+    Provision_Value = @ProvisionValue,
+    Rate_PerPart = @Price,
+    Modified_By = @ModifiedBy,
+    Modified_On = GETDATE()
+  WHERE Doc_ID = @DocID AND Trn_Sap_ID = @TrnSapID;
+
+
+END;
