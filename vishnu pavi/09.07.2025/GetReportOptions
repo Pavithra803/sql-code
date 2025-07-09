@@ -1,0 +1,13 @@
+CREATE or Alter PROCEDURE GetReportOptions
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+	    Movement_ID,
+        Movement_Code AS value,
+        Movement_Name AS label
+    FROM Mst_Movement_Type
+    WHERE Active_Status = 1   -- only active movement types
+    --ORDER BY Movement_Name;
+END
