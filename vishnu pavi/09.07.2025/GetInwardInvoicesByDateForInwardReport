@@ -1,0 +1,52 @@
+
+CREATE or Alter PROCEDURE [dbo].[GetInwardInvoicesByDateForInwardReport]
+    
+    @FromDate DATE,
+    @ToDate DATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT i.Inward_ID ,
+	
+	v.Vendor_Code,
+	v.Vendor_Name,
+    p.Plant_Code,
+	---CONVERT(VARCHAR(10), i.Invoice_Date, 120) AS Invoice_Date,
+ FORMAT(i.Invoice_Date, 'dd-MM-yyyy') AS Invoice_Date, -- formatted date
+	i.Invoice_No,
+	i.Invoice_Qty,
+	i.Invoice_Value,
+	i.Purchase_Order,
+	
+	m.Material_Code,
+	i.Monthly_Scheduled_Qty,
+	i.Current_Stock,
+	i.Reason_For_Delay,
+	i.Inward_Type,
+	i.Status
+	
+	from Trn_Inward_Old_Invoice i
+    INNER JOIN 
+       Mst_Vendor v
+    ON 
+       i.Vendor_ID = v.Vendor_ID
+	    INNER JOIN 
+       Mst_Material m
+       
+    ON 
+       i.Material_ID = m.Material_ID
+	    INNER JOIN 
+       Mst_User u
+    ON 
+       i.Created_By =u.User_ID
+       INNER JOIN 
+       Mst_Plant  p
+    ON 
+       i.Plant_ID =p.Plant_ID
+    WHERE 
+        i.Inward_Type = 'D' or i.Inward_Type = 's'
+       
+        AND CAST(i.Created_On AS DATE) BETWEEN @FromDate AND @ToDate
+        -- AND i.Status IN ('New', 'Rejected') -- Uncomment if needed
+END;
