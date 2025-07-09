@@ -1,0 +1,44 @@
+
+ALTER PROCEDURE [dbo].[GetInwardInvoicesByDateForService]
+    @UserID INT,
+    @FromDate DATE,
+    @ToDate DATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        i.Inward_ID,
+        
+        v.Vendor_Code,
+        v.Vendor_Name,
+        p.Plant_Code,
+     ---- CONVERT(VARCHAR(10), i.Invoice_Date, 120) AS Invoice_Date, 
+ FORMAT(i.Invoice_Date, 'dd-MM-yyyy') AS Invoice_Date, -- formatted date
+        i.Invoice_No,
+        i.Invoice_Value,
+        i.Purchase_Order,
+        i.Reason_For_Delay,
+        CASE 
+        WHEN i.Inward_Type = 'S' THEN 'Service'
+        WHEN i.Inward_Type = 'D' THEN 'Purchase'
+        ELSE i.Inward_Type
+    END AS Inward_Type,
+        i.Status
+    
+    FROM 
+        Trn_Inward_Old_Invoice i
+    INNER JOIN 
+        Mst_Vendor v ON i.Vendor_ID = v.Vendor_ID
+    INNER JOIN 
+        Mst_User u ON i.Created_By = u.User_ID
+		 INNER JOIN 
+ Mst_Plant  p
+    ON 
+       i.Plant_ID =p.Plant_ID
+    WHERE 
+        i.Inward_Type = 'S'
+        AND i.Created_By = @UserID
+       AND CAST(i.Created_On AS DATE) BETWEEN @FromDate AND @ToDate
+        -- AND i.Status IN ('New', 'Rejected') -- Uncomment if needed
+END;
