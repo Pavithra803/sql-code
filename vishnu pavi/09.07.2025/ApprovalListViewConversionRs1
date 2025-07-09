@@ -1,0 +1,72 @@
+
+
+CREATE or Alter PROCEDURE [dbo].[ApprovalListViewConversionRs1]
+   @Role_ID INT,
+    @Plant_ID INT 
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        p.Plant_Code,
+        FORMAT(d.Created_On, 'dd-MM-yyyy') AS Date,
+        mt.Movement_Code,
+		 mt.Movement_Name,
+        u.User_Name AS Request_By,
+        ah.Doc_ID,
+        ah.Movement_ID,
+        ah.Approver_ID,
+        ah.Approval_Level,
+        ah.Approver_Status,
+
+        MIN(sd.Material_ID) AS Material_Code,
+
+        SUM(ISNULL(sd.Qty, 0)) AS Total_Qty,
+        SUM(ISNULL(sd.Provision_Qty, 0)) AS Total_Provision_Qty,
+        AVG(ISNULL(sd.Rate_PerPart, 0)) AS Avg_Rate_PerPart,
+
+        SUM(ISNULL(sd.Provision_Value, 0)) AS Total_Provision_Value,
+        SUM(ISNULL(sd.Qty, 0) * ISNULL(sd.Rate_PerPart, 0)) AS Total_Calculated_Value,
+
+        SUM(ISNULL(sd.Provision_Value, 0)) - SUM(ISNULL(sd.Qty, 0) * ISNULL(sd.Rate_PerPart, 0)) AS Difference_Value,
+        SUM(ISNULL(sd.Qty, 0)) - SUM(ISNULL(sd.Provision_Qty, 0)) AS Difference_Qty
+
+    FROM Trn_Document d
+    INNER JOIN Trn_Approval_History ah 
+        ON ah.Doc_ID = d.Doc_ID 
+        AND ah.Plant_ID = d.Plant_ID 
+        AND ah.Movement_ID = d.Movement_ID
+    LEFT JOIN Mst_Movement_Type mt 
+        ON mt.Movement_ID = d.Movement_ID  
+    LEFT JOIN Mst_Plant p 
+        ON p.Plant_ID = d.Plant_ID
+    LEFT JOIN Mst_User u 
+        ON u.User_ID = d.Created_By
+    LEFT JOIN Trn_SapTransfer_Records sd
+        ON sd.Doc_ID = d.Doc_ID
+        AND sd.Movement_ID = d.Movement_ID
+        AND sd.Plant_ID = d.Plant_ID
+
+    WHERE 
+        d.Movement_ID = 7
+        AND (
+            (ah.Plant_ID = @Plant_ID AND ah.Approver_Status = 'Pending' AND ah.Approval_Level = @Role_ID)
+            OR
+            (ah.Plant_ID = @Plant_ID AND ah.Approver_Status IN ('Rejected', 'Under Query') AND ah.Approval_Level = 1)
+        )
+
+    GROUP BY
+        p.Plant_Code,
+        FORMAT(d.Created_On, 'dd-MM-yyyy'),
+        mt.Movement_Code,
+		mt.Movement_Name,
+        u.User_Name,
+        ah.Doc_ID,
+        ah.Movement_ID,
+        ah.Approver_ID,
+        ah.Approval_Level,
+        ah.Approver_Status
+
+    ORDER BY 
+        MAX(ah.Modified_On) DESC;
+END
