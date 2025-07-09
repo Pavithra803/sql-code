@@ -1,0 +1,45 @@
+CREATE or Alter PROCEDURE [dbo].[GetInwardInvoicesByDateForEmergency]
+    @UserID INT,
+    @FromDate DATE,
+    @ToDate DATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+  SELECT
+  i.Inward_ID ,
+	--i.Vendor_ID,
+	v.Vendor_Code,
+	v.Vendor_Name,
+	p.Plant_Code,
+	
+	i.Material_Description,
+	i.Invoice_Qty As Quantity,
+	
+	i.Invoice_Value as TotalValue,
+	i.Purchase_Order,
+	
+	i.Reason_For_Delay As Reason,
+	
+	  i.Status
+	  ----i.Approval1_Status,i.Approval2_Status,i.Approval3_Status,i.Approver_1,i.Approver_2,i.Approver_3,i.Approver1_Comment,i.Approver2_Comment,i.Approver3_Comment
+	
+	from Trn_Inward_Old_Invoice i
+    INNER JOIN 
+       Mst_Vendor v
+    ON 
+       i.Vendor_ID = v.Vendor_ID
+	   
+	    INNER JOIN 
+       Mst_User u
+    ON 
+       i.Created_By =u.User_ID
+	   INNER JOIN 
+       Mst_Plant p
+    ON 
+       i.Plant_ID =p.Plant_ID
+    WHERE 
+        i.Inward_Type = 'E'
+        AND i.Created_By = @UserID
+       AND CAST(i.Created_On AS DATE) BETWEEN @FromDate AND @ToDate
+        -- AND i.Status IN ('New', 'Rejected') -- Uncomment if needed
+END;
