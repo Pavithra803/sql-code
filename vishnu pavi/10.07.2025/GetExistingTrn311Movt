@@ -1,3 +1,10 @@
+USE [Sap_Approval]
+GO
+/****** Object:  StoredProcedure [dbo].[GetExistingTrn311Movt]    Script Date: 10-07-2025 18:28:48 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 ALTER PROCEDURE [dbo].[GetExistingTrn311Movt]
     @FromDate DATETIME = NULL,
     @ToDate DATETIME = NULL
@@ -45,7 +52,7 @@ BEGIN
     -- Get latest approval history for this document + movement
     OUTER APPLY (
         SELECT TOP 1 *
-        FROM Trn_Approval_His AH1
+        FROM Trn_Approval_History AH1
         WHERE AH1.Doc_ID = T.Doc_ID AND AH1.Movement_ID = T.Movement_ID
         ORDER BY AH1.Modified_On DESC
     ) AH
