@@ -1,0 +1,62 @@
+ALTER PROCEDURE [dbo].[GetExistingTrn311Movt]
+    @FromDate DATETIME = NULL,
+    @ToDate DATETIME = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        T.Trn_Sap_ID,
+        P.Plant_Code,
+        T.Doc_ID,
+        CONVERT(VARCHAR(10), T.Created_On, 103) AS Date,
+        M.Material_Code,
+        M.Description AS Material_Description,
+        T.Qty,
+        S.Storage_Code AS From_SLoc_Code,
+        S2.Storage_Code AS To_SLoc_Code,
+        T.Valuation_Type,
+        T.Batch,
+        MT.Movement_Name AS Movement_Type,
+        T.Remarks,
+        D.Approval_Status,
+        D.Status AS SAP_Transaction_Status,
+
+        -- Created by user name
+        CU.User_Name AS Created_By,
+
+        -- Approved by user name from latest approval history
+        AU.User_Name AS Approved_By,
+
+        -- Approved date from latest approval history
+        CONVERT(VARCHAR(20), AH.Modified_On, 120) AS Approved_Date
+
+    FROM Trn_SapTransfer_Records T
+    INNER JOIN Trn_Document D ON T.Doc_ID = D.Doc_ID
+    INNER JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID
+    INNER JOIN Mst_Material M ON T.Material_ID = M.Material_ID
+    INNER JOIN Mst_Storage_Location S ON T.SLoc_ID = S.SLoc_ID
+    INNER JOIN Mst_Storage_Location S2 ON T.To_SLoc_ID = S2.SLoc_ID
+    INNER JOIN Mst_Movement_Type MT ON T.Movement_ID = MT.Movement_ID
+
+    -- Created_By user name
+    LEFT JOIN Mst_User CU ON T.Created_By = CU.User_ID
+
+    -- Get latest approval history for this document + movement
+    OUTER APPLY (
+        SELECT TOP 1 *
+        FROM Trn_Approval_His AH1
+        WHERE AH1.Doc_ID = T.Doc_ID AND AH1.Movement_ID = T.Movement_ID
+        ORDER BY AH1.Modified_On DESC
+    ) AH
+
+    -- Approved_By user name from approval history
+    LEFT JOIN Mst_User AU ON AH.Approver_ID = AU.User_ID
+
+    WHERE MT.Movement_ID = 5
+      AND (
+            (@FromDate IS NULL OR CAST(T.Created_On AS DATE) >= CAST(@FromDate AS DATE))
+            AND (@ToDate IS NULL OR CAST(T.Created_On AS DATE) <= CAST(@ToDate AS DATE))
+          )
+    ORDER BY T.Created_On DESC;
+END;
