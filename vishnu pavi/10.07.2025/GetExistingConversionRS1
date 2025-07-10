@@ -17,7 +17,7 @@ BEGIN
     T.Qty * T.Rate_PerPart AS Conversion_Value,
     T.Provision_Qty,
     T.Provision_Value,
-    MT.Movement_Code AS Movement_Type,
+    --MT.Movement_Code AS Movement_Type,
     MT.Movement_Name,
     T.Remarks,
     D.Approval_Status,
