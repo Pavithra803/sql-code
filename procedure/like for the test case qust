@@ -1,1 +1,152 @@
 https://chatgpt.com/share/68739edc-fc20-800a-9d9a-addbda94ecc4
+
+-----------------------------------------------------------------
+
+● Company Master
+✅ Add Company with valid details – PASS
+
+❌ Add Company with duplicate code – FAIL
+
+❌ Edit Company code field – FAIL (Read-only)
+
+✅ Edit Company name and status – PASS
+
+✅ Upload new company logo – PASS
+
+❌ Upload invalid image format as logo – FAIL
+
+✅ Set company as Inactive – PASS
+
+❌ Add company with blank mandatory fields – FAIL
+
+❌ Non-admin user trying to access Company Master – FAIL
+
+✅ Check field length limits (Company Name, Code) – PASS/FAIL
+
+● Business Decision
+✅ Add valid Business Division under Company – PASS
+
+❌ Duplicate Business Division code under same Company – FAIL
+
+✅ Same Division code under different Company – PASS
+
+✅ Edit Division address and status – PASS
+
+❌ Edit Company Code or Division Code – FAIL
+
+❌ Save with empty address – FAIL
+
+✅ Inactive status correctly hides from dropdowns – PASS
+
+● Plant
+✅ Add Plant with unique code – PASS
+
+❌ Duplicate Plant Code under same Company – FAIL
+
+✅ Same Plant Code under different Company – PASS
+
+✅ Edit Short Name, Plant Name – PASS
+
+✅ Set Plant as Inactive – PASS
+
+❌ Edit Plant Code or Company Code – FAIL
+
+✅ Form auto-fills Company Name when Company Code selected – PASS
+
+❌ Save Plant without Short Name – FAIL
+
+● Department
+✅ Add Department with unique 3-digit code – PASS
+
+❌ Add Department with non-3-digit code – FAIL
+
+❌ Add duplicate department under same Plant – FAIL
+
+✅ Edit Department Name or Status – PASS
+
+✅ Set department inactive and ensure it's removed from selection lists – PASS
+
+● User
+✅ Add new user with unique Employee ID – PASS
+
+❌ Add duplicate Employee ID in same Plant – FAIL
+
+✅ Edit all user details except Plant and Employee ID – PASS
+
+❌ Leave password field blank – FAIL
+
+✅ Role dropdown populates correctly – PASS
+
+❌ Unauthorized role user trying to edit another user – FAIL
+
+✅ Deactivate user and verify access removed – PASS
+
+● Role
+✅ Add Role with unique name – PASS
+
+❌ Add duplicate Role name – FAIL
+
+✅ Edit Role name and status – PASS
+
+❌ Submit empty Role name – FAIL
+
+✅ Verify roles are visible only to Admin – PASS
+
+● Material / Vendor / Customer (Pending Data)
+Suggested general test cases once data is ready:
+
+✅ Add record with valid details – PASS
+
+❌ Add duplicate code – FAIL
+
+❌ Submit with missing required fields – FAIL
+
+✅ Edit description, status – PASS
+
+✅ Set inactive and verify hidden from lists – PASS
+
+● Storage Location
+✅ Add Storage with 4-digit unique code – PASS
+
+❌ Add non-4-digit code – FAIL
+
+❌ Duplicate Storage in same Plant – FAIL
+
+✅ Edit Supervisor and Location Name – PASS
+
+✅ Check inactive locations not available in transactions – PASS
+
+● Movement Type
+✅ Add Movement Type with unique code – PASS
+
+❌ Add duplicate Movement Code – FAIL
+
+✅ Edit Movement Type name – PASS
+
+❌ Leave Movement Name blank – FAIL
+
+● Valuation Type
+✅ Add with unique name – PASS
+
+❌ Add duplicate – FAIL
+
+✅ Set inactive – PASS
+
+● Module
+✅ Add Module with unique name per Plant + Dept – PASS
+
+❌ Duplicate under same Plant/Dept – FAIL
+
+✅ Edit Name, Status – PASS
+
+❌ Edit Plant/Dept fields – FAIL
+
+● Line
+✅ Add Line with unique name per Plant + Module – PASS
+
+❌ Duplicate under same config – FAIL
+
+✅ Edit Line name, Supervisor Code – PASS
+
+❌ Edit Plant/Module/Dept fields – FAIL
+
