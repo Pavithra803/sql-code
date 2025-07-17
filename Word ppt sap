@@ -1,0 +1,39 @@
+
+
+Approver Make Action  (Purchase )
+(6) Approval workflow:   Request >>>Case (i) or Case (ii)
+Case (i) Level 1 : Corp MRPC
+Case (ii)Level 1 : Corp MRPC >>> Level 2 : Corp  Finance Head or  Corp MMD Head>>> Send to  SAP.
+--------------------------------------------------------------
+
+ Action: View Purchase Order Details(approval pg )
+
+Case 1: PO ≤ 1 Year
+→ CORP MRPC approves
+→ ✅ SAP Approval (Check Box)
+→ Send to SAP
+
+Case 2: PO > 1 Year
+→ CORP MRPC →
+→ CORP MMD Head or CORP Finance Head
+→ ✅ SAP Approval (Check Box)
+→ Send to SAP
+------------------------------------------------------------
+-------------------------------------------------------------
+(6) Approval workflow  (Service )
+Request >>> L1 Approver: Plant Finance Head >>>L2 Approver: Corp MRPC>>>L3 Approver: Corp Finance Head >>> Send to  SAP.
+----------------------------------------------------------------------
+
+Service Order Approval Workflow   (approval pg )
+🔍 Action: View Service Order Details
+➡️ Then: Take Action (Approve/Reject)
+✅ Last Level Approver (SAP):
+
+Reviews and decides if the order proceeds to SAP
+
+Check box to confirm/send to SAP
+------------------------------------------------------------
+-------------------------------------------------------------
+Emergency Procurement 
+
+
