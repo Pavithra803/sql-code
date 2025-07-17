@@ -1,0 +1,57 @@
+ALTER PROCEDURE GetExistingDocIDTrn551Movt
+    @Doc_ID VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        T.Trn_Sap_ID,
+        P.Plant_Code,
+        T.Doc_ID,
+        CONVERT(VARCHAR(10), T.Created_On, 103) AS Date,
+        M.Material_Code,
+        M.Description AS Material_Description,
+        T.Qty,
+        S.Storage_Code AS SLoc_Code,
+        T.Rate_PerPart,
+        T.Qty * T.Rate_PerPart AS Rejection_Value,
+        T.Provision_Qty,
+        T.Provision_Value,
+        T.Reason_For_Movt,
+        MT.Movement_Code AS Movement_Type,
+        T.Remarks,
+        D.Approval_Status,
+        D.Status AS SAP_Transaction_Status,
+        U.User_Name AS Created_By,
+
+        -- Latest approval info only (any status)
+        AH.Approver_Name,
+        AH.Approver_Comment,
+        AH.Approver_Date
+
+    FROM Trn_SapTransfer_Records T
+    INNER JOIN Trn_Document D ON T.Doc_ID = D.Doc_ID
+    INNER JOIN Mst_Plant P ON T.Plant_ID = P.Plant_ID
+    INNER JOIN Mst_Material M ON T.Material_ID = M.Material_ID
+    INNER JOIN Mst_Storage_Location S ON T.SLoc_ID = S.SLoc_ID
+    INNER JOIN Mst_Movement_Type MT ON T.Movement_ID = MT.Movement_ID
+    LEFT JOIN Mst_User U ON T.Created_By = U.User_ID
+
+    -- Join only latest approval update (any status)
+    LEFT JOIN (
+        SELECT TOP 1
+            AH.Doc_ID,
+            U.User_Name AS Approver_Name,
+            AH.Approver_Comment,
+            CONVERT(VARCHAR(20), AH.Modified_On, 120) AS Approver_Date
+        FROM Trn_Approval_History AH
+        LEFT JOIN Mst_User U ON AH.Approver_ID = U.User_ID
+        WHERE AH.Doc_ID = @Doc_ID
+        ORDER BY AH.Modified_On DESC
+    ) AH ON T.Doc_ID = AH.Doc_ID
+
+    WHERE MT.Movement_ID = 1  -- Update if Movement_ID for 551 differs
+      AND T.Doc_ID = @Doc_ID
+
+    ORDER BY T.Created_On DESC;
+END;
